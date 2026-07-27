@@ -6,6 +6,7 @@ import {
   MapPin, DollarSign, Calendar, Tag, Wrench, User, Phone, Mail,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { BRANDS } from '@/constants/machineryOptions';
 
 interface CustomRequestModalProps {
   isOpen: boolean;
@@ -185,17 +186,9 @@ export const CustomRequestModal: React.FC<CustomRequestModalProps> = ({ isOpen, 
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                     >
                       <option value="">Seleccionar...</option>
-                      <option>Caterpillar</option>
-                      <option>Komatsu</option>
-                      <option>SANY</option>
-                      <option>XCMG</option>
-                      <option>Volvo CE</option>
-                      <option>JCB</option>
-                      <option>John Deere</option>
-                      <option>Case Construction</option>
-                      <option>Hyundai Heavy</option>
-                      <option>Zoomlion</option>
-                      <option value="otra">Otra marca</option>
+                      {BRANDS.map((brand) => (
+                        <option key={brand.value} value={brand.label}>{brand.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>

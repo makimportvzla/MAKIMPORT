@@ -56,7 +56,10 @@ export default function Home() {
       />
 
       {/* Trust & Benefits Grid */}
-      <Benefits onOpenAuth={handleOpenAuth} />
+      <Benefits
+        onOpenAuth={handleOpenAuth}
+        onOpenCustomRequest={() => setCustomRequestOpen(true)}
+      />
 
       {/* Complete Marketplace Catalog Section & Live Bidding with Supabase */}
       <CatalogMarketplace

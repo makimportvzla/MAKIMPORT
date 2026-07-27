@@ -6,6 +6,7 @@ import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { CATEGORIES, BRANDS, VENEZUELA_CITIES } from '@/constants/machineryOptions';
 
 interface AdminPublishModalProps {
   isOpen: boolean;
@@ -22,9 +23,9 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   
   // Section 1: Datos Generales
   const [title, setTitle] = useState('');
-  const [brand, setBrand] = useState('Caterpillar');
+  const [brand, setBrand] = useState('Caterpillar (CAT)');
   const [model, setModel] = useState('');
-  const [category, setCategory] = useState('Excavadora');
+  const [category, setCategory] = useState('Excavadora de Oruga');
   const [year, setYear] = useState(2022);
   const [hours, setHours] = useState(2500);
   const [directPrice, setDirectPrice] = useState(65000);
@@ -70,8 +71,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   const resetForm = () => {
     setTitle('');
     setModel('');
-    setBrand('Caterpillar');
-    setCategory('Excavadora');
+    setBrand('Caterpillar (CAT)');
+    setCategory('Excavadora de Oruga');
     setYear(2022);
     setHours(2500);
     setDetails('');
@@ -315,31 +316,9 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 >
-                  <option value="Excavadora">Excavadora</option>
-                  <option value="Retroexcavadora">Retroexcavadora</option>
-                  <option value="Cargador Frontal">Cargador Frontal</option>
-                  <option value="Bulldozer">Bulldozer / Tractor de Orugas</option>
-                  <option value="Grúa Telescópica">Grúa Telescópica</option>
-                  <option value="Grúa Camión">Grúa Camión</option>
-                  <option value="Camión Canasta">Camión Canasta / Elevador</option>
-                  <option value="Planta Eléctrica">Planta Eléctrica / Generador</option>
-                  <option value="Ambulancia">Ambulancia</option>
-                  <option value="Camión Volteo">Camión Volteo</option>
-                  <option value="Camión Cisterna">Camión Cisterna / Tanque</option>
-                  <option value="Rodillo Compactador">Rodillo Compactador</option>
-                  <option value="Minicargador">Minicargador / Skid Steer</option>
-                  <option value="Motoniveladora">Motoniveladora / Grader</option>
-                  <option value="Pavimentadora">Pavimentadora / Finisher</option>
-                  <option value="Mezcladora de Concreto">Mezcladora de Concreto</option>
-                  <option value="Perforadora">Perforadora / Drill</option>
-                  <option value="Maquinaria Especial">Maquinaria Especial</option>
-                  <option value="Montacargas">Montacargas / Forklift</option>
-                  <option value="Maquinaria Agrícola">Maquinaria Agrícola</option>
-                  <option value="Tractor">Tractor Agrícola</option>
-                  <option value="Lowboy">Lowboy / Remolque Plataforma</option>
-                  <option value="Trituradora">Trituradora</option>
-                  <option value="Compresor de Aire">Compresor de Aire</option>
-                  <option value="Otros">Otros</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat.value} value={cat.label}>{cat.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -350,32 +329,9 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   onChange={(e) => setBrand(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 >
-                  <option value="Caterpillar">Caterpillar (CAT)</option>
-                  <option value="Komatsu">Komatsu</option>
-                  <option value="Volvo">Volvo Construction</option>
-                  <option value="JCB">JCB</option>
-                  <option value="Case">Case Construction</option>
-                  <option value="John Deere">John Deere</option>
-                  <option value="Terex">Terex</option>
-                  <option value="Liebherr">Liebherr</option>
-                  <option value="Hitachi">Hitachi</option>
-                  <option value="Bobcat">Bobcat</option>
-                  <option value="SANY">SANY</option>
-                  <option value="XCMG">XCMG</option>
-                  <option value="SDLG">SDLG</option>
-                  <option value="Doosan">Doosan / Develon</option>
-                  <option value="Hyundai">Hyundai Heavy</option>
-                  <option value="New Holland">New Holland</option>
-                  <option value="Manitou">Manitou</option>
-                  <option value="Grove">Grove Cranes</option>
-                  <option value="Tadano">TADANO</option>
-                  <option value="International">International</option>
-                  <option value="Freightliner">Freightliner</option>
-                  <option value="Mack">Mack Trucks</option>
-                  <option value="Kenworth">Kenworth</option>
-                  <option value="Isuzu">Isuzu</option>
-                  <option value="Zoomlion">Zoomlion</option>
-                  <option value="Otros">Otros</option>
+                  {BRANDS.map((b) => (
+                    <option key={b.value} value={b.label}>{b.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -450,27 +406,9 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                     className="w-full bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                   >
                     <option value="">— Seleccionar ciudad —</option>
-                    <option value="Maracaibo">Maracaibo (Zulia)</option>
-                    <option value="Caracas">Caracas (Distrito Capital)</option>
-                    <option value="Valencia">Valencia (Carabobo)</option>
-                    <option value="Barquisimeto">Barquisimeto (Lara)</option>
-                    <option value="Puerto Ordaz">Puerto Ordaz / Ciudad Guayana (Bolívar)</option>
-                    <option value="San Cristóbal">San Cristóbal (Táchira)</option>
-                    <option value="Maturín">Maturín (Monagas)</option>
-                    <option value="Barcelona">Barcelona (Anzoátegui)</option>
-                    <option value="Cumaná">Cumaná (Sucre)</option>
-                    <option value="Barinas">Barinas (Barinas)</option>
-                    <option value="Mérida">Mérida (Mérida)</option>
-                    <option value="Acarigua">Acarigua (Portuguesa)</option>
-                    <option value="Puerto Cabello">Puerto Cabello (Carabobo)</option>
-                    <option value="Los Teques">Los Teques (Miranda)</option>
-                    <option value="Guarenas">Guarenas / Guatire (Miranda)</option>
-                    <option value="Turmero">Turmero / Maracay (Aragua)</option>
-                    <option value="Coro">Coro (Falcón)</option>
-                    <option value="San Fernando">San Fernando de Apure (Apure)</option>
-                    <option value="Valera">Valera (Trujillo)</option>
-                    <option value="Punto Fijo">Punto Fijo (Falcón)</option>
-                    <option value="Otra ciudad">Otra ciudad</option>
+                    {VENEZUELA_CITIES.map((city) => (
+                      <option key={city.value} value={city.value}>{city.label}</option>
+                    ))}
                   </select>
                   {ciudadVenezuela && (
                     <span className="text-[10px] text-emerald-400 font-bold mt-1 block">

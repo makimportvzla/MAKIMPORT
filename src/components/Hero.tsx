@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Search, Gavel, FileText, ArrowRight, ShieldCheck, Ship, CheckCircle2, ChevronRight, Globe2, Wrench } from 'lucide-react';
+import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
 
 interface HeroProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
@@ -113,13 +114,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
                 >
                   <option value="all">Todas las Marcas</option>
-                  <option value="Caterpillar">Caterpillar (CAT)</option>
-                  <option value="Komatsu">Komatsu</option>
-                  <option value="SANY">SANY</option>
-                  <option value="XCMG">XCMG</option>
-                  <option value="Volvo">Volvo CE</option>
-                  <option value="JCB">JCB</option>
-                  <option value="John Deere">John Deere</option>
+                  {BRANDS.map((b) => (
+                    <option key={b.value} value={b.value}>{b.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -132,12 +129,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
                 >
                   <option value="all">Todos los Tipos</option>
-                  <option value="Excavadora">Excavadoras de Oruga</option>
-                  <option value="Bulldozer">Bulldozers / Tractores</option>
-                  <option value="Cargador">Cargadores Frontales</option>
-                  <option value="Retroexcavadora">Retroexcavadoras</option>
-                  <option value="Grúa">Grúas Industriales</option>
-                  <option value="Motoniveladora">Motoniveladoras</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
                 </select>
               </div>
 

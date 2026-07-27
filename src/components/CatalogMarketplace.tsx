@@ -6,6 +6,7 @@ import { MachineryDetailModal } from './MachineryDetailModal';
 import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CustomRequestModal } from './CustomRequestModal';
+import { CATEGORIES, BRANDS, PREDEFINED_CATEGORY_VALUES as PREDEFINED_CATEGORIES, PREDEFINED_BRAND_VALUES as PREDEFINED_BRANDS } from '@/constants/machineryOptions';
 
 interface CatalogMarketplaceProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
@@ -218,65 +219,6 @@ const DEMO_MACHINERY: MachineryItem[] = [
     description: 'Cargador frontal de ruedas Caterpillar 950M con balde de 3.3 m³, báscula digital integrada y cauchos en 80%.',
     financingAvailable: true
   }
-];
-
-export const PREDEFINED_CATEGORIES = [
-  'excavadora',
-  'retroexcavadora',
-  'cargador frontal',
-  'cargador',
-  'bulldozer',
-  'grúa telescópica',
-  'grúa camión',
-  'grúa',
-  'camión canasta',
-  'planta eléctrica',
-  'ambulancia',
-  'camión volteo',
-  'volteo',
-  'camión cisterna',
-  'rodillo compactador',
-  'compactadora',
-  'minicargador',
-  'motoniveladora',
-  'pavimentadora',
-  'mezcladora de concreto',
-  'perforadora',
-  'maquinaria especial',
-  'montacargas',
-  'maquinaria agrícola',
-  'tractor',
-  'lowboy',
-  'trituradora',
-  'compresor de aire'
-];
-
-export const PREDEFINED_BRANDS = [
-  'caterpillar',
-  'komatsu',
-  'volvo',
-  'jcb',
-  'case',
-  'john deere',
-  'terex',
-  'liebherr',
-  'hitachi',
-  'bobcat',
-  'sany',
-  'xcmg',
-  'sdlg',
-  'doosan',
-  'hyundai',
-  'new holland',
-  'manitou',
-  'grove',
-  'tadano',
-  'international',
-  'freightliner',
-  'mack',
-  'kenworth',
-  'isuzu',
-  'zoomlion'
 ];
 
 export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
@@ -654,31 +596,9 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
               >
                 <option value="all">Todas las Categorías</option>
-                <option value="excavadora">Excavadora</option>
-                <option value="retroexcavadora">Retroexcavadora</option>
-                <option value="cargador frontal">Cargador Frontal</option>
-                <option value="bulldozer">Bulldozer / Tractor de Orugas</option>
-                <option value="grúa telescópica">Grúa Telescópica</option>
-                <option value="grúa camión">Grúa Camión</option>
-                <option value="camión canasta">Camión Canasta / Elevador</option>
-                <option value="planta eléctrica">Planta Eléctrica / Generador</option>
-                <option value="ambulancia">Ambulancia</option>
-                <option value="camión volteo">Camión Volteo</option>
-                <option value="camión cisterna">Camión Cisterna / Tanque</option>
-                <option value="rodillo compactador">Rodillo Compactador</option>
-                <option value="minicargador">Minicargador / Skid Steer</option>
-                <option value="motoniveladora">Motoniveladora / Grader</option>
-                <option value="pavimentadora">Pavimentadora / Finisher</option>
-                <option value="mezcladora de concreto">Mezcladora de Concreto</option>
-                <option value="perforadora">Perforadora / Drill</option>
-                <option value="maquinaria especial">Maquinaria Especial</option>
-                <option value="montacargas">Montacargas / Forklift</option>
-                <option value="maquinaria agrícola">Maquinaria Agrícola</option>
-                <option value="tractor">Tractor Agrícola</option>
-                <option value="lowboy">Lowboy / Remolque Plataforma</option>
-                <option value="trituradora">Trituradora</option>
-                <option value="compresor de aire">Compresor de Aire</option>
-                <option value="otros">Otros</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
               </select>
             </div>
 
@@ -693,32 +613,9 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
               >
                 <option value="all">Todas las Marcas</option>
-                <option value="caterpillar">Caterpillar (CAT)</option>
-                <option value="komatsu">Komatsu</option>
-                <option value="volvo">Volvo CE</option>
-                <option value="jcb">JCB</option>
-                <option value="case">Case Construction</option>
-                <option value="john deere">John Deere</option>
-                <option value="terex">Terex</option>
-                <option value="liebherr">Liebherr</option>
-                <option value="hitachi">Hitachi</option>
-                <option value="bobcat">Bobcat</option>
-                <option value="sany">SANY</option>
-                <option value="xcmg">XCMG</option>
-                <option value="sdlg">SDLG</option>
-                <option value="doosan">Doosan / Develon</option>
-                <option value="hyundai">Hyundai Heavy</option>
-                <option value="new holland">New Holland</option>
-                <option value="manitou">Manitou</option>
-                <option value="grove">Grove Cranes</option>
-                <option value="tadano">TADANO</option>
-                <option value="international">International</option>
-                <option value="freightliner">Freightliner</option>
-                <option value="mack">Mack Trucks</option>
-                <option value="kenworth">Kenworth</option>
-                <option value="isuzu">Isuzu</option>
-                <option value="zoomlion">Zoomlion</option>
-                <option value="otros">Otros</option>
+                {BRANDS.map((brand) => (
+                  <option key={brand.value} value={brand.value}>{brand.label}</option>
+                ))}
               </select>
             </div>
 
@@ -926,9 +823,17 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                         {/* Content */}
                         <div className="p-5 space-y-4">
                           <div>
-                            <span className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">
-                              {item.brand} • {item.category}
-                            </span>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">
+                                {item.brand} • {item.category}
+                              </span>
+                              {item.ciudadVenezuela && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                                  <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  {item.ciudadVenezuela}
+                                </span>
+                              )}
+                            </div>
                             <h3 className="text-xl font-extrabold text-white group-hover:text-orange-400 transition-colors mt-0.5">
                               {item.name}
                             </h3>
@@ -1016,10 +921,19 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                         </div>
 
                         <div className="space-y-2 w-full">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-bold text-orange-400 uppercase">{item.brand}</span>
                             <span className="text-xs text-slate-500">•</span>
                             <span className="text-xs text-slate-300">{item.category}</span>
+                            {item.ciudadVenezuela && (
+                              <>
+                                <span className="text-xs text-slate-500">•</span>
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                                  <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  {item.ciudadVenezuela}
+                                </span>
+                              </>
+                            )}
                           </div>
 
                           <h3 className="text-xl font-extrabold text-white group-hover:text-orange-400 transition-colors">
@@ -1092,33 +1006,12 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
               >
                 <option value="all">Todas las Categorías</option>
-                <option value="excavadora">Excavadora</option>
-                <option value="retroexcavadora">Retroexcavadora</option>
-                <option value="cargador frontal">Cargador Frontal</option>
-                <option value="bulldozer">Bulldozer / Tractor de Orugas</option>
-                <option value="grúa telescópica">Grúa Telescópica</option>
-                <option value="grúa camión">Grúa Camión</option>
-                <option value="camión canasta">Camión Canasta / Elevador</option>
-                <option value="planta eléctrica">Planta Eléctrica / Generador</option>
-                <option value="ambulancia">Ambulancia</option>
-                <option value="camión volteo">Camión Volteo</option>
-                <option value="camión cisterna">Camión Cisterna / Tanque</option>
-                <option value="rodillo compactador">Rodillo Compactador</option>
-                <option value="minicargador">Minicargador / Skid Steer</option>
-                <option value="motoniveladora">Motoniveladora / Grader</option>
-                <option value="pavimentadora">Pavimentadora / Finisher</option>
-                <option value="mezcladora de concreto">Mezcladora de Concreto</option>
-                <option value="perforadora">Perforadora / Drill</option>
-                <option value="maquinaria especial">Maquinaria Especial</option>
-                <option value="montacargas">Montacargas / Forklift</option>
-                <option value="maquinaria agrícola">Maquinaria Agrícola</option>
-                <option value="tractor">Tractor Agrícola</option>
-                <option value="lowboy">Lowboy / Remolque Plataforma</option>
-                <option value="trituradora">Trituradora</option>
-                <option value="compresor de aire">Compresor de Aire</option>
-                <option value="otros">Otros</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
               </select>
             </div>
 
@@ -1131,32 +1024,9 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
               >
                 <option value="all">Todas las Marcas</option>
-                <option value="caterpillar">Caterpillar (CAT)</option>
-                <option value="komatsu">Komatsu</option>
-                <option value="volvo">Volvo CE</option>
-                <option value="jcb">JCB</option>
-                <option value="case">Case Construction</option>
-                <option value="john deere">John Deere</option>
-                <option value="terex">Terex</option>
-                <option value="liebherr">Liebherr</option>
-                <option value="hitachi">Hitachi</option>
-                <option value="bobcat">Bobcat</option>
-                <option value="sany">SANY</option>
-                <option value="xcmg">XCMG</option>
-                <option value="sdlg">SDLG</option>
-                <option value="doosan">Doosan / Develon</option>
-                <option value="hyundai">Hyundai Heavy</option>
-                <option value="new holland">New Holland</option>
-                <option value="manitou">Manitou</option>
-                <option value="grove">Grove Cranes</option>
-                <option value="tadano">TADANO</option>
-                <option value="international">International</option>
-                <option value="freightliner">Freightliner</option>
-                <option value="mack">Mack Trucks</option>
-                <option value="kenworth">Kenworth</option>
-                <option value="isuzu">Isuzu</option>
-                <option value="zoomlion">Zoomlion</option>
-                <option value="otros">Otros</option>
+                {BRANDS.map((brand) => (
+                  <option key={brand.value} value={brand.value}>{brand.label}</option>
+                ))}
               </select>
             </div>
 

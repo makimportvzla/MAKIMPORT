@@ -3,9 +3,10 @@ import { ShieldCheck, Ship, Gavel, CreditCard, Award, CheckCircle2, ArrowRight }
 
 interface BenefitsProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
+  onOpenCustomRequest?: () => void;
 }
 
-export const Benefits: React.FC<BenefitsProps> = ({ onOpenAuth }) => {
+export const Benefits: React.FC<BenefitsProps> = ({ onOpenAuth, onOpenCustomRequest }) => {
   const benefitsList = [
     {
       icon: ShieldCheck,
@@ -110,16 +111,16 @@ export const Benefits: React.FC<BenefitsProps> = ({ onOpenAuth }) => {
             <div>
               <h4 className="text-lg font-bold text-white">¿Representas a una empresa constructora o contratista en Venezuela?</h4>
               <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-                Regístrate con tu RIF comercial para solicitar inspección personalizada y asesoría aduanal previa.
+                Solicita cotización por volumen para múltiples equipos, tarifas preferenciales en logística y asesoría aduanal premium.
               </p>
             </div>
           </div>
 
           <button
-            onClick={() => onOpenAuth('register')}
+            onClick={() => onOpenCustomRequest?.()}
             className="shrink-0 px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm rounded-xl flex items-center gap-2 shadow-lg transition-all"
           >
-            <span>Registrar Empresa / RIF</span>
+            <span>Solicitar Cotización Corporativa</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
