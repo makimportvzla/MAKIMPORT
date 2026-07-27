@@ -220,6 +220,30 @@ const DEMO_MACHINERY: MachineryItem[] = [
   }
 ];
 
+export const PREDEFINED_CATEGORIES = [
+  'excavadora',
+  'retroexcavadora',
+  'cargador',
+  'bulldozer',
+  'compactadora',
+  'trituradora',
+  'volteo',
+  'grúa'
+];
+
+export const PREDEFINED_BRANDS = [
+  'caterpillar',
+  'komatsu',
+  'sany',
+  'xcmg',
+  'volvo',
+  'jcb',
+  'john deere',
+  'case',
+  'hyundai',
+  'zoomlion'
+];
+
 export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   onOpenAuth,
   userRole = 'client',
@@ -234,18 +258,12 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  // Filter States
-  const [transactionFilter, setTransactionFilter] = useState<'all' | 'auction' | 'direct'>(
-    (initialFilters?.transaction as any) || 'all'
-  );
+  // Filter States (Simplified to Category, Brand, Model, Year)
   const [categoryFilter, setCategoryFilter] = useState<string>(initialFilters?.type || 'all');
   const [brandFilter, setBrandFilter] = useState<string>(initialFilters?.brand || 'all');
-  const [originFilter, setOriginFilter] = useState<string>(initialFilters?.origin || 'all');
-  const [minYear, setMinYear] = useState<number>(2015);
-  const [maxYear, setMaxYear] = useState<number>(2026);
-  const [hoursFilter, setHoursFilter] = useState<'all' | 'under2k' | '2k-5k' | 'over5k'>('all');
-  const [financingFilter, setFinancingFilter] = useState<boolean | 'all'>('all');
-  const [portFilter, setPortFilter] = useState<string>('all');
+  const [modelFilter, setModelFilter] = useState<string>('');
+  const [minYear, setMinYear] = useState<string>('');
+  const [maxYear, setMaxYear] = useState<string>('');
   const [customRequestOpen, setCustomRequestOpen] = useState(false);
   
   // Sorting State
@@ -254,13 +272,10 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   const [timeLeftMap, setTimeLeftMap] = useState<{ [key: string]: string }>({});
 
   // Sync initialFilters from parent components / Hero
-  // Always apply ALL fields (including 'all') so a Hero search reset properly clears previous filters
   useEffect(() => {
     if (initialFilters) {
       setBrandFilter(initialFilters.brand || 'all');
       setCategoryFilter(initialFilters.type || 'all');
-      setOriginFilter(initialFilters.origin || 'all');
-      setTransactionFilter((initialFilters.transaction as any) || 'all');
     }
   }, [initialFilters]);
 
@@ -421,50 +436,68 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
   // Reset Filters Function
   const handleResetFilters = () => {
-    setTransactionFilter('all');
     setCategoryFilter('all');
     setBrandFilter('all');
-    setOriginFilter('all');
-    setMinYear(2015);
-    setMaxYear(2026);
-    setHoursFilter('all');
-    setFinancingFilter('all');
-    setPortFilter('all');
+    setModelFilter('');
+    setMinYear('');
+    setMaxYear('');
     setSortBy('featured');
   };
 
-  // Filter & Sorting Logic
+  // Filter & Sorting Logic (Strictly only Category, Brand, Model, and Year)
   const filteredAndSortedItems = items
     .filter((item) => {
-      if (transactionFilter === 'auction' && item.status !== 'auction') return false;
-      if (transactionFilter === 'direct' && item.status !== 'direct') return false;
-
-      // Normalize both sides: trim whitespace + lowercase for safe comparison
       const itemCategory = (item.category || '').trim().toLowerCase();
       const itemBrand = (item.brand || '').trim().toLowerCase();
       const filterCategory = categoryFilter.trim().toLowerCase();
       const filterBrand = brandFilter.trim().toLowerCase();
 
-      if (filterCategory !== 'all' && itemCategory !== filterCategory) return false;
-      if (filterBrand !== 'all' && itemBrand !== filterBrand) return false;
-
-      if (originFilter !== 'all') {
-        if (originFilter === 'USA' && item.origin !== 'USA') return false;
-        if (originFilter === 'China' && item.origin !== 'China') return false;
-        if (originFilter === 'Venezuela' && item.origin !== 'Venezuela') return false;
+      // Category filter (support custom categories with "Otros")
+      if (filterCategory !== 'all') {
+        if (filterCategory === 'otros') {
+          const isPredefined = PREDEFINED_CATEGORIES.some(cat => itemCategory.includes(cat) || cat.includes(itemCategory));
+          if (isPredefined && itemCategory !== 'otros') {
+            return false;
+          }
+        } else {
+          if (!itemCategory.includes(filterCategory) && !filterCategory.includes(itemCategory)) {
+            return false;
+          }
+        }
       }
 
-      if (portFilter !== 'all' && item.destinationPort) {
-        if (!item.destinationPort.toLowerCase().includes(portFilter.toLowerCase())) return false;
+      // Brand filter (support custom brands with "Otros")
+      if (filterBrand !== 'all') {
+        if (filterBrand === 'otros') {
+          const isPredefined = PREDEFINED_BRANDS.some(b => itemBrand.includes(b) || b.includes(itemBrand));
+          if (isPredefined && itemBrand !== 'otros') {
+            return false;
+          }
+        } else {
+          if (!itemBrand.includes(filterBrand) && !filterBrand.includes(itemBrand)) {
+            return false;
+          }
+        }
       }
 
-      if (item.year < minYear || item.year > maxYear) return false;
+      // Model filter
+      if (modelFilter) {
+        const itemModel = (item.model || '').trim().toLowerCase();
+        const filterModel = modelFilter.trim().toLowerCase();
+        if (!itemModel.includes(filterModel)) {
+          return false;
+        }
+      }
 
-      if (hoursFilter === 'under2k' && item.hours >= 2000) return false;
-      if (hoursFilter === '2k-5k' && (item.hours < 2000 || item.hours > 5000)) return false;
-      if (hoursFilter === 'over5k' && item.hours <= 5000) return false;
-
-      if (financingFilter !== 'all' && item.financingAvailable !== financingFilter) return false;
+      // Year range filter
+      if (minYear) {
+        const min = Number(minYear);
+        if (!isNaN(min) && item.year < min) return false;
+      }
+      if (maxYear) {
+        const max = Number(maxYear);
+        if (!isNaN(max) && item.year > max) return false;
+      }
 
       return true;
     })
@@ -503,7 +536,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               className="lg:hidden px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold flex items-center gap-2 text-white"
             >
               <SlidersHorizontal className="w-4 h-4 text-orange-500" />
-              <span>Filtros Avanzados</span>
+              <span>Filtros</span>
             </button>
 
             <span className="text-xs text-slate-400 font-medium hidden sm:inline">
@@ -512,31 +545,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
           </div>
         </div>
 
-        {/* Quick Transaction Tabs */}
-        <div className="flex items-center gap-2 mb-6 flex-wrap">
-          {([
-            { key: 'all',     label: 'Todos los Equipos' },
-            { key: 'direct',  label: '🏷️ Compra Inmediata' },
-            { key: 'auction', label: '🔨 Subastas en Vivo' },
-          ] as const).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setTransactionFilter(key)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
-                transactionFilter === key
-                  ? key === 'auction'
-                    ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-950/40'
-                    : key === 'direct'
-                    ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-950/40'
-                    : 'bg-slate-700 border-slate-600 text-white'
-                  : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          <span className="ml-auto text-xs text-slate-500">
-            <strong className="text-slate-300">{filteredAndSortedItems.length}</strong> equipos
+        {/* Catalog Header Information */}
+        <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-800/50">
+          <span className="text-xs text-slate-400 font-medium">
+            Explore nuestro inventario completo de maquinaria disponible para compra inmediata y subastas.
+          </span>
+          <span className="text-xs text-slate-500 font-medium">
+            Total: <strong className="text-slate-300 font-extrabold">{filteredAndSortedItems.length}</strong> equipos
           </span>
         </div>
 
@@ -570,7 +585,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider">
                 <SlidersHorizontal className="w-4 h-4 text-orange-500" />
-                <span>Filtros Avanzados</span>
+                <span>Filtros</span>
               </div>
               <button
                 onClick={handleResetFilters}
@@ -581,52 +596,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               </button>
             </div>
 
-            {/* 1. Transaction Type */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                Estado de Transacción
-              </label>
-              <div className="space-y-1 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-950 transition-colors">
-                  <input
-                    type="radio"
-                    name="transaction"
-                    checked={transactionFilter === 'all'}
-                    onChange={() => setTransactionFilter('all')}
-                    className="text-orange-600 focus:ring-orange-500 bg-slate-950"
-                  />
-                  <span>Todos los Equipos</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-950 transition-colors">
-                  <input
-                    type="radio"
-                    name="transaction"
-                    checked={transactionFilter === 'auction'}
-                    onChange={() => setTransactionFilter('auction')}
-                    className="text-orange-600 focus:ring-orange-500 bg-slate-950"
-                  />
-                  <span className="flex items-center gap-1 text-orange-400 font-bold">
-                    <Gavel className="w-3.5 h-3.5" />
-                    Solo Subastas Activas
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-950 transition-colors">
-                  <input
-                    type="radio"
-                    name="transaction"
-                    checked={transactionFilter === 'direct'}
-                    onChange={() => setTransactionFilter('direct')}
-                    className="text-orange-600 focus:ring-orange-500 bg-slate-950"
-                  />
-                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Solo Compra Inmediata
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* 2. Category Filter */}
+            {/* 1. Category Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
                 Categoría / Tipo de Equipo
@@ -649,7 +619,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               </select>
             </div>
 
-            {/* 3. Brand Filter */}
+            {/* 2. Brand Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
                 Marca del Fabricante
@@ -674,95 +644,42 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               </select>
             </div>
 
-            {/* 4. Origin Location */}
+            {/* 3. Model Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                Ubicación / Origen
+                Modelo
               </label>
-              <select
-                value={originFilter}
-                onChange={(e) => setOriginFilter(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
-              >
-                <option value="all">Todos los Orígenes</option>
-                <option value="USA">🇺🇸 EE.UU. (Houston / Miami)</option>
-                <option value="China">🇨🇳 China (Shanghai / Ningbo)</option>
-                <option value="Venezuela">🇻🇪 Ya en Venezuela / Puerto Cabello</option>
-              </select>
+              <input
+                type="text"
+                placeholder="Escribe el modelo..."
+                value={modelFilter}
+                onChange={(e) => setModelFilter(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+              />
             </div>
 
-            {/* 5. Port Destination Filter */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                Puerto de Destino
-              </label>
-              <select
-                value={portFilter}
-                onChange={(e) => setPortFilter(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
-              >
-                <option value="all">Todos los Puertos</option>
-                <option value="Puerto Cabello">⚓ Puerto Cabello</option>
-                <option value="La Guaira">⚓ La Guaira</option>
-                <option value="Maracaibo">⚓ Maracaibo</option>
-              </select>
-            </div>
-
-            {/* 6. Year Range */}
+            {/* 4. Year Range Filter */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <label className="font-bold text-slate-300 uppercase tracking-wider">Rango de Año</label>
-                <span className="font-mono text-orange-400 font-bold">{minYear} - {maxYear}</span>
+                <span className="font-mono text-orange-400 font-bold">{minYear || 'Mín'} - {maxYear || 'Máx'}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
-                  min={2000}
-                  max={2026}
+                  placeholder="Desde"
                   value={minYear}
-                  onChange={(e) => setMinYear(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-mono text-center"
+                  onChange={(e) => setMinYear(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-mono text-center focus:outline-none focus:border-orange-500"
                 />
                 <input
                   type="number"
-                  min={2000}
-                  max={2026}
+                  placeholder="Hasta"
                   value={maxYear}
-                  onChange={(e) => setMaxYear(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-mono text-center"
+                  onChange={(e) => setMaxYear(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-mono text-center focus:outline-none focus:border-orange-500"
                 />
               </div>
-            </div>
-
-            {/* 6. Hours Filter */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                Horas de Uso
-              </label>
-              <select
-                value={hoursFilter}
-                onChange={(e) => setHoursFilter(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
-              >
-                <option value="all">Todas las Horas</option>
-                <option value="under2k">Menos de 2,000 hrs (Baja)</option>
-                <option value="2k-5k">2,000 - 5,000 hrs (Media)</option>
-                <option value="over5k">Más de 5,000 hrs (+5k)</option>
-              </select>
-            </div>
-
-            {/* 7. Financing Condition */}
-            <div className="pt-2 border-t border-slate-800">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 font-bold">
-                <input
-                  type="checkbox"
-                  checked={financingFilter === true}
-                  onChange={(e) => setFinancingFilter(e.target.checked ? true : 'all')}
-                  className="rounded border-slate-700 text-orange-600 focus:ring-orange-500 bg-slate-950"
-                />
-                <CreditCard className="w-3.5 h-3.5 text-amber-400" />
-                <span>Solo Financiamiento Disponible</span>
-              </label>
             </div>
 
           </aside>
@@ -1047,7 +964,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-sm lg:hidden animate-in fade-in">
           <div className="w-full max-w-xs bg-slate-900 border-l border-slate-800 h-full p-5 overflow-y-auto space-y-6">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="font-bold text-white text-sm">Filtros Avanzados</span>
+              <span className="font-bold text-white text-sm">Filtros</span>
               <button onClick={() => setMobileFiltersOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -1059,13 +976,18 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
               >
                 <option value="all">Todas las Categorías</option>
-                <option value="excavadora">Excavadoras</option>
+                <option value="excavadora">Excavadoras de Oruga</option>
                 <option value="retroexcavadora">Retroexcavadoras</option>
                 <option value="cargador">Cargadores Frontales</option>
-                <option value="bulldozer">Bulldozers</option>
+                <option value="bulldozer">Bulldozers / Tractores</option>
+                <option value="compactadora">Compactadoras</option>
+                <option value="trituradora">Trituradoras</option>
+                <option value="volteo">Camiones de Volteo</option>
+                <option value="grúa">Grúas Industriales</option>
+                <option value="otros">Otros</option>
               </select>
             </div>
 
@@ -1075,22 +997,73 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               <select
                 value={brandFilter}
                 onChange={(e) => setBrandFilter(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
               >
                 <option value="all">Todas las Marcas</option>
-                <option value="caterpillar">Caterpillar</option>
+                <option value="caterpillar">Caterpillar (CAT)</option>
                 <option value="komatsu">Komatsu</option>
                 <option value="sany">SANY</option>
                 <option value="xcmg">XCMG</option>
+                <option value="volvo">Volvo CE</option>
+                <option value="jcb">JCB</option>
+                <option value="john deere">John Deere</option>
+                <option value="case">Case Construction</option>
+                <option value="hyundai">Hyundai Heavy</option>
+                <option value="zoomlion">Zoomlion</option>
+                <option value="otros">Otros</option>
               </select>
             </div>
 
-            <button
-              onClick={() => setMobileFiltersOpen(false)}
-              className="w-full py-3 bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md"
-            >
-              Aplicar Filtros
-            </button>
+            {/* Model Input */}
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase block mb-1">Modelo</label>
+              <input
+                type="text"
+                placeholder="Escribe el modelo..."
+                value={modelFilter}
+                onChange={(e) => setModelFilter(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Year Range */}
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase block mb-1">Rango de Año</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  placeholder="Desde"
+                  value={minYear}
+                  onChange={(e) => setMinYear(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white text-center focus:outline-none"
+                />
+                <input
+                  type="number"
+                  placeholder="Hasta"
+                  value={maxYear}
+                  onChange={(e) => setMaxYear(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white text-center focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex gap-2">
+              <button
+                onClick={() => {
+                  handleResetFilters();
+                  setMobileFiltersOpen(false);
+                }}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl shadow-md"
+              >
+                Limpiar
+              </button>
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md"
+              >
+                Aplicar
+              </button>
+            </div>
           </div>
         </div>
       )}
