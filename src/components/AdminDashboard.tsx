@@ -161,7 +161,7 @@ export const AdminDashboard: React.FC = () => {
   const [title, setTitle] = useState('');
   const [brand, setBrand] = useState('Caterpillar');
   const [model, setModel] = useState('');
-  const [category, setCategory] = useState<'Excavadora' | 'Retroexcavadora' | 'Cargador' | 'Bulldozer'>('Excavadora');
+  const [category, setCategory] = useState<string>('Excavadora');
   const [year, setYear] = useState(2022);
   const [hours, setHours] = useState(2400);
   const [origin, setOrigin] = useState<'USA' | 'China' | 'Venezuela'>('USA');
@@ -746,6 +746,20 @@ export const AdminDashboard: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
+                    <label className="block font-medium text-slate-300 mb-1">Categoría *</label>
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+                      <option value="Excavadora">Excavadora</option>
+                      <option value="Retroexcavadora">Retroexcavadora</option>
+                      <option value="Cargador">Cargador Frontal</option>
+                      <option value="Bulldozer">Bulldozer / Tractor</option>
+                      <option value="Compactadora">Compactadora</option>
+                      <option value="Trituradora">Trituradora</option>
+                      <option value="Volteo">Camión de Volteo</option>
+                      <option value="Grúa">Grúa Industrial</option>
+                      <option value="Otros">Otros</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block font-medium text-slate-300 mb-1">Marca *</label>
                     <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
                       <option value="Caterpillar">Caterpillar</option>
@@ -753,12 +767,19 @@ export const AdminDashboard: React.FC = () => {
                       <option value="SANY">SANY</option>
                       <option value="XCMG">XCMG</option>
                       <option value="Volvo">Volvo</option>
+                      <option value="JCB">JCB</option>
+                      <option value="John Deere">John Deere</option>
+                      <option value="Case">Case</option>
+                      <option value="Hyundai">Hyundai</option>
+                      <option value="Zoomlion">Zoomlion</option>
+                      <option value="Otros">Otros</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block font-medium text-slate-300 mb-1">Modelo *</label>
-                    <input type="text" required value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" placeholder="320D L" />
-                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-300 mb-1">Modelo *</label>
+                  <input type="text" required value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" placeholder="320D L" />
                 </div>
 
                 {/* Supabase Storage Image Uploader */}

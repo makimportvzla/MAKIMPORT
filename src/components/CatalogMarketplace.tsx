@@ -638,6 +638,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 <option value="trituradora">Trituradoras</option>
                 <option value="volteo">Camiones de Volteo</option>
                 <option value="grúa">Grúas Industriales</option>
+                <option value="otros">Otros</option>
               </select>
             </div>
 
@@ -662,6 +663,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 <option value="case">Case Construction</option>
                 <option value="hyundai">Hyundai Heavy</option>
                 <option value="zoomlion">Zoomlion</option>
+                <option value="otros">Otros</option>
               </select>
             </div>
 
