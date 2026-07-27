@@ -5,6 +5,7 @@ import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
 import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { AdminEditModal } from './AdminEditModal';
 
 interface UserProfile {
   id: string;
@@ -157,6 +158,8 @@ export const AdminDashboard: React.FC = () => {
   // Form State for Add / Edit Machinery
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingMachine, setEditingMachine] = useState<MachineryItem | null>(null);
 
   const [title, setTitle] = useState('');
   const [brand, setBrand] = useState('Caterpillar');
@@ -221,6 +224,7 @@ export const AdminDashboard: React.FC = () => {
             inspeccionHidraulico: Number(m.inspeccion_hidraulico) || 92,
             inspeccionTransmision: Number(m.inspeccion_transmision) || 94,
             inspeccionCabina: Number(m.inspeccion_cabina) || 90,
+            inspeccionCauchos: m.inspeccion_cauchos !== undefined && m.inspeccion_cauchos !== null ? Number(m.inspeccion_cauchos) : undefined,
             transitTime: m.tiempo_transito || '25-35 días'
           }));
           setMachines(converted);
@@ -238,13 +242,21 @@ export const AdminDashboard: React.FC = () => {
 
     const handleLocalCreate = (e: any) => {
       if (e.detail) {
-        setMachines((prev) => [e.detail, ...prev.filter((item) => item.id !== e.detail.id)]);
+        setMachines((prev) => {
+          const exists = prev.some((item) => item.id === e.detail.id);
+          if (exists) {
+            return prev.map((item) => item.id === e.detail.id ? e.detail : item);
+          }
+          return [e.detail, ...prev];
+        });
       }
     };
     window.addEventListener('machinery_created', handleLocalCreate);
+    window.addEventListener('machinery_updated', handleLocalCreate);
 
     return () => {
       window.removeEventListener('machinery_created', handleLocalCreate);
+      window.removeEventListener('machinery_updated', handleLocalCreate);
     };
   }, []);
 
@@ -604,6 +616,14 @@ export const AdminDashboard: React.FC = () => {
                       >
                         {m.status === 'auction' ? <PauseCircle className="w-4 h-4 text-orange-400" /> : <PlayCircle className="w-4 h-4 text-emerald-400" />}
                         <span className="hidden sm:inline">{m.status === 'auction' ? 'Pausar Subasta' : 'Activar Subasta'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => { setEditingMachine(m); setShowEditModal(true); }}
+                        className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-amber-400 hover:text-amber-300 hover:bg-slate-900 transition-colors"
+                        title="Editar maquinaria"
+                      >
+                        <Edit className="w-4 h-4" />
                       </button>
 
                       <button
@@ -1062,6 +1082,17 @@ export const AdminDashboard: React.FC = () => {
         )}
 
       </div>
+
+      {showEditModal && editingMachine && (
+        <AdminEditModal
+          isOpen={showEditModal}
+          onClose={() => { setShowEditModal(false); setEditingMachine(null); }}
+          machineryItem={editingMachine}
+          onMachineryUpdated={(updatedItem) => {
+            setMachines((prev) => prev.map((m) => m.id === updatedItem.id ? updatedItem : m));
+          }}
+        />
+      )}
     </div>
   );
 };

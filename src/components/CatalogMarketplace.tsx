@@ -300,6 +300,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       inspeccionHidraulico: Number(row.inspeccion_hidraulico) || 92,
       inspeccionTransmision: Number(row.inspeccion_transmision) || 94,
       inspeccionCabina: Number(row.inspeccion_cabina) || 90,
+      inspeccionCauchos: row.inspeccion_cauchos !== undefined && row.inspeccion_cauchos !== null ? Number(row.inspeccion_cauchos) : undefined,
       transitTime: row.tiempo_transito || '25-35 días',
       ciudadVenezuela: row.ciudad_venezuela || undefined
     };
@@ -363,7 +364,23 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         (payload) => {
           if (payload.new) {
             const newItem = mapDbRowToMachineryItem(payload.new);
-            setItems((prev) => [newItem, ...prev.filter((i) => i.id !== newItem.id)]);
+            setItems((prev) => {
+              const exists = prev.some((item) => item.id === newItem.id);
+              if (exists) {
+                return prev.map((item) => item.id === newItem.id ? newItem : item);
+              }
+              return [newItem, ...prev];
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'machinery' },
+        (payload) => {
+          if (payload.new) {
+            const updatedItem = mapDbRowToMachineryItem(payload.new);
+            setItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
           }
         }
       )
@@ -380,14 +397,22 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
     const handleLocalCreate = (e: any) => {
       if (e.detail) {
-        setItems((prev) => [e.detail, ...prev.filter((i) => i.id !== e.detail.id)]);
+        setItems((prev) => {
+          const exists = prev.some((item) => item.id === e.detail.id);
+          if (exists) {
+            return prev.map((item) => item.id === e.detail.id ? e.detail : item);
+          }
+          return [e.detail, ...prev];
+        });
       }
     };
     window.addEventListener('machinery_created', handleLocalCreate);
+    window.addEventListener('machinery_updated', handleLocalCreate);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('machinery_created', handleLocalCreate);
+      window.removeEventListener('machinery_updated', handleLocalCreate);
     };
   }, []);
 

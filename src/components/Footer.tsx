@@ -1,6 +1,6 @@
 import React from 'react';
 import { Logo } from './Logo';
-import { Phone, Mail, MapPin, ShieldCheck, Ship, Clock, Globe2, ArrowRight, Send, Instagram, MessageCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, Ship, Clock, Globe2, Send, Instagram, MessageCircle } from 'lucide-react';
 
 interface FooterProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
@@ -137,16 +137,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAuth }) => {
                   <span className="text-[11px] text-slate-400">@makimport.vzla</span>
                 </div>
               </a>
-
-              <div className="pt-1">
-                <button
-                  onClick={() => onOpenAuth('login')}
-                  className="w-full py-2 px-3 bg-orange-600/20 hover:bg-orange-600 border border-orange-500/40 text-orange-300 hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
-                >
-                  <span>Portal de Subastas</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
 
             </div>
           </div>

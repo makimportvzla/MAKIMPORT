@@ -1,23 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Plus, Image as ImageIcon, Gavel, DollarSign, Calendar, MapPin, ShieldCheck, CheckCircle2, AlertCircle, Loader2, FileText, Upload, Ship, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Save, Image as ImageIcon, Gavel, DollarSign, Calendar, MapPin, ShieldCheck, CheckCircle2, AlertCircle, Loader2, FileText, Upload, Ship, Settings } from 'lucide-react';
 import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { CATEGORIES, BRANDS, VENEZUELA_CITIES } from '@/constants/machineryOptions';
 
-interface AdminPublishModalProps {
+interface AdminEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onMachineryCreated: (item: MachineryItem) => void;
+  machineryItem: MachineryItem | null;
+  onMachineryUpdated: (item: MachineryItem) => void;
 }
 
-export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
+export const AdminEditModal: React.FC<AdminEditModalProps> = ({
   isOpen,
   onClose,
-  onMachineryCreated,
+  machineryItem,
+  onMachineryUpdated,
 }) => {
   const { user } = useAuth();
   
@@ -32,12 +34,10 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   const [origin, setOrigin] = useState('USA');
   const [location, setLocation] = useState('Houston, TX - EE.UU.');
   const [ciudadVenezuela, setCiudadVenezuela] = useState('');
-  const [serialNumber, setSerialNumber] = useState('CAT0320DL' + Math.floor(10000 + Math.random() * 90000));
+  const [serialNumber, setSerialNumber] = useState('');
 
   // Section 2: Carga de Medios & PDF
-  const [photoUrls, setPhotoUrls] = useState<string[]>([
-    'https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800'
-  ]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [pdfReportUrl, setPdfReportUrl] = useState('');
   const [pdfUploading, setPdfUploading] = useState(false);
   const [pdfError, setPdfError] = useState('');
@@ -58,7 +58,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   // Auction settings
   const [isAuction, setIsAuction] = useState(false);
   const [startPrice, setStartPrice] = useState(50000);
-  const [auctionHoursDuration, setAuctionHoursDuration] = useState(24);
+  const [auctionEndDate, setAuctionEndDate] = useState('');
   
   const [details, setDetails] = useState('');
 
@@ -67,35 +67,59 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  // Load values when machineryItem changes
+  useEffect(() => {
+    if (isOpen && machineryItem) {
+      setTitle(machineryItem.name || '');
+      setBrand(machineryItem.brand || 'Caterpillar (CAT)');
+      setModel(machineryItem.model || '');
+      setCategory(machineryItem.category || 'Excavadora de Oruga');
+      setYear(machineryItem.year || 2022);
+      setHours(machineryItem.hours || 0);
+      setDirectPrice(machineryItem.price || 0);
+      setOrigin(machineryItem.origin || 'USA');
+      setLocation(machineryItem.location || '');
+      setCiudadVenezuela(machineryItem.ciudadVenezuela || '');
+      setSerialNumber(machineryItem.serialNumber || '');
+      setPhotoUrls(machineryItem.images || []);
+      setPdfReportUrl(machineryItem.pdfReportUrl || '');
+      setInspeccionGeneral(machineryItem.inspeccionGeneral ?? 94);
+      setInspeccionMotor(machineryItem.inspeccionMotor ?? 95);
+      setInspeccionHidraulico(machineryItem.inspeccionHidraulico ?? 92);
+      setInspeccionTransmision(machineryItem.inspeccionTransmision ?? 94);
+      setInspeccionCabina(machineryItem.inspeccionCabina ?? 90);
+      setInspeccionCauchos(machineryItem.inspeccionCauchos ?? 88);
+      setDestinationPort(machineryItem.destinationPort || 'Puerto Cabello, VZLA');
+      setTransitTime(machineryItem.transitTime || '25-35 días');
+      
+      const dbRowPayment = (machineryItem as any).paymentTerms || (machineryItem as any).condicionesPago || 'Reserva 20%, Embarque 50%, Recepción Puerto Cabello 30%';
+      setPaymentTerms(dbRowPayment);
 
-  const resetForm = () => {
-    setTitle('');
-    setModel('');
-    setBrand('Caterpillar (CAT)');
-    setCategory('Excavadora de Oruga');
-    setYear(2022);
-    setHours(2500);
-    setDetails('');
-    setDirectPrice(65000);
-    setIsAuction(false);
-    setStartPrice(50000);
-    setAuctionHoursDuration(24);
-    setOrigin('USA');
-    setLocation('Houston, TX - EE.UU.');
-    setCiudadVenezuela('');
-    setPhotoUrls(['https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800']);
-    setSerialNumber('CAT0320DL' + Math.floor(10000 + Math.random() * 90000));
-    setPdfReportUrl('');
-    setInspeccionGeneral(94);
-    setInspeccionMotor(95);
-    setInspeccionHidraulico(92);
-    setInspeccionTransmision(94);
-    setInspeccionCabina(90);
-    setInspeccionCauchos(88);
-    setDestinationPort('Puerto Cabello, VZLA');
-    setTransitTime('25-35 días');
-  };
+      setIsAuction(machineryItem.status === 'auction');
+      setStartPrice(machineryItem.currentBid ?? machineryItem.price ?? 50000);
+      
+      if (machineryItem.auctionEndsAt) {
+        const dateObj = new Date(machineryItem.auctionEndsAt);
+        if (!isNaN(dateObj.getTime())) {
+          const tzOffset = dateObj.getTimezoneOffset() * 60000;
+          const localISOTime = new Date(dateObj.getTime() - tzOffset).toISOString().slice(0, 16);
+          setAuctionEndDate(localISOTime);
+        } else {
+          setAuctionEndDate('');
+        }
+      } else {
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const tzOffset = tomorrow.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(tomorrow.getTime() - tzOffset).toISOString().slice(0, 16);
+        setAuctionEndDate(localISOTime);
+      }
+      setDetails(machineryItem.description || '');
+      setErrorMsg('');
+      setToastMessage(null);
+    }
+  }, [isOpen, machineryItem]);
+
+  if (!isOpen || !machineryItem) return null;
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -150,10 +174,10 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
       : ['https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800'];
 
     try {
-      const endsAtDate = new Date(Date.now() + auctionHoursDuration * 60 * 60 * 1000);
+      const endsAtDate = isAuction && auctionEndDate ? new Date(auctionEndDate) : null;
 
-      const newItem: MachineryItem = {
-        id: 'mach-' + Date.now(),
+      const updatedItem: MachineryItem = {
+        id: machineryItem.id,
         name: title.trim() || `${brand} ${model}`,
         model: model.trim() || 'Standard Heavy Duty',
         brand: brand,
@@ -167,7 +191,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
         price: Number(directPrice),
         currentBid: isAuction ? Number(startPrice) : undefined,
         minBidIncrement: 500,
-        auctionEndsAt: isAuction ? endsAtDate : undefined,
+        bidsCount: machineryItem.bidsCount || 0,
+        auctionEndsAt: endsAtDate ? endsAtDate : undefined,
         image: finalPhotos[0],
         images: finalPhotos,
         serialNumber: serialNumber,
@@ -181,30 +206,29 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
         inspeccionTransmision: Number(inspeccionTransmision),
         inspeccionCabina: Number(inspeccionCabina),
         inspeccionCauchos: Number(inspeccionCauchos),
-        transitTime: transitTime
+        transitTime: transitTime,
+        ciudadVenezuela: ciudadVenezuela || undefined
       };
 
       const { data: dbData, error: dbError } = await supabase
         .from('machinery')
-        .insert({
-          titulo: newItem.name,
-          marca: newItem.brand,
-          modelo: newItem.model,
-          ano: newItem.year,
-          horas_uso: newItem.hours,
-          condicion_detalles: newItem.description,
-          precio_compra_inmediata: newItem.price,
+        .update({
+          titulo: updatedItem.name,
+          marca: updatedItem.brand,
+          modelo: updatedItem.model,
+          ano: updatedItem.year,
+          horas_uso: updatedItem.hours,
+          condicion_detalles: updatedItem.description,
+          precio_compra_inmediata: updatedItem.price,
           es_subasta: isAuction,
-          precio_inicial_subasta: isAuction ? newItem.currentBid : 0,
-          puja_actual: isAuction ? newItem.currentBid : 0,
-          fecha_fin_subasta: isAuction && endsAtDate ? endsAtDate.toISOString() : null,
+          precio_inicial_subasta: isAuction ? updatedItem.currentBid : 0,
+          puja_actual: isAuction ? updatedItem.currentBid : 0,
+          fecha_fin_subasta: endsAtDate ? endsAtDate.toISOString() : null,
           fotos_urls: finalPhotos,
-          ubicacion_origen: newItem.location,
+          ubicacion_origen: updatedItem.location,
           condiciones_pago: paymentTerms,
-          creado_por: user?.id || null,
-          
-          categoria: newItem.category,
-          numero_serie: newItem.serialNumber,
+          categoria: updatedItem.category,
+          numero_serie: updatedItem.serialNumber,
           pdf_reporte_url: pdfReportUrl || null,
           inspeccion_general: Number(inspeccionGeneral),
           inspeccion_motor: Number(inspeccionMotor),
@@ -212,30 +236,28 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
           inspeccion_transmision: Number(inspeccionTransmision),
           inspeccion_cabina: Number(inspeccionCabina),
           inspeccion_cauchos: Number(inspeccionCauchos),
-          puerto_destino: newItem.destinationPort,
+          puerto_destino: updatedItem.destinationPort,
           tiempo_transito: transitTime,
           ciudad_venezuela: ciudadVenezuela || null
         })
+        .eq('id', machineryItem.id)
         .select();
 
       if (dbError) {
-        console.error('Error insertando en Supabase:', dbError);
+        console.error('Error actualizando en Supabase:', dbError);
         setErrorMsg(`Error de Supabase: ${dbError.message}${dbError.details ? ` (${dbError.details})` : ''}`);
         setLoading(false);
         return;
       }
 
-      if (dbData && dbData[0] && dbData[0].id) {
-        newItem.id = dbData[0].id;
-      }
-
-      onMachineryCreated(newItem);
+      onMachineryUpdated(updatedItem);
+      
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('machinery_created', { detail: newItem }));
+        window.dispatchEvent(new CustomEvent('machinery_updated', { detail: updatedItem }));
+        window.dispatchEvent(new CustomEvent('machinery_created', { detail: updatedItem }));
       }
 
-      resetForm();
-      setToastMessage(`¡Maquinaria "${newItem.name}" publicada exitosamente!`);
+      setToastMessage(`¡Maquinaria "${updatedItem.name}" editada exitosamente!`);
 
       setTimeout(() => {
         setToastMessage(null);
@@ -243,7 +265,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
       }, 1600);
 
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error inesperado al publicar la maquinaria.');
+      setErrorMsg(err.message || 'Error inesperado al guardar la maquinaria.');
     } finally {
       setLoading(false);
     }
@@ -257,7 +279,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
         <div className="fixed top-6 right-6 z-50 max-w-md bg-emerald-950 border-2 border-emerald-500 text-emerald-100 p-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
           <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
           <div>
-            <h4 className="font-extrabold text-sm text-white">¡Publicación Confirmada!</h4>
+            <h4 className="font-extrabold text-sm text-white">¡Edición Guardada!</h4>
             <p className="text-xs text-emerald-200 mt-0.5">{toastMessage}</p>
           </div>
         </div>
@@ -269,7 +291,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
         <div className="p-5 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
           <div className="flex items-center gap-2 text-orange-400 font-extrabold text-lg">
             <Settings className="w-5 h-5 animate-spin" style={{ animationDuration: '8s' }} />
-            <span>Ficha Técnica Extendida: Publicar Maquinaria</span>
+            <span>Editar Ficha Técnica de Maquinaria</span>
           </div>
           
           <button
@@ -288,7 +310,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
             <div className="p-3.5 bg-red-950/90 border border-red-800 text-red-200 rounded-xl font-semibold flex items-center gap-2.5 animate-in fade-in">
               <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
               <div className="flex-1">
-                <span className="block font-bold text-red-100">No se pudo guardar en Supabase</span>
+                <span className="block font-bold text-red-100">No se pudo actualizar en Supabase</span>
                 <span className="text-[11px] font-mono text-red-300">{errorMsg}</span>
               </div>
             </div>
@@ -397,7 +419,6 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                 />
               </div>
 
-              {/* Venezuela city field — only shown when origin is Venezuela */}
               {origin === 'Venezuela' && (
                 <div className="sm:col-span-2">
                   <label className="block font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
@@ -430,13 +451,11 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
               B) Carga de Medios & Reportes
             </h3>
 
-            {/* Photos */}
             <ImageUploader
               initialImages={photoUrls}
               onImagesChanged={(newUrls) => setPhotoUrls(newUrls)}
             />
 
-            {/* PDF Uploader */}
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -689,19 +708,15 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
 
                   <div className="sm:col-span-2">
                     <label className="block font-semibold text-slate-300 mb-1">
-                      Duración de la Subasta (Horas)
+                      Fecha y Hora Exacta de Fin de Subasta
                     </label>
-                    <select
-                      value={auctionHoursDuration}
-                      onChange={(e) => setAuctionHoursDuration(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none"
-                    >
-                      <option value={6}>6 Horas</option>
-                      <option value={12}>12 Horas</option>
-                      <option value={24}>24 Horas (1 Día)</option>
-                      <option value={48}>48 Horas (2 Días)</option>
-                      <option value={72}>72 Horas (3 Días)</option>
-                    </select>
+                    <input
+                      type="datetime-local"
+                      required={isAuction}
+                      value={auctionEndDate}
+                      onChange={(e) => setAuctionEndDate(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none"
+                    />
                   </div>
                 </>
               )}
@@ -730,10 +745,13 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Publicando Maquinaria...</span>
+                  <span>Guardando Cambios...</span>
                 </>
               ) : (
-                <span>Guardar y Publicar Maquinaria</span>
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Guardar Cambios</span>
+                </>
               )}
             </button>
           </div>

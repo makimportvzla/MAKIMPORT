@@ -364,7 +364,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   <span>Desglose de Inspección Técnica</span>
                 </h4>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-[10px] text-slate-400 font-semibold">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-[10px] text-slate-400 font-semibold">
                   <div>
                     <span>General</span>
                     <div className="w-full bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
@@ -404,6 +404,19 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                     </div>
                     <span className="block mt-1 font-mono text-white text-right">{item.inspeccionCabina || 90}%</span>
                   </div>
+
+                  {item.inspeccionCauchos !== undefined && (
+                    <div>
+                      <span>Neumáticos</span>
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                        <div
+                          className={`h-full ${item.inspeccionCauchos >= 75 ? 'bg-emerald-500' : item.inspeccionCauchos >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                          style={{ width: `${item.inspeccionCauchos}%` }}
+                        ></div>
+                      </div>
+                      <span className="block mt-1 font-mono text-white text-right">{item.inspeccionCauchos}%</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS public.machinery (
   inspeccion_hidraulico INTEGER DEFAULT 90,
   inspeccion_transmision INTEGER DEFAULT 90,
   inspeccion_cabina INTEGER DEFAULT 90,
+  inspeccion_cauchos INTEGER DEFAULT NULL,  -- Puntuación de neumáticos/cauchos (0-100), NULL = no aplica
+  ciudad_venezuela TEXT DEFAULT NULL,
   puerto_destino TEXT DEFAULT 'Puerto Cabello, VZLA',
   tiempo_transito TEXT DEFAULT '25-35 días',
   
@@ -199,3 +201,12 @@ CREATE POLICY "Visibilidad de solicitudes personalizadas" ON public.custom_machi
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.custom_machinery_requests;
 
+-- ============================================================
+-- MIGRACIÓN: Añadir columna inspeccion_cauchos a machinery
+-- Ejecutar en Supabase SQL Editor si la tabla ya existe
+-- ============================================================
+ALTER TABLE public.machinery
+  ADD COLUMN IF NOT EXISTS inspeccion_cauchos INTEGER DEFAULT NULL;
+
+COMMENT ON COLUMN public.machinery.inspeccion_cauchos IS
+  'Puntuación técnica de neumáticos/cauchos del equipo (0-100). NULL indica que no aplica (ej. maquinaria de orugas).';
