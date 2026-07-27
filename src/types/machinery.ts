@@ -42,4 +42,6 @@ export interface MachineryItem {
   inspeccionTransmision?: number;
   inspeccionCabina?: number;
   transitTime?: string;
+  // Venezuela-specific location (when machinery is physically inside Venezuela)
+  ciudadVenezuela?: string;
 }

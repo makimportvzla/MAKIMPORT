@@ -329,6 +329,17 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   </span>
                 </div>
 
+                {/* Venezuela city badge — only shown when machine is physically in Venezuela */}
+                {item.ciudadVenezuela && (
+                  <div className="bg-slate-950 p-3 rounded-xl border border-emerald-800/50 col-span-2 sm:col-span-1">
+                    <span className="text-emerald-500 block text-[10px] uppercase font-bold">🇻🇪 Ciudad en Venezuela</span>
+                    <span className="font-bold text-emerald-300 flex items-center gap-1 mt-1">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      {item.ciudadVenezuela}, Venezuela
+                    </span>
+                  </div>
+                )}
+
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
                   <span className="text-slate-500 block text-[10px] uppercase">Puerto de Destino</span>
                   <span className="font-semibold text-slate-200 flex items-center gap-1 mt-1 truncate">
@@ -396,26 +407,28 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Inspection PDF Report Trigger Card */}
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-800/50 flex items-center justify-center text-emerald-400 shrink-0">
-                    <FileText className="w-5 h-5" />
+              {/* Inspection PDF Report Trigger Card — Only shown if pdf_reporte_url exists */}
+              {item.pdfReportUrl && (
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-800/50 flex items-center justify-center text-emerald-400 shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Reporte Oficial de Inspección Técnica (140+ Puntos)</h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Certificado de motor, bombas hidráulicas, orugas y sistema de cabina.</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Reporte Oficial de Inspección Técnica (140+ Puntos)</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Certificado de motor, bombas hidráulicas, orugas y sistema de cabina.</p>
-                  </div>
-                </div>
 
-                <button
-                  onClick={() => setShowPdfPreview(true)}
-                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shrink-0"
-                >
-                  <Eye className="w-3.5 h-3.5 text-orange-400" />
-                  <span>Ver PDF</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => setShowPdfPreview(true)}
+                    className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shrink-0"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Ver PDF</span>
+                  </button>
+                </div>
+              )}
 
             </div>
 
@@ -567,8 +580,9 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   onClick={handleDirectPurchase}
                   className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 transition-all"
                 >
-                  <ShoppingBag className="w-5 h-5" />
-                  <span>Solicitar Compra Inmediata — ${item.price.toLocaleString()} USD</span>
+                  <ShoppingBag className="w-5 h-5 shrink-0" />
+                  <span className="whitespace-nowrap">Solicitar Compra Inmediata</span>
+                  <span className="font-mono text-xs opacity-90 whitespace-nowrap shrink-0">— ${item.price.toLocaleString()} USD</span>
                 </button>
 
                 <p className="text-[10px] text-slate-500 text-center leading-relaxed">
@@ -651,15 +665,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   <Download className="w-4 h-4" />
                   <span>Descargar PDF Oficial</span>
                 </a>
-              ) : (
-                <button
-                  onClick={() => alert('Descargando archivo PDF de inspección de demostración...')}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4 text-orange-400" />
-                  <span>Descargar PDF Demo</span>
-                </button>
-              )}
+              ) : null}
               <button
                 onClick={() => setShowPdfPreview(false)}
                 className="px-4 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl"

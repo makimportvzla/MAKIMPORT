@@ -30,6 +30,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   const [directPrice, setDirectPrice] = useState(65000);
   const [origin, setOrigin] = useState('USA');
   const [location, setLocation] = useState('Houston, TX - EE.UU.');
+  const [ciudadVenezuela, setCiudadVenezuela] = useState('');
   const [serialNumber, setSerialNumber] = useState('CAT0320DL' + Math.floor(10000 + Math.random() * 90000));
 
   // Section 2: Carga de Medios & PDF
@@ -80,6 +81,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
     setAuctionHoursDuration(24);
     setOrigin('USA');
     setLocation('Houston, TX - EE.UU.');
+    setCiudadVenezuela('');
     setPhotoUrls(['https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800']);
     setSerialNumber('CAT0320DL' + Math.floor(10000 + Math.random() * 90000));
     setPdfReportUrl('');
@@ -206,7 +208,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
           inspeccion_transmision: Number(inspeccionTransmision),
           inspeccion_cabina: Number(inspeccionCabina),
           puerto_destino: newItem.destinationPort,
-          tiempo_transito: transitTime
+          tiempo_transito: transitTime,
+          ciudad_venezuela: ciudadVenezuela || null
         })
         .select();
 
@@ -314,12 +317,28 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                 >
                   <option value="Excavadora">Excavadora</option>
                   <option value="Retroexcavadora">Retroexcavadora</option>
-                  <option value="Cargador">Cargadores Frontales</option>
-                  <option value="Bulldozer">Bulldozers / Tractores</option>
-                  <option value="Compactadora">Compactadoras</option>
-                  <option value="Trituradora">Trituradoras</option>
-                  <option value="Volteo">Camiones de Volteo</option>
-                  <option value="Grúa">Grúas Industriales</option>
+                  <option value="Cargador Frontal">Cargador Frontal</option>
+                  <option value="Bulldozer">Bulldozer / Tractor de Orugas</option>
+                  <option value="Grúa Telescópica">Grúa Telescópica</option>
+                  <option value="Grúa Camión">Grúa Camión</option>
+                  <option value="Camión Canasta">Camión Canasta / Elevador</option>
+                  <option value="Planta Eléctrica">Planta Eléctrica / Generador</option>
+                  <option value="Ambulancia">Ambulancia</option>
+                  <option value="Camión Volteo">Camión Volteo</option>
+                  <option value="Camión Cisterna">Camión Cisterna / Tanque</option>
+                  <option value="Rodillo Compactador">Rodillo Compactador</option>
+                  <option value="Minicargador">Minicargador / Skid Steer</option>
+                  <option value="Motoniveladora">Motoniveladora / Grader</option>
+                  <option value="Pavimentadora">Pavimentadora / Finisher</option>
+                  <option value="Mezcladora de Concreto">Mezcladora de Concreto</option>
+                  <option value="Perforadora">Perforadora / Drill</option>
+                  <option value="Maquinaria Especial">Maquinaria Especial</option>
+                  <option value="Montacargas">Montacargas / Forklift</option>
+                  <option value="Maquinaria Agrícola">Maquinaria Agrícola</option>
+                  <option value="Tractor">Tractor Agrícola</option>
+                  <option value="Lowboy">Lowboy / Remolque Plataforma</option>
+                  <option value="Trituradora">Trituradora</option>
+                  <option value="Compresor de Aire">Compresor de Aire</option>
                   <option value="Otros">Otros</option>
                 </select>
               </div>
@@ -331,15 +350,30 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   onChange={(e) => setBrand(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 >
-                  <option value="Caterpillar">Caterpillar</option>
+                  <option value="Caterpillar">Caterpillar (CAT)</option>
                   <option value="Komatsu">Komatsu</option>
+                  <option value="Volvo">Volvo Construction</option>
+                  <option value="JCB">JCB</option>
+                  <option value="Case">Case Construction</option>
+                  <option value="John Deere">John Deere</option>
+                  <option value="Terex">Terex</option>
+                  <option value="Liebherr">Liebherr</option>
+                  <option value="Hitachi">Hitachi</option>
+                  <option value="Bobcat">Bobcat</option>
                   <option value="SANY">SANY</option>
                   <option value="XCMG">XCMG</option>
-                  <option value="Volvo">Volvo</option>
-                  <option value="JCB">JCB</option>
-                  <option value="John Deere">John Deere</option>
-                  <option value="Case">Case</option>
-                  <option value="Hyundai">Hyundai</option>
+                  <option value="SDLG">SDLG</option>
+                  <option value="Doosan">Doosan / Develon</option>
+                  <option value="Hyundai">Hyundai Heavy</option>
+                  <option value="New Holland">New Holland</option>
+                  <option value="Manitou">Manitou</option>
+                  <option value="Grove">Grove Cranes</option>
+                  <option value="Tadano">TADANO</option>
+                  <option value="International">International</option>
+                  <option value="Freightliner">Freightliner</option>
+                  <option value="Mack">Mack Trucks</option>
+                  <option value="Kenworth">Kenworth</option>
+                  <option value="Isuzu">Isuzu</option>
                   <option value="Zoomlion">Zoomlion</option>
                   <option value="Otros">Otros</option>
                 </select>
@@ -402,6 +436,49 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   placeholder="Ej. Houston, TX - EE.UU."
                 />
               </div>
+
+              {/* Venezuela city field — only shown when origin is Venezuela */}
+              {origin === 'Venezuela' && (
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                    <span>🇻🇪 Ciudad / Ubicación Actual en Venezuela</span>
+                  </label>
+                  <select
+                    value={ciudadVenezuela}
+                    onChange={(e) => setCiudadVenezuela(e.target.value)}
+                    className="w-full bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="">— Seleccionar ciudad —</option>
+                    <option value="Maracaibo">Maracaibo (Zulia)</option>
+                    <option value="Caracas">Caracas (Distrito Capital)</option>
+                    <option value="Valencia">Valencia (Carabobo)</option>
+                    <option value="Barquisimeto">Barquisimeto (Lara)</option>
+                    <option value="Puerto Ordaz">Puerto Ordaz / Ciudad Guayana (Bolívar)</option>
+                    <option value="San Cristóbal">San Cristóbal (Táchira)</option>
+                    <option value="Maturín">Maturín (Monagas)</option>
+                    <option value="Barcelona">Barcelona (Anzoátegui)</option>
+                    <option value="Cumaná">Cumaná (Sucre)</option>
+                    <option value="Barinas">Barinas (Barinas)</option>
+                    <option value="Mérida">Mérida (Mérida)</option>
+                    <option value="Acarigua">Acarigua (Portuguesa)</option>
+                    <option value="Puerto Cabello">Puerto Cabello (Carabobo)</option>
+                    <option value="Los Teques">Los Teques (Miranda)</option>
+                    <option value="Guarenas">Guarenas / Guatire (Miranda)</option>
+                    <option value="Turmero">Turmero / Maracay (Aragua)</option>
+                    <option value="Coro">Coro (Falcón)</option>
+                    <option value="San Fernando">San Fernando de Apure (Apure)</option>
+                    <option value="Valera">Valera (Trujillo)</option>
+                    <option value="Punto Fijo">Punto Fijo (Falcón)</option>
+                    <option value="Otra ciudad">Otra ciudad</option>
+                  </select>
+                  {ciudadVenezuela && (
+                    <span className="text-[10px] text-emerald-400 font-bold mt-1 block">
+                      ✓ La máquina se encuentra físicamente en Venezuela — se mostrará en la ficha del catálogo.
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -586,8 +663,13 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                 <select
                   value={origin}
                   onChange={(e) => {
-                    setOrigin(e.target.value);
-                    setLocation(e.target.value === 'USA' ? 'Houston, TX - EE.UU.' : 'Shanghai Port - China');
+                    const val = e.target.value;
+                    setOrigin(val);
+                    if (val === 'USA') setLocation('Houston, TX - EE.UU.');
+                    else if (val === 'China') setLocation('Shanghai Port - China');
+                    else if (val === 'Venezuela') setLocation('Venezuela');
+                    else setLocation('En Tránsito');
+                    if (val !== 'Venezuela') setCiudadVenezuela('');
                   }}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none"
                 >

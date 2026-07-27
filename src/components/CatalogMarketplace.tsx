@@ -223,24 +223,59 @@ const DEMO_MACHINERY: MachineryItem[] = [
 export const PREDEFINED_CATEGORIES = [
   'excavadora',
   'retroexcavadora',
+  'cargador frontal',
   'cargador',
   'bulldozer',
-  'compactadora',
-  'trituradora',
+  'grúa telescópica',
+  'grúa camión',
+  'grúa',
+  'camión canasta',
+  'planta eléctrica',
+  'ambulancia',
+  'camión volteo',
   'volteo',
-  'grúa'
+  'camión cisterna',
+  'rodillo compactador',
+  'compactadora',
+  'minicargador',
+  'motoniveladora',
+  'pavimentadora',
+  'mezcladora de concreto',
+  'perforadora',
+  'maquinaria especial',
+  'montacargas',
+  'maquinaria agrícola',
+  'tractor',
+  'lowboy',
+  'trituradora',
+  'compresor de aire'
 ];
 
 export const PREDEFINED_BRANDS = [
   'caterpillar',
   'komatsu',
-  'sany',
-  'xcmg',
   'volvo',
   'jcb',
-  'john deere',
   'case',
+  'john deere',
+  'terex',
+  'liebherr',
+  'hitachi',
+  'bobcat',
+  'sany',
+  'xcmg',
+  'sdlg',
+  'doosan',
   'hyundai',
+  'new holland',
+  'manitou',
+  'grove',
+  'tadano',
+  'international',
+  'freightliner',
+  'mack',
+  'kenworth',
+  'isuzu',
   'zoomlion'
 ];
 
@@ -268,6 +303,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   
   // Sorting State
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'ending-soon' | 'newest'>('featured');
+  // Transaction type filter: 'all' | 'direct' | 'auction'
+  const [transactionFilter, setTransactionFilter] = useState<'all' | 'direct' | 'auction'>(initialFilters?.transaction === 'direct' ? 'direct' : initialFilters?.transaction === 'auction' ? 'auction' : 'all');
 
   const [timeLeftMap, setTimeLeftMap] = useState<{ [key: string]: string }>({});
 
@@ -276,6 +313,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
     if (initialFilters) {
       setBrandFilter(initialFilters.brand || 'all');
       setCategoryFilter(initialFilters.type || 'all');
+      if (initialFilters.transaction === 'direct') setTransactionFilter('direct');
+      else if (initialFilters.transaction === 'auction') setTransactionFilter('auction');
     }
   }, [initialFilters]);
 
@@ -319,7 +358,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       inspeccionHidraulico: Number(row.inspeccion_hidraulico) || 92,
       inspeccionTransmision: Number(row.inspeccion_transmision) || 94,
       inspeccionCabina: Number(row.inspeccion_cabina) || 90,
-      transitTime: row.tiempo_transito || '25-35 días'
+      transitTime: row.tiempo_transito || '25-35 días',
+      ciudadVenezuela: row.ciudad_venezuela || undefined
     };
   };
 
@@ -442,6 +482,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
     setMinYear('');
     setMaxYear('');
     setSortBy('featured');
+    setTransactionFilter('all');
   };
 
   // Filter & Sorting Logic (Strictly only Category, Brand, Model, and Year)
@@ -497,6 +538,12 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       if (maxYear) {
         const max = Number(maxYear);
         if (!isNaN(max) && item.year > max) return false;
+      }
+
+      // Transaction type filter (Compra Inmediata vs Subasta en Vivo)
+      if (transactionFilter !== 'all') {
+        if (transactionFilter === 'direct' && item.status !== 'direct') return false;
+        if (transactionFilter === 'auction' && item.status !== 'auction') return false;
       }
 
       return true;
@@ -607,14 +654,30 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
               >
                 <option value="all">Todas las Categorías</option>
-                <option value="excavadora">Excavadoras de Oruga</option>
-                <option value="retroexcavadora">Retroexcavadoras</option>
-                <option value="cargador">Cargadores Frontales</option>
-                <option value="bulldozer">Bulldozers / Tractores</option>
-                <option value="compactadora">Compactadoras</option>
-                <option value="trituradora">Trituradoras</option>
-                <option value="volteo">Camiones de Volteo</option>
-                <option value="grúa">Grúas Industriales</option>
+                <option value="excavadora">Excavadora</option>
+                <option value="retroexcavadora">Retroexcavadora</option>
+                <option value="cargador frontal">Cargador Frontal</option>
+                <option value="bulldozer">Bulldozer / Tractor de Orugas</option>
+                <option value="grúa telescópica">Grúa Telescópica</option>
+                <option value="grúa camión">Grúa Camión</option>
+                <option value="camión canasta">Camión Canasta / Elevador</option>
+                <option value="planta eléctrica">Planta Eléctrica / Generador</option>
+                <option value="ambulancia">Ambulancia</option>
+                <option value="camión volteo">Camión Volteo</option>
+                <option value="camión cisterna">Camión Cisterna / Tanque</option>
+                <option value="rodillo compactador">Rodillo Compactador</option>
+                <option value="minicargador">Minicargador / Skid Steer</option>
+                <option value="motoniveladora">Motoniveladora / Grader</option>
+                <option value="pavimentadora">Pavimentadora / Finisher</option>
+                <option value="mezcladora de concreto">Mezcladora de Concreto</option>
+                <option value="perforadora">Perforadora / Drill</option>
+                <option value="maquinaria especial">Maquinaria Especial</option>
+                <option value="montacargas">Montacargas / Forklift</option>
+                <option value="maquinaria agrícola">Maquinaria Agrícola</option>
+                <option value="tractor">Tractor Agrícola</option>
+                <option value="lowboy">Lowboy / Remolque Plataforma</option>
+                <option value="trituradora">Trituradora</option>
+                <option value="compresor de aire">Compresor de Aire</option>
                 <option value="otros">Otros</option>
               </select>
             </div>
@@ -632,13 +695,28 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 <option value="all">Todas las Marcas</option>
                 <option value="caterpillar">Caterpillar (CAT)</option>
                 <option value="komatsu">Komatsu</option>
-                <option value="sany">SANY</option>
-                <option value="xcmg">XCMG</option>
                 <option value="volvo">Volvo CE</option>
                 <option value="jcb">JCB</option>
-                <option value="john deere">John Deere</option>
                 <option value="case">Case Construction</option>
+                <option value="john deere">John Deere</option>
+                <option value="terex">Terex</option>
+                <option value="liebherr">Liebherr</option>
+                <option value="hitachi">Hitachi</option>
+                <option value="bobcat">Bobcat</option>
+                <option value="sany">SANY</option>
+                <option value="xcmg">XCMG</option>
+                <option value="sdlg">SDLG</option>
+                <option value="doosan">Doosan / Develon</option>
                 <option value="hyundai">Hyundai Heavy</option>
+                <option value="new holland">New Holland</option>
+                <option value="manitou">Manitou</option>
+                <option value="grove">Grove Cranes</option>
+                <option value="tadano">TADANO</option>
+                <option value="international">International</option>
+                <option value="freightliner">Freightliner</option>
+                <option value="mack">Mack Trucks</option>
+                <option value="kenworth">Kenworth</option>
+                <option value="isuzu">Isuzu</option>
                 <option value="zoomlion">Zoomlion</option>
                 <option value="otros">Otros</option>
               </select>
@@ -687,9 +765,46 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
           {/* MAIN CONTENT AREA (9 Cols) */}
           <main className="lg:col-span-9 space-y-6">
             
-            {/* Top Control Bar: Sorting + View Switcher */}
-            <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
-              
+            {/* Top Control Bar: Transaction Tabs + Sorting + View Switcher */}
+            <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 flex flex-col gap-4 shadow-lg">
+
+              {/* Transaction Type Tabs */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setTransactionFilter('all')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    transactionFilter === 'all'
+                      ? 'bg-slate-700 text-white shadow-md border border-slate-600'
+                      : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Todos los Equipos
+                </button>
+                <button
+                  onClick={() => setTransactionFilter('direct')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    transactionFilter === 'direct'
+                      ? 'bg-emerald-600 text-white shadow-md border border-emerald-500'
+                      : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Compra Inmediata
+                </button>
+                <button
+                  onClick={() => setTransactionFilter('auction')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    transactionFilter === 'auction'
+                      ? 'bg-orange-600 text-white shadow-md border border-orange-500'
+                      : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Gavel className="w-3.5 h-3.5" />
+                  Subastas en Vivo
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
                 <span>Ordenar por:</span>
                 <select
@@ -729,6 +844,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 >
                   <List className="w-4 h-4" />
                 </button>
+              </div>
               </div>
 
             </div>
@@ -976,17 +1092,32 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
               >
                 <option value="all">Todas las Categorías</option>
-                <option value="excavadora">Excavadoras de Oruga</option>
-                <option value="retroexcavadora">Retroexcavadoras</option>
-                <option value="cargador">Cargadores Frontales</option>
-                <option value="bulldozer">Bulldozers / Tractores</option>
-                <option value="compactadora">Compactadoras</option>
-                <option value="trituradora">Trituradoras</option>
-                <option value="volteo">Camiones de Volteo</option>
-                <option value="grúa">Grúas Industriales</option>
+                <option value="excavadora">Excavadora</option>
+                <option value="retroexcavadora">Retroexcavadora</option>
+                <option value="cargador frontal">Cargador Frontal</option>
+                <option value="bulldozer">Bulldozer / Tractor de Orugas</option>
+                <option value="grúa telescópica">Grúa Telescópica</option>
+                <option value="grúa camión">Grúa Camión</option>
+                <option value="camión canasta">Camión Canasta / Elevador</option>
+                <option value="planta eléctrica">Planta Eléctrica / Generador</option>
+                <option value="ambulancia">Ambulancia</option>
+                <option value="camión volteo">Camión Volteo</option>
+                <option value="camión cisterna">Camión Cisterna / Tanque</option>
+                <option value="rodillo compactador">Rodillo Compactador</option>
+                <option value="minicargador">Minicargador / Skid Steer</option>
+                <option value="motoniveladora">Motoniveladora / Grader</option>
+                <option value="pavimentadora">Pavimentadora / Finisher</option>
+                <option value="mezcladora de concreto">Mezcladora de Concreto</option>
+                <option value="perforadora">Perforadora / Drill</option>
+                <option value="maquinaria especial">Maquinaria Especial</option>
+                <option value="montacargas">Montacargas / Forklift</option>
+                <option value="maquinaria agrícola">Maquinaria Agrícola</option>
+                <option value="tractor">Tractor Agrícola</option>
+                <option value="lowboy">Lowboy / Remolque Plataforma</option>
+                <option value="trituradora">Trituradora</option>
+                <option value="compresor de aire">Compresor de Aire</option>
                 <option value="otros">Otros</option>
               </select>
             </div>
@@ -1002,13 +1133,28 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 <option value="all">Todas las Marcas</option>
                 <option value="caterpillar">Caterpillar (CAT)</option>
                 <option value="komatsu">Komatsu</option>
-                <option value="sany">SANY</option>
-                <option value="xcmg">XCMG</option>
                 <option value="volvo">Volvo CE</option>
                 <option value="jcb">JCB</option>
-                <option value="john deere">John Deere</option>
                 <option value="case">Case Construction</option>
+                <option value="john deere">John Deere</option>
+                <option value="terex">Terex</option>
+                <option value="liebherr">Liebherr</option>
+                <option value="hitachi">Hitachi</option>
+                <option value="bobcat">Bobcat</option>
+                <option value="sany">SANY</option>
+                <option value="xcmg">XCMG</option>
+                <option value="sdlg">SDLG</option>
+                <option value="doosan">Doosan / Develon</option>
                 <option value="hyundai">Hyundai Heavy</option>
+                <option value="new holland">New Holland</option>
+                <option value="manitou">Manitou</option>
+                <option value="grove">Grove Cranes</option>
+                <option value="tadano">TADANO</option>
+                <option value="international">International</option>
+                <option value="freightliner">Freightliner</option>
+                <option value="mack">Mack Trucks</option>
+                <option value="kenworth">Kenworth</option>
+                <option value="isuzu">Isuzu</option>
                 <option value="zoomlion">Zoomlion</option>
                 <option value="otros">Otros</option>
               </select>
