@@ -314,12 +314,12 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                 >
                   <option value="Excavadora">Excavadora</option>
                   <option value="Retroexcavadora">Retroexcavadora</option>
-                  <option value="Cargadores Frontales">Cargadores Frontales</option>
-                  <option value="Bulldozers">Bulldozers</option>
-                  <option value="Compactadoras">Compactadoras</option>
-                  <option value="Trituradoras">Trituradoras</option>
-                  <option value="Camiones de Volteo">Camiones de Volteo</option>
-                  <option value="Grúas">Grúas</option>
+                  <option value="Cargador">Cargadores Frontales</option>
+                  <option value="Bulldozer">Bulldozers / Tractores</option>
+                  <option value="Compactadora">Compactadoras</option>
+                  <option value="Trituradora">Trituradoras</option>
+                  <option value="Volteo">Camiones de Volteo</option>
+                  <option value="Grúa">Grúas Industriales</option>
                   <option value="Otros">Otros</option>
                 </select>
               </div>

@@ -254,12 +254,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   const [timeLeftMap, setTimeLeftMap] = useState<{ [key: string]: string }>({});
 
   // Sync initialFilters from parent components / Hero
+  // Always apply ALL fields (including 'all') so a Hero search reset properly clears previous filters
   useEffect(() => {
     if (initialFilters) {
-      if (initialFilters.brand) setBrandFilter(initialFilters.brand);
-      if (initialFilters.type) setCategoryFilter(initialFilters.type);
-      if (initialFilters.origin) setOriginFilter(initialFilters.origin);
-      if (initialFilters.transaction) setTransactionFilter(initialFilters.transaction as any);
+      setBrandFilter(initialFilters.brand || 'all');
+      setCategoryFilter(initialFilters.type || 'all');
+      setOriginFilter(initialFilters.origin || 'all');
+      setTransactionFilter((initialFilters.transaction as any) || 'all');
     }
   }, [initialFilters]);
 
@@ -272,8 +273,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       id: row.id,
       name: row.titulo || `${row.marca || ''} ${row.modelo || ''}`.trim() || 'Maquinaria Pesada',
       model: row.modelo || 'Standard',
-      brand: row.marca || 'Caterpillar',
-      category: row.categoria || 'Excavadora',
+      brand: row.marca || 'Sin marca',
+      category: row.categoria || 'Otros',
       year: Number(row.ano) || 2021,
       hours: Number(row.horas_uso) || 0,
       origin: row.ubicacion_origen?.includes('China')
@@ -438,8 +439,14 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       if (transactionFilter === 'auction' && item.status !== 'auction') return false;
       if (transactionFilter === 'direct' && item.status !== 'direct') return false;
 
-      if (categoryFilter !== 'all' && item.category.toLowerCase() !== categoryFilter.toLowerCase()) return false;
-      if (brandFilter !== 'all' && item.brand.toLowerCase() !== brandFilter.toLowerCase()) return false;
+      // Normalize both sides: trim whitespace + lowercase for safe comparison
+      const itemCategory = (item.category || '').trim().toLowerCase();
+      const itemBrand = (item.brand || '').trim().toLowerCase();
+      const filterCategory = categoryFilter.trim().toLowerCase();
+      const filterBrand = brandFilter.trim().toLowerCase();
+
+      if (filterCategory !== 'all' && itemCategory !== filterCategory) return false;
+      if (filterBrand !== 'all' && itemBrand !== filterBrand) return false;
 
       if (originFilter !== 'all') {
         if (originFilter === 'USA' && item.origin !== 'USA') return false;
