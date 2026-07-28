@@ -5,6 +5,7 @@ import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phon
 import { MachineryItem, BidRecord } from '@/types/machinery';
 import { supabase } from '@/lib/supabase';
 import { PurchaseRequestModal } from './PurchaseRequestModal';
+import { useAuth } from '@/context/AuthContext';
 
 interface MachineryDetailModalProps {
   item: MachineryItem | null;
@@ -21,6 +22,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   userRole = 'client',
   onBidSuccess
 }) => {
+  const { user } = useAuth();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -29,48 +31,214 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   const [bidAmount, setBidAmount] = useState<number>(0);
   const [bidsLog, setBidsLog] = useState<BidRecord[]>([]);
   const [submittingBid, setSubmittingBid] = useState(false);
-  const [bidSuccessMessage, setBidSuccessMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Timer state
   const [timerString, setTimerString] = useState<string>('00d : 00h : 00m : 00s');
 
+  const [prevItemId, setPrevItemId] = useState<string | null>(null);
+  const [isProcessingEnd, setIsProcessingEnd] = useState(false);
+  const [winnerProfile, setWinnerProfile] = useState<any | null>(null);
+  const [showAwardModal, setShowAwardModal] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 5000);
+  };
+
+  const formatTimestamp = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleString('es-VE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    } catch (e) {
+      return 'Fecha no disponible';
+    }
+  };
+
+  const fetchBidsHistory = async (machineryId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('bid_history_view')
+        .select('*')
+        .eq('machinery_id', machineryId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.warn('Error loading bid history:', error);
+        return;
+      }
+
+      if (data) {
+        const records: BidRecord[] = data.map((row: any) => ({
+          id: row.id || `bid-${row.created_at}`,
+          machineryId: row.machinery_id,
+          userName: row.bidder_name || 'Comprador Anónimo',
+          amount: Number(row.amount),
+          timestamp: formatTimestamp(row.created_at)
+        }));
+        setBidsLog(records);
+
+        if (data.length > 0 && item) {
+          const highestAmount = Number(data[0].amount);
+          setBidAmount(highestAmount + (item.minBidIncrement || 500));
+        } else if (item) {
+          setBidAmount(item.currentBid || item.price);
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching bid history:', err);
+    }
+  };
+
+  const handleAuctionEnd = async () => {
+    if (isProcessingEnd || !item) return;
+    setIsProcessingEnd(true);
+
+    try {
+      // 1. If it's still status='auction', update it in the database to es_subasta = false
+      if (item.status === 'auction') {
+        const { error: updateError } = await supabase
+          .from('machinery')
+          .update({ es_subasta: false })
+          .eq('id', item.id);
+        
+        if (updateError) {
+          console.error('Error marking auction as ended:', updateError);
+        }
+      }
+
+      // 2. Query the highest bid to find the winner
+      const { data: bidsData, error: bidsError } = await supabase
+        .from('bids')
+        .select('*')
+        .eq('machinery_id', item.id)
+        .order('amount', { ascending: false })
+        .limit(1);
+
+      if (bidsError) {
+        console.error('Error fetching winning bid:', bidsError);
+        return;
+      }
+
+      if (bidsData && bidsData.length > 0) {
+        const winningBid = bidsData[0];
+        const winnerId = winningBid.user_id;
+        const finalAmount = Number(winningBid.amount);
+
+        // Fetch winner's profile details
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', winnerId)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching winner profile:', profileError);
+        } else if (profileData) {
+          setWinnerProfile({
+            ...profileData,
+            amount: finalAmount
+          });
+
+          // Trigger email notification to admin & winner
+          try {
+            await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'auction_closed',
+                machineryId: item.id,
+                machineryTitle: item.name,
+                machineryBrand: item.brand,
+                machineryModel: item.model,
+                finalAmount: finalAmount,
+                winnerName: profileData.nombre_completo,
+                winnerEmail: profileData.email,
+                winnerPhone: profileData.telefono || 'No especificado',
+                closedAt: new Date().toISOString()
+              })
+            });
+          } catch (emailErr) {
+            console.error('Error sending auction end emails:', emailErr);
+          }
+
+          // If the logged-in user is the winner, open the award modal!
+          if (user && user.id === winnerId) {
+            setShowAwardModal(true);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error in handleAuctionEnd:', err);
+    } finally {
+      setIsProcessingEnd(false);
+    }
+  };
+
+  const checkWinnerStatus = async (machineryId: string) => {
+    try {
+      const { data: bidsData } = await supabase
+        .from('bids')
+        .select('*')
+        .eq('machinery_id', machineryId)
+        .order('amount', { ascending: false })
+        .limit(1);
+
+      if (bidsData && bidsData.length > 0) {
+        const winningBid = bidsData[0];
+        if (user && user.id === winningBid.user_id) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', winningBid.user_id)
+            .single();
+          
+          if (profileData) {
+            setWinnerProfile({
+              ...profileData,
+              amount: Number(winningBid.amount)
+            });
+            setShowAwardModal(true);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error checking winner status:', err);
+    }
+  };
+
   useEffect(() => {
     if (item) {
-      setSelectedImageIndex(0);
-      const startBid = item.currentBid ? item.currentBid + (item.minBidIncrement || 500) : item.price;
-      setBidAmount(startBid);
+      if (item.id !== prevItemId) {
+        setSelectedImageIndex(0);
+        setPrevItemId(item.id);
+        setShowAwardModal(false);
+        setWinnerProfile(null);
+      }
+      
+      // Fetch initial history
+      fetchBidsHistory(item.id);
 
-      // Populate initial bids log or mock bids
-      if (item.bidsHistory && item.bidsHistory.length > 0) {
-        setBidsLog(item.bidsHistory);
-      } else if (item.status === 'auction') {
-        const basePrice = item.currentBid || item.price;
-        setBidsLog([
-          {
-            id: 'bid-1',
-            machineryId: item.id,
-            userName: 'Empresa ***0412 (Caracas)',
-            amount: basePrice,
-            timestamp: 'Hace 12 min'
-          },
-          {
-            id: 'bid-2',
-            machineryId: item.id,
-            userName: 'Constructora ***9821 (Valencia)',
-            amount: Math.max(1000, basePrice - (item.minBidIncrement || 500)),
-            timestamp: 'Hace 45 min'
-          },
-          {
-            id: 'bid-3',
-            machineryId: item.id,
-            userName: 'Inversora ***1102 (Maracaibo)',
-            amount: Math.max(1000, basePrice - (item.minBidIncrement || 500) * 2),
-            timestamp: 'Hace 2 horas'
-          }
-        ]);
+      // Check if auction is already ended
+      const isExpired = item.auctionEndsAt ? item.auctionEndsAt.getTime() <= Date.now() : false;
+      if (item.status === 'auction' && isExpired) {
+        handleAuctionEnd();
+      } else if (isExpired || item.status === 'direct') {
+        checkWinnerStatus(item.id);
       }
     }
-  }, [item]);
+  }, [item, user]);
 
   // Realtime Supabase Subscription for live bids
   useEffect(() => {
@@ -81,20 +249,17 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `machinery_id=eq.${item.id}` },
-        (payload) => {
+        async (payload) => {
           const newBid = payload.new;
           if (newBid) {
-            const newRecord: BidRecord = {
-              id: newBid.id || 'bid-' + Date.now(),
-              machineryId: item.id,
-              userName: 'Usuario ***' + Math.floor(1000 + Math.random() * 9000),
-              amount: Number(newBid.monto_puja),
-              timestamp: 'Ahora mismo'
-            };
-            setBidsLog((prev) => [newRecord, ...prev]);
-            setBidAmount(Number(newBid.monto_puja) + (item.minBidIncrement || 500));
+            // Re-fetch bids history to get bidder name
+            await fetchBidsHistory(item.id);
+            
+            const newAmount = Number(newBid.amount);
+            setBidAmount(newAmount + (item.minBidIncrement || 500));
+            
             if (onBidSuccess) {
-              onBidSuccess(item.id, Number(newBid.monto_puja));
+              onBidSuccess(item.id, newAmount);
             }
           }
         }
@@ -114,6 +279,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
       const diff = item.auctionEndsAt!.getTime() - Date.now();
       if (diff <= 0) {
         setTimerString('Subasta Finalizada');
+        handleAuctionEnd();
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -131,50 +297,44 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   if (!item) return null;
 
   const currentHighestBid = bidsLog.length > 0 ? Math.max(...bidsLog.map((b) => b.amount)) : (item.currentBid || item.price);
-  const minRequiredBid = currentHighestBid + (item.minBidIncrement || 500);
+  const minRequiredBid = bidsLog.length > 0 ? currentHighestBid + (item.minBidIncrement || 500) : currentHighestBid;
+  const isExpired = item.auctionEndsAt ? item.auctionEndsAt.getTime() <= Date.now() : false;
 
   const handlePlaceBidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      onOpenAuth('login');
+      return;
+    }
+
     if (bidAmount < minRequiredBid) {
-      alert(`El monto de la puja debe ser al menos de $${minRequiredBid.toLocaleString()} USD (incremento mínimo +$${item.minBidIncrement || 500}).`);
+      showToast(`El monto de la puja debe ser al menos de $${minRequiredBid.toLocaleString()} USD (incremento mínimo +$${item.minBidIncrement || 500}).`, 'error');
       return;
     }
 
     setSubmittingBid(true);
-    setBidSuccessMessage(null);
 
     try {
-      // 1. Try sending bid to Supabase database
-      try {
-        await supabase.from('bids').insert({
-          machinery_id: item.id,
-          user_id: '00000000-0000-0000-0000-000000000000',
-          monto_puja: Number(bidAmount)
-        });
-      } catch (err) {
-        console.warn('Fallback bid:', err);
+      const { data, error } = await supabase.from('bids').insert({
+        machinery_id: item.id,
+        user_id: user.id,
+        amount: Number(bidAmount)
+      }).select();
+
+      if (error) {
+        throw error;
       }
 
-      // 2. Local state update
-      const newRecord: BidRecord = {
-        id: 'bid-' + Date.now(),
-        machineryId: item.id,
-        userName: 'Tu Oferta Comercial (Verificada)',
-        amount: Number(bidAmount),
-        timestamp: 'Ahora mismo'
-      };
+      showToast(`¡Puja enviada exitosamente por $${Number(bidAmount).toLocaleString()} USD!`, 'success');
+      setBidAmount(Number(bidAmount) + (item.minBidIncrement || 500));
 
-      setBidsLog((prev) => [newRecord, ...prev]);
       if (onBidSuccess) {
         onBidSuccess(item.id, Number(bidAmount));
       }
-
-      setBidSuccessMessage(`¡Puja enviada exitosamente por $${Number(bidAmount).toLocaleString()} USD!`);
-      setBidAmount(Number(bidAmount) + (item.minBidIncrement || 500));
-
-      setTimeout(() => {
-        setBidSuccessMessage(null);
-      }, 4000);
+    } catch (err: any) {
+      console.error('[Bidding Exception]:', err);
+      showToast(err.message || 'Error al procesar tu puja. Intenta de nuevo.', 'error');
     } finally {
       setSubmittingBid(false);
     }
@@ -225,7 +385,12 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
 
               {/* Status Badges */}
               <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                {item.status === 'auction' ? (
+                {isExpired ? (
+                  <span className="px-3 py-1 rounded-full bg-red-600/95 text-white text-xs font-extrabold uppercase tracking-wider shadow-lg flex items-center gap-1.5 animate-pulse">
+                    <Clock className="w-3.5 h-3.5" />
+                    Subasta Finalizada
+                  </span>
+                ) : item.status === 'auction' ? (
                   <span className="px-3 py-1 rounded-full bg-orange-600/95 text-white text-xs font-extrabold uppercase tracking-wider shadow-lg flex items-center gap-1.5">
                     <Gavel className="w-3.5 h-3.5 animate-pulse" />
                     Subasta Activa
@@ -451,17 +616,17 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
           <div className="lg:col-span-5 space-y-6">
             
             {/* Realtime Auction Box */}
-            {item.status === 'auction' ? (
-              <div className="bg-slate-950 border border-orange-500/30 rounded-2xl p-5 space-y-5 shadow-xl relative overflow-hidden">
+            {item.status === 'auction' || (item.auctionEndsAt && isExpired) ? (
+              <div className={`bg-slate-950 border rounded-2xl p-5 space-y-5 shadow-xl relative overflow-hidden ${isExpired ? 'border-red-500/20' : 'border-orange-500/30'}`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/10 rounded-full blur-2xl pointer-events-none"></div>
 
                 {/* Giant Live Countdown Timer */}
-                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 text-center">
+                <div className={`border rounded-xl p-4 text-center transition-all ${isExpired ? 'bg-red-950/20 border-red-500/30' : 'bg-slate-900/90 border-slate-800'}`}>
                   <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1 flex items-center justify-center gap-1.5">
-                    <Clock className="w-4 h-4 text-orange-500 animate-spin" style={{ animationDuration: '6s' }} />
-                    Tiempo Restante de Subasta
+                    <Clock className={`w-4 h-4 ${isExpired ? 'text-red-500' : 'text-orange-500 animate-spin'}`} style={isExpired ? {} : { animationDuration: '6s' }} />
+                    {isExpired ? 'Subasta Cerrada' : 'Tiempo Restante de Subasta'}
                   </span>
-                  <span className="text-2xl sm:text-3xl font-mono font-black text-amber-400 tracking-widest block">
+                  <span className={`text-2xl sm:text-3xl font-mono font-black tracking-widest block ${isExpired ? 'text-red-500' : 'text-amber-400'}`}>
                     {timerString}
                   </span>
                 </div>
@@ -469,7 +634,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 {/* Current Bid Display */}
                 <div className="flex items-center justify-between border-b border-slate-900 pb-3">
                   <div>
-                    <span className="text-xs text-slate-400 block font-medium">Puja Actual Auditada:</span>
+                    <span className="text-xs text-slate-400 block font-medium">{isExpired ? 'Puja Final Alcanzada:' : 'Puja Actual Auditada:'}</span>
                     <span className="text-3xl font-black text-white font-mono">
                       ${currentHighestBid.toLocaleString()} USD
                     </span>
@@ -498,15 +663,20 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                         min={minRequiredBid}
                         step={item.minBidIncrement || 500}
                         value={bidAmount}
+                        disabled={isExpired || submittingBid}
                         onChange={(e) => setBidAmount(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-7 pr-3 py-2.5 text-white font-mono font-bold text-lg focus:outline-none focus:border-orange-500"
+                        className={`w-full bg-slate-900 border rounded-xl pl-7 pr-3 py-2.5 text-white font-mono font-bold text-lg focus:outline-none focus:border-orange-500 ${isExpired ? 'border-slate-800 text-slate-500 bg-slate-950 cursor-not-allowed' : 'border-slate-700'}`}
                       />
                     </div>
 
                     <button
                       type="submit"
-                      disabled={submittingBid}
-                      className="px-5 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-orange-950 shrink-0 transition-all"
+                      disabled={isExpired || submittingBid}
+                      className={`px-5 py-3 text-white font-extrabold text-sm rounded-xl shadow-lg shrink-0 transition-all ${
+                        isExpired 
+                          ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 shadow-orange-950'
+                      }`}
                     >
                       {submittingBid ? 'Procesando...' : 'Pujar Ahora'}
                     </button>
@@ -516,22 +686,37 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       type="button"
+                      disabled={isExpired}
                       onClick={() => setBidAmount(currentHighestBid + 500)}
-                      className="flex-1 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 font-mono font-bold"
+                      className={`flex-1 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all ${
+                        isExpired 
+                          ? 'bg-slate-950 border-slate-900 text-slate-600 cursor-not-allowed' 
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300'
+                      }`}
                     >
                       +$500 USD
                     </button>
                     <button
                       type="button"
+                      disabled={isExpired}
                       onClick={() => setBidAmount(currentHighestBid + 1000)}
-                      className="flex-1 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 font-mono font-bold"
+                      className={`flex-1 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all ${
+                        isExpired 
+                          ? 'bg-slate-950 border-slate-900 text-slate-600 cursor-not-allowed' 
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300'
+                      }`}
                     >
                       +$1,000 USD
                     </button>
                     <button
                       type="button"
+                      disabled={isExpired}
                       onClick={() => setBidAmount(currentHighestBid + 2500)}
-                      className="flex-1 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 font-mono font-bold"
+                      className={`flex-1 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all ${
+                        isExpired 
+                          ? 'bg-slate-950 border-slate-900 text-slate-600 cursor-not-allowed' 
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300'
+                      }`}
                     >
                       +$2,500 USD
                     </button>
@@ -697,6 +882,90 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
           isOpen={showPurchaseModal}
           onClose={() => setShowPurchaseModal(false)}
         />
+      )}
+
+      {/* Award Modal */}
+      {showAwardModal && winnerProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-amber-500/40 rounded-2xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
+            <div className="mx-auto w-20 h-20 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center text-amber-400 animate-bounce">
+              <Gavel className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                ¡Felicidades, {winnerProfile.nombre_completo.split(' ')[0]}!
+              </h2>
+              <p className="text-xs text-slate-400">
+                Has resultado ganador de esta subasta. El equipo te ha sido adjudicado oficialmente.
+              </p>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-left space-y-3">
+              <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">Resumen de Adjudicación</span>
+              <div className="text-xs text-slate-300 space-y-1.5">
+                <div className="flex justify-between">
+                  <span>Maquinaria:</span>
+                  <strong className="text-white">{item.name}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Marca / Modelo:</span>
+                  <span className="text-white font-medium">{item.brand} / {item.model}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Número de Serie:</span>
+                  <span className="text-slate-400 font-mono">{item.serialNumber}</span>
+                </div>
+                <hr className="border-slate-850 my-1" />
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-250">Precio de Cierre:</span>
+                  <span className="text-lg font-mono font-black text-amber-400">${winnerProfile.amount.toLocaleString()} USD</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <span className="text-[11px] text-slate-400 font-medium block leading-relaxed">
+                Ponte en contacto con nuestro equipo comercial para coordinar el pago, el despacho y la nacionalización del equipo a Venezuela:
+              </span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-bold text-xs">
+                <a
+                  href={`https://wa.me/584146370819?text=${encodeURIComponent(
+                    `¡Hola! Fui el ganador de la subasta del ${item.name} (${item.brand}/${item.model}) por un monto de $${winnerProfile.amount} USD. Deseo coordinar el pago y el despacho.`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/40 text-white flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-950/55"
+                >
+                  <Phone className="w-4 h-4 shrink-0" />
+                  <span>Contactar WhatsApp</span>
+                </a>
+
+                <a
+                  href={`https://t.me/makimportvzla?text=${encodeURIComponent(
+                    `¡Hola! Fui el ganador de la subasta del ${item.name} (${item.brand}/${item.model}) por un monto de $${winnerProfile.amount} USD. Deseo coordinar el pago y el despacho.`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3.5 rounded-xl bg-sky-600 hover:bg-sky-500 border border-sky-500/40 text-white flex items-center justify-center gap-2 transition-all shadow-lg shadow-sky-950/55"
+                >
+                  <Send className="w-4 h-4 shrink-0" />
+                  <span>Contactar Telegram</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setShowAwardModal(false)}
+                className="text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+              >
+                Cerrar Ventana
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

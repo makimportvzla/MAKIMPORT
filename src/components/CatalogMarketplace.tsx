@@ -260,7 +260,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
     }
   }, [initialFilters]);
 
-  const mapDbRowToMachineryItem = (row: any): MachineryItem => {
+  const mapDbRowToMachineryItem = (row: any, bidsCountMap: { [key: string]: number } = {}): MachineryItem => {
     const photos = Array.isArray(row.fotos_urls) && row.fotos_urls.length > 0
       ? row.fotos_urls
       : ['https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800'];
@@ -284,7 +284,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       price: Number(row.precio_compra_inmediata) || 0,
       currentBid: row.es_subasta ? Number(row.puja_actual || row.precio_inicial_subasta) : undefined,
       minBidIncrement: 500,
-      bidsCount: 0,
+      bidsCount: bidsCountMap[row.id] || 0,
       auctionEndsAt: row.fecha_fin_subasta ? new Date(row.fecha_fin_subasta) : undefined,
       image: photos[0],
       images: photos,
@@ -310,6 +310,18 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   useEffect(() => {
     const fetchMachinery = async () => {
       try {
+        // Fetch all bids count
+        const { data: bidsData } = await supabase
+          .from('bids')
+          .select('machinery_id');
+
+        const bidsCountMap: { [key: string]: number } = {};
+        if (bidsData) {
+          bidsData.forEach((b: any) => {
+            bidsCountMap[b.machinery_id] = (bidsCountMap[b.machinery_id] || 0) + 1;
+          });
+        }
+
         const { data, error } = await supabase
           .from('machinery')
           .select('*')
@@ -322,7 +334,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         }
 
         if (data) {
-          const dbItems = data.map(mapDbRowToMachineryItem);
+          const dbItems = data.map((row) => mapDbRowToMachineryItem(row, bidsCountMap));
           setItems(dbItems);
         } else {
           setItems([]);
@@ -348,7 +360,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 if (item.id === newBid.machinery_id) {
                   return {
                     ...item,
-                    currentBid: Math.max(item.currentBid || 0, Number(newBid.monto_puja)),
+                    currentBid: Math.max(item.currentBid || 0, Number(newBid.amount)),
                     bidsCount: (item.bidsCount || 0) + 1
                   };
                 }
@@ -379,8 +391,16 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         { event: 'UPDATE', schema: 'public', table: 'machinery' },
         (payload) => {
           if (payload.new) {
-            const updatedItem = mapDbRowToMachineryItem(payload.new);
-            setItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
+            setItems((prev) => prev.map((item) => {
+              if (item.id === payload.new.id) {
+                const updatedItem = mapDbRowToMachineryItem(payload.new);
+                return {
+                  ...updatedItem,
+                  bidsCount: item.bidsCount
+                };
+              }
+              return item;
+            }));
           }
         }
       )
@@ -415,6 +435,22 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       window.removeEventListener('machinery_updated', handleLocalCreate);
     };
   }, []);
+
+  // Sync selectedItem with live updates from items state
+  useEffect(() => {
+    if (selectedItem) {
+      const updated = items.find((i) => i.id === selectedItem.id);
+      if (updated) {
+        if (
+          updated.currentBid !== selectedItem.currentBid ||
+          updated.status !== selectedItem.status ||
+          updated.bidsCount !== selectedItem.bidsCount
+        ) {
+          setSelectedItem(updated);
+        }
+      }
+    }
+  }, [items, selectedItem]);
 
   // Timer Tick
   useEffect(() => {
