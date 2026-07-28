@@ -12,6 +12,7 @@ import { AdminPublishModal } from '@/components/AdminPublishModal';
 import { FloatingContactButtons } from '@/components/FloatingContactButtons';
 import { CustomRequestModal } from '@/components/CustomRequestModal';
 import { useAuth } from '@/context/AuthContext';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 
 export default function Home() {
   const { userRole } = useAuth();
@@ -40,7 +41,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-orange-600 selection:text-white">
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-orange-600 selection:text-white pb-20 md:pb-0">
       
       {/* Navigation Header */}
       <Navbar
@@ -100,6 +101,18 @@ export default function Home() {
 
       {/* Floating Telegram & WhatsApp Contact Buttons */}
       <FloatingContactButtons />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <MobileBottomNav
+        onSelectSubastas={() => {
+          setActiveFilters({ brand: 'all', type: 'all', origin: 'all', transaction: 'auction' });
+          const element = document.getElementById('catalogo-marketplace');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+        onOpenAdminPublish={handleOpenAdminPublish}
+      />
 
     </main>
   );

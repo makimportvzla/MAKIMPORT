@@ -13,7 +13,7 @@ export const FloatingContactButtons: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-5 right-5 z-50 hidden md:flex flex-col items-end gap-3">
 
       {/* Telegram Button */}
       <div
