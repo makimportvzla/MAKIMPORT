@@ -302,7 +302,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       inspeccionCabina: Number(row.inspeccion_cabina) || 90,
       inspeccionCauchos: row.inspeccion_cauchos !== undefined && row.inspeccion_cauchos !== null ? Number(row.inspeccion_cauchos) : undefined,
       transitTime: row.tiempo_transito || '25-35 días',
-      ciudadVenezuela: row.ciudad_venezuela || undefined
+      ciudadVenezuela: row.ciudad_venezuela || undefined,
+      unidadUso: row.unidad_uso || 'Horas'
     };
   };
 
@@ -943,8 +944,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex items-center gap-2">
                               <Gauge className="w-3.5 h-3.5 text-slate-400" />
                               <div>
-                                <span className="text-[10px] text-slate-500 block">Horas uso</span>
-                                <span className="font-bold text-white">{item.hours.toLocaleString()} h</span>
+                                <span className="text-[10px] text-slate-500 block">Uso / Recorrido</span>
+                                <span className="font-bold text-white">{item.hours.toLocaleString()} {item.unidadUso || 'Horas'}</span>
                               </div>
                             </div>
                           </div>
@@ -1036,7 +1037,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             </span>
                             <span className="flex items-center gap-1 font-medium">
                               <Gauge className="w-3.5 h-3.5 text-slate-400" />
-                              {item.hours.toLocaleString()} hrs
+                              {item.hours.toLocaleString()} {item.unidadUso || 'Horas'}
                             </span>
                             <span className="flex items-center gap-1 text-emerald-400 font-bold">
                               <ShieldCheck className="w-3.5 h-3.5" />

@@ -30,6 +30,7 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
   const [category, setCategory] = useState('Excavadora de Oruga');
   const [year, setYear] = useState(2022);
   const [hours, setHours] = useState(2500);
+  const [unidadUso, setUnidadUso] = useState<'Horas' | 'Kilómetros' | 'Millas'>('Horas');
   const [directPrice, setDirectPrice] = useState(65000);
   const [origin, setOrigin] = useState('USA');
   const [location, setLocation] = useState('Houston, TX - EE.UU.');
@@ -76,6 +77,7 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
       setCategory(machineryItem.category || 'Excavadora de Oruga');
       setYear(machineryItem.year || 2022);
       setHours(machineryItem.hours || 0);
+      setUnidadUso(machineryItem.unidadUso || 'Horas');
       setDirectPrice(machineryItem.price || 0);
       setOrigin(machineryItem.origin || 'USA');
       setLocation(machineryItem.location || '');
@@ -207,7 +209,8 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
         inspeccionCabina: Number(inspeccionCabina),
         inspeccionCauchos: Number(inspeccionCauchos),
         transitTime: transitTime,
-        ciudadVenezuela: ciudadVenezuela || undefined
+        ciudadVenezuela: ciudadVenezuela || undefined,
+        unidadUso: unidadUso
       };
 
       const { data: dbData, error: dbError } = await supabase
@@ -238,7 +241,8 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
           inspeccion_cauchos: Number(inspeccionCauchos),
           puerto_destino: updatedItem.destinationPort,
           tiempo_transito: transitTime,
-          ciudad_venezuela: ciudadVenezuela || null
+          ciudad_venezuela: ciudadVenezuela || null,
+          unidad_uso: unidadUso
         })
         .eq('id', machineryItem.id)
         .select();
@@ -397,14 +401,25 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Horas de Uso</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={hours}
-                  onChange={(e) => setHours(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 font-mono"
-                />
+                <label className="block font-semibold text-slate-300 mb-1">Uso / Recorrido *</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={hours}
+                    onChange={(e) => setHours(Number(e.target.value))}
+                    className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 font-mono"
+                  />
+                  <select
+                    value={unidadUso}
+                    onChange={(e) => setUnidadUso(e.target.value as any)}
+                    className="w-28 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="Horas">⏱️ Horas</option>
+                    <option value="Kilómetros">🛣️ Km</option>
+                    <option value="Millas">🇺🇸 Millas</option>
+                  </select>
+                </div>
               </div>
 
               <div>

@@ -10,6 +10,9 @@ interface UserProfile {
   nombre_completo: string;
   cedula_rif?: string;
   telefono?: string;
+  ciudad?: string;
+  pais?: string;
+  avatar_url?: string;
   role: 'admin' | 'client';
 }
 
@@ -20,6 +23,7 @@ interface AuthContextType {
   userRole: 'admin' | 'client' | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   userRole: null,
   loading: true,
   signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -90,13 +95,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(null);
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
+  };
+
   const userRole = profile?.role ?? null;
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, userRole, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, userRole, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => useContext(AuthContext);
+

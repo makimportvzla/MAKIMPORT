@@ -6,6 +6,7 @@ import { MachineryItem, BidRecord } from '@/types/machinery';
 import { supabase } from '@/lib/supabase';
 import { PurchaseRequestModal } from './PurchaseRequestModal';
 import { useAuth } from '@/context/AuthContext';
+import { ContactDataModal } from './ContactDataModal';
 
 interface MachineryDetailModalProps {
   item: MachineryItem | null;
@@ -22,10 +23,12 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   userRole = 'client',
   onBidSuccess
 }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showContactDataModal, setShowContactDataModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'bid' | 'purchase' | null>(null);
   
   // Bidding states
   const [bidAmount, setBidAmount] = useState<number>(0);
@@ -325,25 +328,12 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   }
   const isExpired = endValDate && !isNaN(endValDate.getTime()) ? endValDate.getTime() <= Date.now() : false;
 
-  const handlePlaceBidSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user) {
-      onOpenAuth('login');
-      return;
-    }
-
-    if (bidAmount < minRequiredBid) {
-      showToast(`El monto de la puja debe ser al menos de $${minRequiredBid.toLocaleString()} USD (incremento mínimo +$${item.minBidIncrement || 500}).`, 'error');
-      return;
-    }
-
+  const executeBidSubmission = async () => {
     setSubmittingBid(true);
-
     try {
       const { data, error } = await supabase.from('bids').insert({
         machinery_id: item.id,
-        user_id: user.id,
+        user_id: user!.id,
         amount: Number(bidAmount)
       }).select();
 
@@ -365,8 +355,50 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
     }
   };
 
+  const handlePlaceBidSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      onOpenAuth('login');
+      return;
+    }
+
+    if (bidAmount < minRequiredBid) {
+      showToast(`El monto de la puja debe ser al menos de $${minRequiredBid.toLocaleString()} USD (incremento mínimo +$${item.minBidIncrement || 500}).`, 'error');
+      return;
+    }
+
+    if (!profile?.telefono) {
+      setPendingAction('bid');
+      setShowContactDataModal(true);
+      return;
+    }
+
+    await executeBidSubmission();
+  };
+
   const handleDirectPurchase = () => {
+    if (!user) {
+      onOpenAuth('login');
+      return;
+    }
+
+    if (!profile?.telefono) {
+      setPendingAction('purchase');
+      setShowContactDataModal(true);
+      return;
+    }
     setShowPurchaseModal(true);
+  };
+
+  const handleContactDataComplete = async () => {
+    setShowContactDataModal(false);
+    if (pendingAction === 'purchase') {
+      setShowPurchaseModal(true);
+    } else if (pendingAction === 'bid') {
+      await executeBidSubmission();
+    }
+    setPendingAction(null);
   };
 
   return (
@@ -496,10 +528,10 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 </div>
 
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase">Horas de Motor</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">Uso / Recorrido</span>
                   <span className="font-bold text-white flex items-center gap-1.5 mt-1">
                     <Gauge className="w-4 h-4 text-orange-400" />
-                    {item.hours.toLocaleString()} hrs
+                    {item.hours.toLocaleString()} {item.unidadUso || 'Horas'}
                   </span>
                 </div>
 
@@ -991,6 +1023,18 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Contact Data Verification Modal */}
+      {showContactDataModal && (
+        <ContactDataModal
+          isOpen={showContactDataModal}
+          onClose={() => {
+            setShowContactDataModal(false);
+            setPendingAction(null);
+          }}
+          onComplete={handleContactDataComplete}
+        />
       )}
 
     </div>

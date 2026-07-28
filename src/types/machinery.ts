@@ -45,4 +45,6 @@ export interface MachineryItem {
   transitTime?: string;
   // Venezuela-specific location (when machinery is physically inside Venezuela)
   ciudadVenezuela?: string;
+  // Unit of usage measurement
+  unidadUso?: 'Horas' | 'Kilómetros' | 'Millas';
 }
