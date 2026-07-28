@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Home, Gavel, Calculator, Settings, MessageCircle, Send, Plus, LayoutDashboard, X, Wrench } from 'lucide-react';
+import { Home, Gavel, Calculator, Settings, MessageCircle, Send, Plus, LayoutDashboard, X, Wrench, User } from 'lucide-react';
 import Link from 'next/link';
 
 interface MobileBottomNavProps {
@@ -14,9 +14,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onSelectSubastas,
   onOpenAdminPublish,
 }) => {
-  const { userRole, user } = useAuth();
+  const { userRole, user, profile } = useAuth();
   const isAdmin = userRole === 'admin';
   const isLoggedIn = !!user;
+  const displayName = profile?.nombre_completo || user?.email?.split('@')[0] || 'Usuario';
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -58,7 +59,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     if (onSelectSubastas) {
       onSelectSubastas();
     } else {
-      // If we are on a page that doesn't have onSelectSubastas directly (e.g. if we are elsewhere)
       window.location.href = '/catalogo?filter=auction';
     }
   };
@@ -84,7 +84,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              {isAdmin ? 'Panel de Administración' : 'Atención Personalizada'}
+              {isAdmin ? 'Panel de Administración' : isLoggedIn ? 'Mi Cuenta MAKIMPORT' : 'Atención Personalizada'}
             </span>
             <button
               onClick={() => setMenuOpen(false)}
@@ -116,6 +116,60 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 <LayoutDashboard className="w-4 h-4" />
                 <span>Ir al Panel Admin</span>
               </Link>
+
+              {/* Admin también accede a su perfil */}
+              <Link
+                href="/perfil"
+                onClick={() => setMenuOpen(false)}
+                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 border border-slate-800 active:scale-[0.98] transition-all"
+              >
+                <User className="w-3.5 h-3.5 text-orange-400" />
+                <span>Mi Perfil / Oficina Virtual</span>
+              </Link>
+            </div>
+          ) : isLoggedIn ? (
+            <div className="flex flex-col gap-3">
+              {/* Perfil Card */}
+              <Link
+                href="/perfil"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 py-3 px-4 bg-gradient-to-r from-orange-950/60 to-slate-950 border border-orange-500/30 hover:border-orange-500/60 rounded-xl active:scale-[0.98] transition-all"
+              >
+                <div className="w-10 h-10 rounded-full bg-orange-700/80 flex items-center justify-center text-sm font-black text-white shrink-0">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="block font-extrabold text-white text-sm truncate">{displayName}</span>
+                  <span className="block text-[10px] text-orange-400 font-bold uppercase tracking-wider mt-0.5">
+                    Mi Perfil · Subastas · Compras
+                  </span>
+                </div>
+                <span className="text-orange-500 font-bold text-sm shrink-0">›</span>
+              </Link>
+
+              {/* Contacto directo */}
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href="https://wa.me/584146370819?text=Hola%20MAKIMPORT%2C%20busco%20atenci%C3%B3n%20personalizada%20para%20la%20compra%2Fb%C3%BAsqueda%20de%20maquinaria."
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3 px-3 bg-emerald-950/30 hover:bg-emerald-900/40 border border-emerald-800/50 text-emerald-400 text-xs font-bold rounded-xl active:scale-[0.98] transition-all"
+                >
+                  <MessageCircle className="w-5 h-5 text-emerald-400" />
+                  <span>WhatsApp</span>
+                </a>
+                <a
+                  href="https://t.me/makimportvzla"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3 px-3 bg-sky-950/30 hover:bg-sky-900/40 border border-sky-800/50 text-sky-400 text-xs font-bold rounded-xl active:scale-[0.98] transition-all"
+                >
+                  <Send className="w-5 h-5 text-sky-400" />
+                  <span>Telegram</span>
+                </a>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -189,7 +243,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <span className="text-[10px] font-semibold tracking-wide">Cotizar</span>
         </button>
 
-        {/* Admin / Menú */}
+        {/* Perfil / Admin / Menú */}
         <button
           onClick={handleMenuToggle}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors relative ${
@@ -197,6 +251,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               ? 'text-orange-500 font-bold'
               : isAdmin
               ? 'text-amber-500 hover:text-amber-400'
+              : isLoggedIn
+              ? 'text-orange-400 hover:text-orange-300'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -204,6 +260,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             <>
               <Settings className={`w-5 h-5 mb-0.5 transition-transform duration-300 ${menuOpen ? 'rotate-90' : ''}`} />
               <span className="text-[10px] font-bold tracking-wide">Admin</span>
+            </>
+          ) : isLoggedIn ? (
+            <>
+              {/* Mini avatar initial */}
+              <div className={`w-5 h-5 mb-0.5 rounded-full flex items-center justify-center text-[9px] font-black text-white shrink-0 transition-all ${menuOpen ? 'bg-orange-500' : 'bg-orange-700/90'}`}>
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-[10px] font-semibold tracking-wide">Perfil</span>
             </>
           ) : (
             <>
@@ -216,3 +280,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     </div>
   );
 };
+
+
+
+

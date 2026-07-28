@@ -382,6 +382,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </Link>
               )}
 
+              {/* Mi Perfil / Oficina Virtual — all logged-in users */}
+              {isLoggedIn && (
+                <Link
+                  href="/perfil"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2.5 py-2.5 px-3 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-orange-500/40 text-slate-200 hover:text-white rounded-xl font-bold text-xs transition-all"
+                >
+                  <div className="w-7 h-7 rounded-full bg-orange-700/80 flex items-center justify-center text-[11px] font-black text-white shrink-0">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block font-bold text-white text-xs">Mi Perfil / Oficina Virtual</span>
+                    <span className="block text-[10px] text-orange-400 font-medium">Subastas · Compras · Configuración</span>
+                  </div>
+                  <span className="text-orange-500 text-xs">›</span>
+                </Link>
+              )}
+
               <div className="pt-2 flex flex-col space-y-2">
                 {isLoggedIn ? (
                   <button
