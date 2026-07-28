@@ -310,17 +310,23 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   useEffect(() => {
     const fetchMachinery = async () => {
       try {
-        // Fetch all bids count
-        const { data: bidsData } = await supabase
-          .from('bids')
-          .select('machinery_id');
+        let bidsData: any = null;
+        try {
+          const { data } = await supabase
+            .from('bids')
+            .select('machinery_id');
+          bidsData = data;
+        } catch (err) {
+          console.warn('Error fetching bids count list:', err);
+        }
 
         const bidsCountMap: { [key: string]: number } = {};
-        if (bidsData) {
-          bidsData.forEach((b: any) => {
+        const bidsList = Array.isArray(bidsData) ? bidsData : [];
+        bidsList.forEach((b: any) => {
+          if (b && b.machinery_id) {
             bidsCountMap[b.machinery_id] = (bidsCountMap[b.machinery_id] || 0) + 1;
-          });
-        }
+          }
+        });
 
         const { data, error } = await supabase
           .from('machinery')
@@ -347,73 +353,78 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
     fetchMachinery();
 
-    const channel = supabase
-      .channel('catalog_marketplace_changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bids' },
-        (payload) => {
-          const newBid = payload.new;
-          if (newBid && newBid.machinery_id) {
-            setItems((prev) =>
-              prev.map((item) => {
-                if (item.id === newBid.machinery_id) {
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel('catalog_marketplace_changes')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'bids' },
+          (payload) => {
+            const newBid = payload.new;
+            if (newBid && newBid.machinery_id) {
+              setItems((prev) =>
+                prev.map((item) => {
+                  if (item.id === newBid.machinery_id) {
+                    return {
+                      ...item,
+                      currentBid: Math.max(item.currentBid || 0, Number(newBid.amount || 0)),
+                      bidsCount: (item.bidsCount || 0) + 1
+                    };
+                  }
+                  return item;
+                })
+              );
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'machinery' },
+          (payload) => {
+            if (payload.new) {
+              const newItem = mapDbRowToMachineryItem(payload.new);
+              setItems((prev) => {
+                const exists = prev.some((item) => item.id === newItem.id);
+                if (exists) {
+                  return prev.map((item) => item.id === newItem.id ? newItem : item);
+                }
+                return [newItem, ...prev];
+              });
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'machinery' },
+          (payload) => {
+            if (payload.new) {
+              setItems((prev) => prev.map((item) => {
+                if (item.id === payload.new.id) {
+                  const updatedItem = mapDbRowToMachineryItem(payload.new);
                   return {
-                    ...item,
-                    currentBid: Math.max(item.currentBid || 0, Number(newBid.amount)),
-                    bidsCount: (item.bidsCount || 0) + 1
+                    ...updatedItem,
+                    bidsCount: item.bidsCount
                   };
                 }
                 return item;
-              })
-            );
+              }));
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'machinery' },
-        (payload) => {
-          if (payload.new) {
-            const newItem = mapDbRowToMachineryItem(payload.new);
-            setItems((prev) => {
-              const exists = prev.some((item) => item.id === newItem.id);
-              if (exists) {
-                return prev.map((item) => item.id === newItem.id ? newItem : item);
-              }
-              return [newItem, ...prev];
-            });
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'machinery' },
+          (payload) => {
+            if (payload.old && payload.old.id) {
+              setItems((prev) => prev.filter((item) => item.id !== payload.old.id));
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'machinery' },
-        (payload) => {
-          if (payload.new) {
-            setItems((prev) => prev.map((item) => {
-              if (item.id === payload.new.id) {
-                const updatedItem = mapDbRowToMachineryItem(payload.new);
-                return {
-                  ...updatedItem,
-                  bidsCount: item.bidsCount
-                };
-              }
-              return item;
-            }));
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'machinery' },
-        (payload) => {
-          if (payload.old && payload.old.id) {
-            setItems((prev) => prev.filter((item) => item.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch (realtimeErr) {
+      console.warn('Error setting up Realtime subscription in catalog:', realtimeErr);
+    }
 
     const handleLocalCreate = (e: any) => {
       if (e.detail) {
@@ -430,7 +441,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
     window.addEventListener('machinery_updated', handleLocalCreate);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {
+          console.warn('Error removing channel:', e);
+        }
+      }
       window.removeEventListener('machinery_created', handleLocalCreate);
       window.removeEventListener('machinery_updated', handleLocalCreate);
     };
@@ -458,14 +475,25 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       const newMap: { [key: string]: string } = {};
       items.forEach((item) => {
         if (item.status === 'auction' && item.auctionEndsAt) {
-          const diff = item.auctionEndsAt.getTime() - Date.now();
-          if (diff <= 0) {
-            newMap[item.id] = 'Finalizada';
+          let endDate: Date | null = null;
+          try {
+            endDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt);
+          } catch (e) {
+            endDate = null;
+          }
+          
+          if (endDate && !isNaN(endDate.getTime())) {
+            const diff = endDate.getTime() - Date.now();
+            if (diff <= 0) {
+              newMap[item.id] = 'Finalizada';
+            } else {
+              const hours = Math.floor(diff / (1000 * 60 * 60));
+              const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+              const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+              newMap[item.id] = `${hours.toString().padStart(2, '0')}h : ${minutes.toString().padStart(2, '0')}m : ${seconds.toString().padStart(2, '0')}s`;
+            }
           } else {
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-            newMap[item.id] = `${hours.toString().padStart(2, '0')}h : ${minutes.toString().padStart(2, '0')}m : ${seconds.toString().padStart(2, '0')}s`;
+            newMap[item.id] = 'Finalizada';
           }
         }
       });

@@ -32,6 +32,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   const [bidsLog, setBidsLog] = useState<BidRecord[]>([]);
   const [submittingBid, setSubmittingBid] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [bidSuccessMessage, setBidSuccessMessage] = useState<string | null>(null);
 
   // Timer state
   const [timerString, setTimerString] = useState<string>('00d : 00h : 00m : 00s');
@@ -67,7 +68,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
 
   const fetchBidsHistory = async (machineryId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data: bidsData, error } = await supabase
         .from('bid_history_view')
         .select('*')
         .eq('machinery_id', machineryId)
@@ -76,25 +77,23 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
 
       if (error) {
         console.warn('Error loading bid history:', error);
-        return;
       }
 
-      if (data) {
-        const records: BidRecord[] = data.map((row: any) => ({
-          id: row.id || `bid-${row.created_at}`,
-          machineryId: row.machinery_id,
-          userName: row.bidder_name || 'Comprador Anónimo',
-          amount: Number(row.amount),
-          timestamp: formatTimestamp(row.created_at)
-        }));
-        setBidsLog(records);
+      const history = Array.isArray(bidsData) ? bidsData : [];
+      const records: BidRecord[] = history.map((row: any) => ({
+        id: row.id || `bid-${row.created_at}`,
+        machineryId: row.machinery_id,
+        userName: row.bidder_name || 'Comprador Anónimo',
+        amount: Number(row.amount || 0),
+        timestamp: formatTimestamp(row.created_at)
+      }));
+      setBidsLog(records);
 
-        if (data.length > 0 && item) {
-          const highestAmount = Number(data[0].amount);
-          setBidAmount(highestAmount + (item.minBidIncrement || 500));
-        } else if (item) {
-          setBidAmount(item.currentBid || item.price);
-        }
+      if (records.length > 0 && item) {
+        const highestAmount = records[0].amount;
+        setBidAmount(highestAmount + (item.minBidIncrement || 500));
+      } else if (item) {
+        setBidAmount(item.currentBid ?? item.price ?? 0);
       }
     } catch (err) {
       console.warn('Error fetching bid history:', err);
@@ -108,14 +107,10 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
     try {
       // 1. If it's still status='auction', update it in the database to es_subasta = false
       if (item.status === 'auction') {
-        const { error: updateError } = await supabase
+        await supabase
           .from('machinery')
           .update({ es_subasta: false })
           .eq('id', item.id);
-        
-        if (updateError) {
-          console.error('Error marking auction as ended:', updateError);
-        }
       }
 
       // 2. Query the highest bid to find the winner
@@ -131,21 +126,20 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
         return;
       }
 
-      if (bidsData && bidsData.length > 0) {
-        const winningBid = bidsData[0];
+      const bidsList = Array.isArray(bidsData) ? bidsData : [];
+      if (bidsList.length > 0) {
+        const winningBid = bidsList[0];
         const winnerId = winningBid.user_id;
-        const finalAmount = Number(winningBid.amount);
+        const finalAmount = Number(winningBid.amount || 0);
 
         // Fetch winner's profile details
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', winnerId)
           .single();
 
-        if (profileError) {
-          console.error('Error fetching winner profile:', profileError);
-        } else if (profileData) {
+        if (profileData) {
           setWinnerProfile({
             ...profileData,
             amount: finalAmount
@@ -163,8 +157,8 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 machineryBrand: item.brand,
                 machineryModel: item.model,
                 finalAmount: finalAmount,
-                winnerName: profileData.nombre_completo,
-                winnerEmail: profileData.email,
+                winnerName: profileData.nombre_completo || 'Ganador',
+                winnerEmail: profileData.email || '',
                 winnerPhone: profileData.telefono || 'No especificado',
                 closedAt: new Date().toISOString()
               })
@@ -195,8 +189,9 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
         .order('amount', { ascending: false })
         .limit(1);
 
-      if (bidsData && bidsData.length > 0) {
-        const winningBid = bidsData[0];
+      const bidsList = Array.isArray(bidsData) ? bidsData : [];
+      if (bidsList.length > 0) {
+        const winningBid = bidsList[0];
         if (user && user.id === winningBid.user_id) {
           const { data: profileData } = await supabase
             .from('profiles')
@@ -207,7 +202,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
           if (profileData) {
             setWinnerProfile({
               ...profileData,
-              amount: Number(winningBid.amount)
+              amount: Number(winningBid.amount || 0)
             });
             setShowAwardModal(true);
           }
@@ -231,7 +226,11 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
       fetchBidsHistory(item.id);
 
       // Check if auction is already ended
-      const isExpired = item.auctionEndsAt ? item.auctionEndsAt.getTime() <= Date.now() : false;
+      let endDate: Date | null = null;
+      if (item.auctionEndsAt) {
+        endDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt);
+      }
+      const isExpired = endDate && !isNaN(endDate.getTime()) ? endDate.getTime() <= Date.now() : false;
       if (item.status === 'auction' && isExpired) {
         handleAuctionEnd();
       } else if (isExpired || item.status === 'direct') {
@@ -244,30 +243,41 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   useEffect(() => {
     if (!item) return;
 
-    const channel = supabase
-      .channel(`bids_modal_${item.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bids', filter: `machinery_id=eq.${item.id}` },
-        async (payload) => {
-          const newBid = payload.new;
-          if (newBid) {
-            // Re-fetch bids history to get bidder name
-            await fetchBidsHistory(item.id);
-            
-            const newAmount = Number(newBid.amount);
-            setBidAmount(newAmount + (item.minBidIncrement || 500));
-            
-            if (onBidSuccess) {
-              onBidSuccess(item.id, newAmount);
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel(`bids_modal_${item.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'bids', filter: `machinery_id=eq.${item.id}` },
+          async (payload) => {
+            const newBid = payload.new;
+            if (newBid) {
+              // Re-fetch bids history to get bidder name
+              await fetchBidsHistory(item.id);
+              
+              const newAmount = Number(newBid.amount || 0);
+              setBidAmount(newAmount + (item.minBidIncrement || 500));
+              
+              if (onBidSuccess) {
+                onBidSuccess(item.id, newAmount);
+              }
             }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('Error setting up Realtime subscription:', err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {
+          console.warn('Error removing Realtime channel:', e);
+        }
+      }
     };
   }, [item]);
 
@@ -276,7 +286,17 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
     if (!item || item.status !== 'auction' || !item.auctionEndsAt) return;
 
     const updateTimer = () => {
-      const diff = item.auctionEndsAt!.getTime() - Date.now();
+      let endDate: Date | null = null;
+      if (item.auctionEndsAt) {
+        endDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt);
+      }
+      
+      if (!endDate || isNaN(endDate.getTime())) {
+        setTimerString('Subasta Finalizada');
+        return;
+      }
+
+      const diff = endDate.getTime() - Date.now();
       if (diff <= 0) {
         setTimerString('Subasta Finalizada');
         handleAuctionEnd();
@@ -296,9 +316,14 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
 
   if (!item) return null;
 
-  const currentHighestBid = bidsLog.length > 0 ? Math.max(...bidsLog.map((b) => b.amount)) : (item.currentBid || item.price);
+  const currentHighestBid = bidsLog.length > 0 ? Math.max(...bidsLog.map((b) => b.amount)) : (item.currentBid || item.price || 0);
   const minRequiredBid = bidsLog.length > 0 ? currentHighestBid + (item.minBidIncrement || 500) : currentHighestBid;
-  const isExpired = item.auctionEndsAt ? item.auctionEndsAt.getTime() <= Date.now() : false;
+  
+  let endValDate: Date | null = null;
+  if (item.auctionEndsAt) {
+    endValDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt);
+  }
+  const isExpired = endValDate && !isNaN(endValDate.getTime()) ? endValDate.getTime() <= Date.now() : false;
 
   const handlePlaceBidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
