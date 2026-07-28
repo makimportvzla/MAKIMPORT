@@ -327,6 +327,10 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
     endValDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt);
   }
   const isExpired = endValDate && !isNaN(endValDate.getTime()) ? endValDate.getTime() <= Date.now() : false;
+  // wasAuction: item originally had an auction date set (even if status flipped to 'direct' after closure)
+  const wasAuction = !!item.auctionEndsAt;
+  // isClosedAuction: the auction timer ran out, regardless of current status in DB
+  const isClosedAuction = wasAuction && isExpired;
 
   const executeBidSubmission = async () => {
     setSubmittingBid(true);
@@ -673,9 +677,24 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
           <div className="lg:col-span-5 space-y-6">
             
             {/* Realtime Auction Box */}
-            {item.status === 'auction' || (item.auctionEndsAt && isExpired) ? (
-              <div className={`bg-slate-950 border rounded-2xl p-5 space-y-5 shadow-xl relative overflow-hidden ${isExpired ? 'border-red-500/20' : 'border-orange-500/30'}`}>
+            {item.status === 'auction' || isClosedAuction ? (
+              <div className={`bg-slate-950 border rounded-2xl p-5 space-y-5 shadow-xl relative overflow-hidden ${isExpired ? 'border-red-500/30' : 'border-orange-500/30'}`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                {/* ===== SUBASTA FINALIZADA BANNER ===== */}
+                {isExpired && (
+                  <div className="bg-red-950/60 border border-red-500/40 rounded-xl p-4 flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-red-900/80 border border-red-700/50 flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-5 h-5 text-red-400" />
+                    </div>
+                    <div>
+                      <p className="text-red-300 font-extrabold text-sm">⛔ Esta subasta ha finalizado</p>
+                      <p className="text-red-400/80 text-xs mt-0.5 leading-relaxed">
+                        El equipo fue adjudicado al ganador de la puja más alta. Ya no es posible realizar nuevas ofertas ni compras directas.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Giant Live Countdown Timer */}
                 <div className={`border rounded-xl p-4 text-center transition-all ${isExpired ? 'bg-red-950/20 border-red-500/30' : 'bg-slate-900/90 border-slate-800'}`}>
@@ -818,31 +837,65 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
               </div>
             ) : (
 
-              /* Direct Purchase Box */
-              <div className="bg-slate-950 border border-emerald-500/30 rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400 font-medium">Precio de Compra Directa:</span>
-                  <span className="text-3xl font-black text-amber-400 font-mono">
-                    ${item.price.toLocaleString()} USD
-                  </span>
-                </div>
+              /* Direct Purchase Box — blocked if item was a closed auction */
+              <div className={`bg-slate-950 border rounded-2xl p-5 space-y-4 ${isClosedAuction ? 'border-red-900/30' : 'border-emerald-500/30'}`}>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Unidad disponible para adjudicación inmediata sin esperas de subasta. Incluye certificado de origen y logística de embarque.
-                </p>
+                {isClosedAuction ? (
+                  /* Closed auction: show adjudication notice instead of purchase */
+                  <>
+                    <div className="bg-red-950/60 border border-red-500/40 rounded-xl p-4 flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-full bg-red-900/80 border border-red-700/50 flex items-center justify-center shrink-0">
+                        <AlertCircle className="w-5 h-5 text-red-400" />
+                      </div>
+                      <div>
+                        <p className="text-red-300 font-extrabold text-sm">⛔ Esta subasta ha finalizado</p>
+                        <p className="text-red-400/80 text-xs mt-0.5 leading-relaxed">
+                          El equipo fue adjudicado al ganador de la puja más alta. Ya no es posible realizar compras directas sobre esta unidad.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-400 font-medium">Monto Final Alcanzado:</span>
+                      <span className="text-2xl font-black text-red-400 font-mono">
+                        ${currentHighestBid.toLocaleString()} USD
+                      </span>
+                    </div>
+                    <button
+                      disabled
+                      className="w-full py-3.5 bg-slate-800 border border-slate-700 text-slate-500 font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"
+                    >
+                      <X className="w-5 h-5 shrink-0" />
+                      <span>Compra No Disponible — Subasta Cerrada</span>
+                    </button>
+                  </>
+                ) : (
+                  /* Normal direct purchase */
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-400 font-medium">Precio de Compra Directa:</span>
+                      <span className="text-3xl font-black text-amber-400 font-mono">
+                        ${item.price.toLocaleString()} USD
+                      </span>
+                    </div>
 
-                <button
-                  onClick={handleDirectPurchase}
-                  className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 transition-all"
-                >
-                  <ShoppingBag className="w-5 h-5 shrink-0" />
-                  <span className="whitespace-nowrap">Solicitar Compra Inmediata</span>
-                  <span className="font-mono text-xs opacity-90 whitespace-nowrap shrink-0">— ${item.price.toLocaleString()} USD</span>
-                </button>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Unidad disponible para adjudicación inmediata sin esperas de subasta. Incluye certificado de origen y logística de embarque.
+                    </p>
 
-                <p className="text-[10px] text-slate-500 text-center leading-relaxed">
-                  Al hacer clic, completarás un formulario breve. Luego serás redirigido a Telegram @makimportvzla para coordinar el proceso.
-                </p>
+                    <button
+                      onClick={handleDirectPurchase}
+                      className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 transition-all"
+                    >
+                      <ShoppingBag className="w-5 h-5 shrink-0" />
+                      <span className="whitespace-nowrap">Solicitar Compra Inmediata</span>
+                      <span className="font-mono text-xs opacity-90 whitespace-nowrap shrink-0">— ${item.price.toLocaleString()} USD</span>
+                    </button>
+
+                    <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+                      Al hacer clic, completarás un formulario breve. Luego serás redirigido a Telegram @makimportvzla para coordinar el proceso.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 

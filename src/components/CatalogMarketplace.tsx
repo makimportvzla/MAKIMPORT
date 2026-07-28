@@ -860,11 +860,24 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 {filteredAndSortedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
+                  // Detect if this auction has expired — also covers items whose status flipped to 'direct' after closure
+                  let cardEndDate: Date | null = null;
+                  if (item.auctionEndsAt) {
+                    try { cardEndDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt); } catch { cardEndDate = null; }
+                  }
+                  const wasAuctionItem = !!item.auctionEndsAt; // had a scheduled auction
+                  const isAuctionExpired = wasAuctionItem && cardEndDate && !isNaN(cardEndDate.getTime()) && cardEndDate.getTime() <= Date.now();
+                  const isTimerFinalizada = timerStr === 'Finalizada';
+                  const isClosed = wasAuctionItem && (isAuctionExpired || isTimerFinalizada);
 
                   return (
                     <div
                       key={item.id}
-                      className="group bg-slate-900/90 border border-slate-800/90 hover:border-orange-500/50 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-orange-950/30 flex flex-col justify-between"
+                      className={`group bg-slate-900/90 border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl flex flex-col justify-between ${
+                        isClosed
+                          ? 'border-red-900/40 hover:border-red-700/40 hover:shadow-red-950/20 opacity-80'
+                          : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
+                      }`}
                     >
                       <div>
                         {/* Image Container with Hover thumbnail switch */}
@@ -872,13 +885,18 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           <img
                             src={item.images[0]}
                             alt={item.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className={`w-full h-full object-cover transition-transform duration-500 ${isClosed ? 'grayscale-[30%]' : 'group-hover:scale-105'}`}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
 
                           {/* Status Badge */}
                           <div className="absolute top-3 left-3">
-                            {isAuction ? (
+                            {isClosed ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-900/95 border border-red-700/60 text-red-200 text-[11px] font-extrabold uppercase tracking-wider shadow-lg">
+                                <X className="w-3 h-3" />
+                                Subasta Finalizada
+                              </span>
+                            ) : isAuction ? (
                               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-600/95 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-lg">
                                 <Gavel className="w-3 h-3 animate-pulse" />
                                 Subasta Activa
@@ -896,15 +914,19 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
                           </div>
 
-                          {/* Realtime Timer bar (For Auctions) */}
+                          {/* Timer bar: active auction shows countdown, closed shows ADJUDICADO */}
                           {isAuction && (
-                            <div className="absolute bottom-3 left-3 right-3 bg-slate-950/90 backdrop-blur-md border border-orange-500/40 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
-                              <span className="text-slate-300 font-medium flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-orange-400 animate-spin" style={{ animationDuration: '4s' }} />
-                                Cierra en:
+                            <div className={`absolute bottom-3 left-3 right-3 backdrop-blur-md border rounded-xl px-3 py-1.5 flex items-center justify-between text-xs ${
+                              isClosed
+                                ? 'bg-red-950/80 border-red-700/40'
+                                : 'bg-slate-950/90 border-orange-500/40'
+                            }`}>
+                              <span className={`font-medium flex items-center gap-1 ${isClosed ? 'text-red-300' : 'text-slate-300'}`}>
+                                <Clock className={`w-3.5 h-3.5 ${isClosed ? 'text-red-400' : 'text-orange-400 animate-spin'}`} style={isClosed ? {} : { animationDuration: '4s' }} />
+                                {isClosed ? 'Subasta cerrada' : 'Cierra en:'}
                               </span>
-                              <span className="font-mono font-extrabold text-amber-400 tracking-wider">
-                                {timerStr}
+                              <span className={`font-mono font-extrabold tracking-wider ${isClosed ? 'text-red-400' : 'text-amber-400'}`}>
+                                {isClosed ? 'ADJUDICADA' : timerStr}
                               </span>
                             </div>
                           )}
@@ -954,12 +976,14 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
                       {/* Footer Actions */}
                       <div className="p-5 pt-0">
-                        <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-3.5 flex items-center justify-between mb-4">
+                        <div className={`border rounded-xl p-3.5 flex items-center justify-between mb-4 ${
+                          isClosed ? 'bg-red-950/20 border-red-900/30' : 'bg-slate-950 border-slate-800/80'
+                        }`}>
                           <div>
                             <span className="text-[10px] text-slate-400 uppercase font-medium block">
-                              {isAuction ? `Puja Actual (${item.bidsCount || 0} pujas):` : 'Precio Fijo:'}
+                              {isClosed ? `Monto Final Alcanzado (${item.bidsCount || 0} pujas):` : isAuction ? `Puja Actual (${item.bidsCount || 0} pujas):` : 'Precio Fijo:'}
                             </span>
-                            <span className="text-xl font-black text-amber-400">
+                            <span className={`text-xl font-black font-mono ${ isClosed ? 'text-red-400' : 'text-amber-400' }`}>
                               ${(isAuction ? item.currentBid || item.price : item.price).toLocaleString()} USD
                             </span>
                           </div>
@@ -973,9 +997,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
                         <button
                           onClick={() => setSelectedItem(item)}
-                          className="w-full py-3 px-4 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-950 transition-colors"
+                          className={`w-full py-3 px-4 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-colors ${
+                            isClosed
+                              ? 'bg-slate-700 hover:bg-slate-600 shadow-slate-950'
+                              : 'bg-orange-600 hover:bg-orange-500 shadow-orange-950'
+                          }`}
                         >
-                          <span>{isAuction ? 'Pujar en Vivo / Ver Ficha' : 'Ver Detalles & Comprar'}</span>
+                          <span>{isClosed ? 'Ver Ficha / Historial' : isAuction ? 'Pujar en Vivo / Ver Ficha' : 'Ver Detalles & Comprar'}</span>
                           <ArrowUpRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -992,6 +1020,14 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 {filteredAndSortedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
+                  let listEndDate: Date | null = null;
+                  if (item.auctionEndsAt) {
+                    try { listEndDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt); } catch { listEndDate = null; }
+                  }
+                  const wasListAuctionItem = !!item.auctionEndsAt;
+                  const isListAuctionExpired = wasListAuctionItem && listEndDate && !isNaN(listEndDate.getTime()) && listEndDate.getTime() <= Date.now();
+                  const isListTimerFinalizada = timerStr === 'Finalizada';
+                  const isListClosed = wasListAuctionItem && (isListAuctionExpired || isListTimerFinalizada);
 
                   return (
                     <div
@@ -1050,18 +1086,25 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                       <div className="shrink-0 text-right space-y-3 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
                         <div>
                           <span className="text-[10px] text-slate-400 uppercase font-medium block">
-                            {isAuction ? `Puja Actual (${item.bidsCount || 0} pujas):` : 'Precio Directo:'}
+                            {isListClosed ? `Monto Final (${item.bidsCount || 0} pujas):` : isAuction ? `Puja Actual (${item.bidsCount || 0} pujas):` : 'Precio Directo:'}
                           </span>
-                          <span className="text-2xl font-black text-amber-400 font-mono">
+                          <span className={`text-2xl font-black font-mono ${isListClosed ? 'text-red-400' : 'text-amber-400'}`}>
                             ${(isAuction ? item.currentBid || item.price : item.price).toLocaleString()} USD
                           </span>
+                          {isListClosed && (
+                            <span className="block text-[10px] text-red-400/80 font-bold uppercase tracking-wider mt-0.5">Adjudicada</span>
+                          )}
                         </div>
 
                         <button
                           onClick={() => setSelectedItem(item)}
-                          className="w-full sm:w-auto px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-orange-950"
+                          className={`w-full sm:w-auto px-5 py-2.5 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-colors ${
+                            isListClosed
+                              ? 'bg-slate-700 hover:bg-slate-600 shadow-slate-950'
+                              : 'bg-orange-600 hover:bg-orange-500 shadow-orange-950'
+                          }`}
                         >
-                          <span>{isAuction ? 'Pujar en Vivo' : 'Comprar Ahora'}</span>
+                          <span>{isListClosed ? 'Ver Ficha' : isAuction ? 'Pujar en Vivo' : 'Comprar Ahora'}</span>
                           <ArrowUpRight className="w-4 h-4" />
                         </button>
                       </div>
