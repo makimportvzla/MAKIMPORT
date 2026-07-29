@@ -136,6 +136,115 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, adminData, winnerData });
     }
 
+    // ─── Branch: Contract generated and sent ──────────────────────────────────
+    if (body.type === 'contract_sent') {
+      const {
+        machineryTitle,
+        machineryBrand,
+        machineryModel,
+        machineryVin,
+        finalAmount,
+        compradorNombre,
+        compradorEmail,
+        compradorCedula,
+        compradorEstadoCivil,
+        compradorTelefono,
+        compradorCiudad,
+        compradorEstado,
+        compradorDestino,
+        fechaContrato
+      } = body;
+
+      const { data: clientData, error: clientError } = await resend.emails.send({
+        from: 'MAKIMPORT <onboarding@resend.dev>',
+        to: [compradorEmail],
+        subject: `📄 CONTRATO DE ADJUDICACIÓN Y COMPRA-VENTA - ${machineryTitle.toUpperCase()}`,
+        html: `
+          <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#0b0f19;color:#f1f5f9;padding:40px 20px;text-align:center;">
+            <div style="max-width:600px;margin:0 auto;background:#0f172a;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.5);text-align:left;">
+              <div style="background:linear-gradient(135deg,#ea580c 0%,#d97706 100%);padding:35px 25px;text-align:center;">
+                <h1 style="margin:0;color:#fff;font-size:26px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">MAKIMPORT VENEZUELA</h1>
+                <p style="margin:5px 0 0;color:#ffedd5;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Documento Legal de Compra-Venta</p>
+              </div>
+              
+              <div style="padding:35px 25px;">
+                <h2 style="color:#fff;font-size:16px;font-weight:800;margin:0 0 15px;border-bottom:2px solid #ea580c;padding-bottom:8px;display:inline-block;text-transform:uppercase;">
+                  Documento de Adjudicación de Maquinaria
+                </h2>
+                
+                <p style="color:#cbd5e1;font-size:13px;line-height:1.6;margin:0 0 20px;">
+                  Estimado(a) <strong>${compradorNombre}</strong>, adjunto a esta notificación encontrará los términos y cláusulas convenidas para la adquisición del equipo que le ha sido adjudicado de conformidad con el Art. 1.474 del Código Civil de la República Bolivariana de Venezuela:
+                </p>
+
+                <!-- Partes Contratantes -->
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:15px;margin-bottom:20px;font-size:12.5px;">
+                  <h3 style="color:#ea580c;font-size:12px;font-weight:700;text-transform:uppercase;margin:0 0 10px;letter-spacing:1px;">👥 Partes Contratantes</h3>
+                  <table style="width:100%;border-collapse:collapse;line-height:1.6;">
+                    <tr><td style="color:#64748b;width:35%;">Vendedor:</td><td style="color:#f8fafc;font-weight:bold;">MAKIMPORT VENEZUELA (RIF J-50123984-2)</td></tr>
+                    <tr><td style="color:#64748b;">Comprador:</td><td style="color:#f8fafc;font-weight:bold;">${compradorNombre}</td></tr>
+                    <tr><td style="color:#64748b;">C.I. / RIF:</td><td style="color:#f8fafc;font-family:monospace;">${compradorCedula}</td></tr>
+                    <tr><td style="color:#64748b;">Estado Civil:</td><td style="color:#f8fafc;">${compradorEstadoCivil}</td></tr>
+                    <tr><td style="color:#64748b;">Domicilio:</td><td style="color:#f8fafc;">${compradorCiudad}, Estado ${compradorEstado}</td></tr>
+                  </table>
+                </div>
+
+                <!-- Detalles de Maquinaria -->
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:15px;margin-bottom:20px;font-size:12.5px;">
+                  <h3 style="color:#ea580c;font-size:12px;font-weight:700;text-transform:uppercase;margin:0 0 10px;letter-spacing:1px;">🏗️ Especificaciones de la Unidad</h3>
+                  <table style="width:100%;border-collapse:collapse;line-height:1.6;">
+                    <tr><td style="color:#64748b;width:35%;">Marca / Modelo:</td><td style="color:#f8fafc;font-weight:bold;">${machineryBrand} / ${machineryModel}</td></tr>
+                    <tr><td style="color:#64748b;">Serial de Chasis:</td><td style="color:#f8fafc;font-family:monospace;">${machineryVin}</td></tr>
+                    <tr><td style="color:#64748b;">Monto Adjudicado:</td><td style="color:#fbbf24;font-weight:bold;font-size:15px;">$${Number(finalAmount).toLocaleString()} USD</td></tr>
+                    <tr><td style="color:#64748b;">Puerto de Destino:</td><td style="color:#f8fafc;">${compradorDestino}</td></tr>
+                    <tr><td style="color:#64748b;">Fecha del Contrato:</td><td style="color:#f8fafc;">${new Date(fechaContrato).toLocaleDateString('es-VE')}</td></tr>
+                  </table>
+                </div>
+
+                <!-- Cláusula Principal -->
+                <div style="border-left:3px solid #ea580c;padding-left:12px;margin:20px 0;font-size:12px;color:#94a3b8;line-height:1.6;font-style:italic;">
+                  "EL VENDEDOR asume la responsabilidad del flete internacional hasta el puerto de arribo acordado. Los aranceles de nacionalización y gestiones aduaneras finales en puerto nacional correrán por cuenta y cargo directo de EL COMPRADOR."
+                </div>
+
+                <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 20px;">
+                  Para proceder con la facturación formal e inicial comercial, por favor valide esta notificación respondiendo a este mensaje o contáctenos por los canales de WhatsApp / Telegram autorizados.
+                </p>
+
+                <div style="text-align:center;margin-top:30px;">
+                  <a href="https://wa.me/584146370819?text=${encodeURIComponent(`Hola! He recibido el contrato generado para el equipo ${machineryTitle}.`)}" style="background:#16a34a;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:1.5px;display:inline-block;">
+                    🟢 Confirmar por WhatsApp
+                  </a>
+                </div>
+              </div>
+              
+              <div style="background:#090d16;padding:20px;border-top:1px solid #1e293b;text-align:center;font-size:11px;color:#475569;">
+                <p style="margin:0 0 5px;">Este es un documento preliminar de compra-venta automatizado por MAKIMPORT Venezuela.</p>
+                <p style="margin:0;">© ${new Date().getFullYear()} MAKIMPORT. Caracas, Venezuela.</p>
+              </div>
+            </div>
+          </div>
+        `
+      });
+
+      if (clientError) {
+        console.error('[Resend Contract Error]:', clientError);
+        return NextResponse.json({ success: false, error: clientError.message }, { status: 400 });
+      }
+
+      // Also notify admin
+      try {
+        await resend.emails.send({
+          from: 'MAKIMPORT <onboarding@resend.dev>',
+          to: ['makimportvzla@gmail.com'],
+          subject: `📄 NUEVO CONTRATO GENERADO - ${compradorNombre.toUpperCase()}`,
+          html: `<p>Se ha generado y enviado un contrato digital a <strong>${compradorNombre}</strong> (${compradorEmail}) para el equipo <strong>${machineryTitle}</strong> por un monto final de <strong>$${Number(finalAmount).toLocaleString()} USD</strong>.</p>`
+        });
+      } catch (admErr) {
+        console.warn('Could not notify admin of contract generation:', admErr);
+      }
+
+      return NextResponse.json({ success: true, clientData });
+    }
+
     // ─── Branch: Custom machinery request ───────────────────────────────────
     if (body.type === 'custom_request') {
       const { nombre, telefono, email, marca, modelo, anoMinimo, puerto, presupuesto } = body;

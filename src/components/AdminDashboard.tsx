@@ -6,6 +6,7 @@ import { ImageUploader } from './ImageUploader';
 import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
+import { AdminDocumentModal } from './AdminDocumentModal';
 
 interface UserProfile {
   id: string;
@@ -206,6 +207,23 @@ export const AdminDashboard: React.FC = () => {
 
     fetchLeaders();
   }, [machines]);
+
+  // Contract Generation States
+  const [selectedContractItem, setSelectedContractItem] = useState<MachineryItem | null>(null);
+  const [selectedContractBuyer, setSelectedContractBuyer] = useState<{
+    nombre?: string;
+    apellido?: string;
+    email?: string;
+    telefono?: string;
+    ciudad?: string;
+  } | undefined>(undefined);
+  const [showContractModal, setShowContractModal] = useState(false);
+
+  const handleOpenContract = (item: MachineryItem, buyer?: typeof selectedContractBuyer) => {
+    setSelectedContractItem(item);
+    setSelectedContractBuyer(buyer);
+    setShowContractModal(true);
+  };
 
   // Form State for Add / Edit Machinery
   const [showAddModal, setShowAddModal] = useState(false);
@@ -691,6 +709,15 @@ export const AdminDashboard: React.FC = () => {
                       </button>
 
                       <button
+                        onClick={() => handleOpenContract(m)}
+                        className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-orange-400 hover:text-orange-300 hover:bg-slate-900 transition-colors flex items-center gap-1 text-xs font-bold"
+                        title="Generar contrato"
+                      >
+                        <FileText className="w-4 h-4 text-orange-500" />
+                        <span className="hidden xl:inline">Contrato</span>
+                      </button>
+
+                      <button
                         onClick={() => { setEditingMachine(m); setShowEditModal(true); }}
                         className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-amber-400 hover:text-amber-300 hover:bg-slate-900 transition-colors"
                         title="Editar maquinaria"
@@ -1131,10 +1158,45 @@ export const AdminDashboard: React.FC = () => {
 
                           {/* Actions */}
                           <div className="flex flex-col sm:items-end gap-2 shrink-0">
+                            <button
+                              onClick={() => {
+                                const matchingItem = machines.find(m => m.id === req.machinery_id) || {
+                                  id: req.machinery_id,
+                                  name: req.machinery_title,
+                                  model: '',
+                                  brand: '',
+                                  category: 'Excavadora',
+                                  year: 2022,
+                                  hours: 0,
+                                  origin: 'USA',
+                                  location: 'No especificada',
+                                  destinationPort: 'Puerto Cabello, VZLA',
+                                  status: 'direct',
+                                  price: req.machinery_price,
+                                  images: [],
+                                  serialNumber: 'VIN-PENDIENTE',
+                                  engineSpecs: '',
+                                  inspectionScore: 90,
+                                  description: ''
+                                } as MachineryItem;
+                                handleOpenContract(matchingItem, {
+                                  nombre: req.nombre,
+                                  apellido: req.apellido,
+                                  email: req.email,
+                                  telefono: req.telefono,
+                                  ciudad: req.ciudad
+                                });
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600 border border-orange-500/40 text-orange-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
+                            >
+                              <FileText className="w-3 h-3 text-orange-500" />
+                              <span>Emitir Contrato</span>
+                            </button>
+
                             <select
                               value={req.estado}
                               onChange={(e) => handleUpdatePurchaseStatus(req.id, e.target.value)}
-                              className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500"
+                              className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500 w-full"
                             >
                               <option value="pendiente">🟡 Pendiente</option>
                               <option value="en_proceso">🔵 En Proceso</option>
@@ -1241,6 +1303,20 @@ export const AdminDashboard: React.FC = () => {
                               </div>
 
                               <div className="flex flex-col sm:items-end gap-2 shrink-0">
+                                <button
+                                  onClick={() => handleOpenContract(m, {
+                                    nombre: winner.userName.split(' ')[0] || '',
+                                    apellido: winner.userName.split(' ').slice(1).join(' ') || '',
+                                    email: winner.email,
+                                    telefono: winner.phone,
+                                    ciudad: ''
+                                  })}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600 border border-orange-500/40 text-orange-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
+                                >
+                                  <FileText className="w-3 h-3 text-orange-400" />
+                                  <span>Emitir Contrato</span>
+                                </button>
+
                                 <a
                                   href={`https://wa.me/${winner.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${winner.userName}! Te contactamos de MAKIMPORT en relación a la adjudicación del equipo ${m.name} por $${winner.amount.toLocaleString()} USD.`)}`}
                                   target="_blank"
@@ -1392,6 +1468,18 @@ export const AdminDashboard: React.FC = () => {
           machineryItem={editingMachine}
           onMachineryUpdated={(updatedItem) => {
             setMachines((prev) => prev.map((m) => m.id === updatedItem.id ? updatedItem : m));
+          }}
+        />
+      )}
+
+      {showContractModal && selectedContractItem && (
+        <AdminDocumentModal
+          item={selectedContractItem}
+          initialBuyer={selectedContractBuyer}
+          onClose={() => {
+            setShowContractModal(false);
+            setSelectedContractItem(null);
+            setSelectedContractBuyer(undefined);
           }}
         />
       )}
