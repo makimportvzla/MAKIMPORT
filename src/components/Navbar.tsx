@@ -114,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       }`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          <Link href="/" className="group flex items-center">
+          <Link href="/" className="group flex items-center shrink-0 h-12" aria-label="MAKIMPORT - Inicio">
             <Logo size="md" />
           </Link>
 
