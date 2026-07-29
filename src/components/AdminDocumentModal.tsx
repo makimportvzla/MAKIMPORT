@@ -61,176 +61,182 @@ export const AdminDocumentModal: React.FC<AdminDocumentModalProps> = ({
     return item.currentBid || item.price || 0;
   };
 
-  // Generate jsPDF Contract Document
+  // Helper to generate contract document
+  const generatePDFDoc = () => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'letter'
+    });
+
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const contentWidth = pageWidth - (margin * 2);
+
+    // Paleta de colores profesionales
+    const primaryColor = [234, 88, 12]; // Naranja MAKIMPORT #ea580c
+    const textColor = [15, 23, 42]; // Slate 900
+    const secondaryText = [71, 85, 105]; // Slate 600
+    const lightGrey = [248, 250, 252]; // Slate 50
+    const borderGrey = [226, 232, 240]; // Slate 200
+
+    let y = 15;
+
+    // Línea superior decorativa naranja
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(margin, y, contentWidth, 5, 'F');
+    y += 12;
+
+    // Encabezado
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('MAKIMPORT VENEZUELA', margin, y);
+    y += 6;
+
+    doc.setFontSize(8.5);
+    doc.setFont('Helvetica', 'normal');
+    doc.setTextColor(secondaryText[0], secondaryText[1], secondaryText[2]);
+    doc.text('Caracas, Venezuela | RIF: J-50123984-2 | Email: makimportvzla@gmail.com | Web: www.makimport.com', margin, y);
+    y += 10;
+
+    // Título del documento
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('CONTRATO PRELIMINAR DE COMPRA-VENTA Y ADJUDICACIÓN DE MAQUINARIA', margin, y);
+    y += 5;
+
+    // Línea divisoria
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 8;
+
+    // Cláusula introductoria
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+    const introText = `Reunidos en la fecha de hoy, se conviene celebrar el presente Contrato de Compra-Venta entre la empresa comercializadora MAKIMPORT VENEZUELA (en lo sucesivo denominada "EL VENDEDOR") y, por la otra parte, el comprador ${compradorNombre.toUpperCase()}, de estado civil ${compradorEstadoCivil}, titular de la Cédula de Identidad o RIF N° ${compradorCedula}, con residencia en la ciudad de ${compradorCiudad}, Estado ${compradorEstado} (en lo sucesivo denominado "EL COMPRADOR"). Ambas partes convienen formalizar la transacción de conformidad con el Art. 1.474 y concordantes del Código Civil de la República Bolivariana de Venezuela, bajo las siguientes estipulaciones:`;
+
+    const splitIntro = doc.splitTextToSize(introText, contentWidth);
+    doc.text(splitIntro, margin, y);
+    y += splitIntro.length * 4.2 + 5;
+
+    // Primera Cláusula: Objeto
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('PRIMERA: OBJETO DEL CONTRATO (ESPECIFICACIONES TÉCNICAS)', margin, y);
+    y += 5;
+
+    // Especificaciones de Maquinaria
+    const specs = [
+      ['Marca y Modelo', `${item.brand} ${item.model}`],
+      ['Año de Fabricación', `${item.year}`],
+      ['Serial de Chasis / VIN', `${item.serialNumber}`],
+      ['Uso / Recorrido Registrado', `${item.hours.toLocaleString()} ${item.unidadUso || 'Horas'}`],
+      ['Ubicación de Origen', `${item.location}`],
+      ['Certificación de Inspección', `${item.inspectionScore} / 100 Puntos`],
+      ['Puerto de Arribo Destinado', `${compradorDestino}`],
+      ['Modalidad de Operación', `${item.status === 'auction' ? 'Subasta Adjudicada' : 'Compra Inmediata'}`]
+    ];
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setDrawColor(borderGrey[0], borderGrey[1], borderGrey[2]);
+    doc.setLineWidth(0.2);
+
+    specs.forEach((spec, idx) => {
+      // Fondo alterno
+      if (idx % 2 === 0) {
+        doc.setFillColor(lightGrey[0], lightGrey[1], lightGrey[2]);
+        doc.rect(margin, y, contentWidth, 6, 'F');
+      }
+      
+      doc.setTextColor(secondaryText[0], secondaryText[1], secondaryText[2]);
+      doc.setFont('Helvetica', 'bold');
+      doc.text(spec[0], margin + 3, y + 4.2);
+
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      doc.setFont('Helvetica', 'normal');
+      doc.text(spec[1], margin + 70, y + 4.2);
+
+      doc.line(margin, y + 6, pageWidth - margin, y + 6);
+      y += 6;
+    });
+    y += 6;
+
+    // Segunda Cláusula: Precio
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('SEGUNDA: DEL PRECIO CONVENIDO Y CONDICIONES DE PAGO', margin, y);
+    y += 5;
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    const priceText = `El monto acordado de la presente compraventa asciende a la cantidad de $${getMontoFinal().toLocaleString()} USD (DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA). EL COMPRADOR se compromete a realizar la transferencia o depósito de los fondos en las cuentas bancarias de custodia de EL VENDEDOR. La entrega y despacho internacional se iniciará tras la confirmación de la transferencia del porcentaje estipulado.`;
+    const splitPrice = doc.splitTextToSize(priceText, contentWidth);
+    doc.text(splitPrice, margin, y);
+    y += splitPrice.length * 4.2 + 5;
+
+    // Tercera Cláusula: Logística
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('TERCERA: DE LA LOGÍSTICA DE EMBARQUE Y NACIONALIZACIÓN', margin, y);
+    y += 5;
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(9);
+    const logisticsText = `EL VENDEDOR asume la responsabilidad del flete marítimo y resguardo del equipo hasta el puerto de ${compradorDestino}. Toda la gestión aduanera, aranceles nacionales y posterior traslado final terrestre correrán bajo cuenta y responsabilidad de EL COMPRADOR, contando con la debida asesoría institucional por parte del equipo comercial de MAKIMPORT.`;
+    const splitLogistics = doc.splitTextToSize(logisticsText, contentWidth);
+    doc.text(splitLogistics, margin, y);
+    y += splitLogistics.length * 4.2 + 8;
+
+    // Control de salto de página para firmas
+    if (y > 210) {
+      doc.addPage();
+      y = 25;
+    }
+
+    // Firmas
+    doc.text(`En señal de conformidad con todas y cada una de las cláusulas, se firma el presente documento en duplicado el día ${new Date(fechaContrato).toLocaleDateString('es-VE')}.`, margin, y);
+    y += 25;
+
+    const colWidth = contentWidth / 2;
+    doc.setDrawColor(secondaryText[0], secondaryText[1], secondaryText[2]);
+    doc.setLineWidth(0.3);
+
+    // Firma Vendedor
+    doc.line(margin + 5, y, margin + colWidth - 10, y);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('POR EL VENDEDOR (MAKIMPORT VENEZUELA)', margin + 5, y + 4.5);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Firma y Sello Comercial', margin + 5, y + 8.5);
+
+    // Firma Comprador
+    doc.line(margin + colWidth + 5, y, margin + (colWidth * 2) - 5, y);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('POR EL COMPRADOR', margin + colWidth + 5, y + 4.5);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(compradorNombre.toUpperCase(), margin + colWidth + 5, y + 8.5);
+    doc.text(`C.I. / RIF: ${compradorCedula}`, margin + colWidth + 5, y + 12.5);
+
+    return doc;
+  };
+
+  // Generate jsPDF Contract Document and download
   const handleDownloadPDF = () => {
     try {
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'letter'
-      });
-
-      const margin = 20;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const contentWidth = pageWidth - (margin * 2);
-
-      // Paleta de colores profesionales
-      const primaryColor = [234, 88, 12]; // Naranja MAKIMPORT #ea580c
-      const textColor = [15, 23, 42]; // Slate 900
-      const secondaryText = [71, 85, 105]; // Slate 600
-      const lightGrey = [248, 250, 252]; // Slate 50
-      const borderGrey = [226, 232, 240]; // Slate 200
-
-      let y = 15;
-
-      // Línea superior decorativa naranja
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(margin, y, contentWidth, 5, 'F');
-      y += 12;
-
-      // Encabezado
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(22);
-      doc.text('MAKIMPORT VENEZUELA', margin, y);
-      y += 6;
-
-      doc.setFontSize(8.5);
-      doc.setFont('Helvetica', 'normal');
-      doc.setTextColor(secondaryText[0], secondaryText[1], secondaryText[2]);
-      doc.text('Caracas, Venezuela | RIF: J-50123984-2 | Email: makimportvzla@gmail.com | Web: www.makimport.com', margin, y);
-      y += 10;
-
-      // Título del documento
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('CONTRATO PRELIMINAR DE COMPRA-VENTA Y ADJUDICACIÓN DE MAQUINARIA', margin, y);
-      y += 5;
-
-      // Línea divisoria
-      doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setLineWidth(0.4);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 8;
-
-      // Cláusula introductoria
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-
-      const introText = `Reunidos en la fecha de hoy, se conviene celebrar el presente Contrato de Compra-Venta entre la empresa comercializadora MAKIMPORT VENEZUELA (en lo sucesivo denominada "EL VENDEDOR") y, por la otra parte, el comprador ${compradorNombre.toUpperCase()}, de estado civil ${compradorEstadoCivil}, titular de la Cédula de Identidad o RIF N° ${compradorCedula}, con residencia en la ciudad de ${compradorCiudad}, Estado ${compradorEstado} (en lo sucesivo denominado "EL COMPRADOR"). Ambas partes convienen formalizar la transacción de conformidad con el Art. 1.474 y concordantes del Código Civil de la República Bolivariana de Venezuela, bajo las siguientes estipulaciones:`;
-
-      const splitIntro = doc.splitTextToSize(introText, contentWidth);
-      doc.text(splitIntro, margin, y);
-      y += splitIntro.length * 4.2 + 5;
-
-      // Primera Cláusula: Objeto
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('PRIMERA: OBJETO DEL CONTRATO (ESPECIFICACIONES TÉCNICAS)', margin, y);
-      y += 5;
-
-      // Especificaciones de Maquinaria
-      const specs = [
-        ['Marca y Modelo', `${item.brand} ${item.model}`],
-        ['Año de Fabricación', `${item.year}`],
-        ['Serial de Chasis / VIN', `${item.serialNumber}`],
-        ['Uso / Recorrido Registrado', `${item.hours.toLocaleString()} ${item.unidadUso || 'Horas'}`],
-        ['Ubicación de Origen', `${item.location}`],
-        ['Certificación de Inspección', `${item.inspectionScore} / 100 Puntos`],
-        ['Puerto de Arribo Destinado', `${compradorDestino}`],
-        ['Modalidad de Operación', `${item.status === 'auction' ? 'Subasta Adjudicada' : 'Compra Inmediata'}`]
-      ];
-
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setDrawColor(borderGrey[0], borderGrey[1], borderGrey[2]);
-      doc.setLineWidth(0.2);
-
-      specs.forEach((spec, idx) => {
-        // Fondo alterno
-        if (idx % 2 === 0) {
-          doc.setFillColor(lightGrey[0], lightGrey[1], lightGrey[2]);
-          doc.rect(margin, y, contentWidth, 6, 'F');
-        }
-        
-        doc.setTextColor(secondaryText[0], secondaryText[1], secondaryText[2]);
-        doc.setFont('Helvetica', 'bold');
-        doc.text(spec[0], margin + 3, y + 4.2);
-
-        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-        doc.setFont('Helvetica', 'normal');
-        doc.text(spec[1], margin + 70, y + 4.2);
-
-        doc.line(margin, y + 6, pageWidth - margin, y + 6);
-        y += 6;
-      });
-      y += 6;
-
-      // Segunda Cláusula: Precio
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('SEGUNDA: DEL PRECIO CONVENIDO Y CONDICIONES DE PAGO', margin, y);
-      y += 5;
-
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      const priceText = `El monto acordado de la presente compraventa asciende a la cantidad de $${getMontoFinal().toLocaleString()} USD (DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA). EL COMPRADOR se compromete a realizar la transferencia o depósito de los fondos en las cuentas bancarias de custodia de EL VENDEDOR. La entrega y despacho internacional se iniciará tras la confirmación de la transferencia del porcentaje estipulado.`;
-      const splitPrice = doc.splitTextToSize(priceText, contentWidth);
-      doc.text(splitPrice, margin, y);
-      y += splitPrice.length * 4.2 + 5;
-
-      // Tercera Cláusula: Logística
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('TERCERA: DE LA LOGÍSTICA DE EMBARQUE Y NACIONALIZACIÓN', margin, y);
-      y += 5;
-
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(9);
-      const logisticsText = `EL VENDEDOR asume la responsabilidad del flete marítimo y resguardo del equipo hasta el puerto de ${compradorDestino}. Toda la gestión aduanera, aranceles nacionales y posterior traslado final terrestre correrán bajo cuenta y responsabilidad de EL COMPRADOR, contando con la debida asesoría institucional por parte del equipo comercial de MAKIMPORT.`;
-      const splitLogistics = doc.splitTextToSize(logisticsText, contentWidth);
-      doc.text(splitLogistics, margin, y);
-      y += splitLogistics.length * 4.2 + 8;
-
-      // Control de salto de página para firmas
-      if (y > 210) {
-        doc.addPage();
-        y = 25;
-      }
-
-      // Firmas
-      doc.text(`En señal de conformidad con todas y cada una de las cláusulas, se firma el presente documento en duplicado el día ${new Date(fechaContrato).toLocaleDateString('es-VE')}.`, margin, y);
-      y += 25;
-
-      const colWidth = contentWidth / 2;
-      doc.setDrawColor(secondaryText[0], secondaryText[1], secondaryText[2]);
-      doc.setLineWidth(0.3);
-
-      // Firma Vendedor
-      doc.line(margin + 5, y, margin + colWidth - 10, y);
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.text('POR EL VENDEDOR (MAKIMPORT VENEZUELA)', margin + 5, y + 4.5);
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text('Firma y Sello Comercial', margin + 5, y + 8.5);
-
-      // Firma Comprador
-      doc.line(margin + colWidth + 5, y, margin + (colWidth * 2) - 5, y);
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.text('POR EL COMPRADOR', margin + colWidth + 5, y + 4.5);
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text(compradorNombre.toUpperCase(), margin + colWidth + 5, y + 8.5);
-      doc.text(`C.I. / RIF: ${compradorCedula}`, margin + colWidth + 5, y + 12.5);
-
+      const doc = generatePDFDoc();
       doc.save(`Contrato_Adjudicacion_${item.brand}_${item.model}_${compradorCedula || 'Cliente'}.pdf`);
       showToast('Documento PDF generado y descargado correctamente.', 'success');
     } catch (err: any) {
@@ -248,6 +254,14 @@ export const AdminDocumentModal: React.FC<AdminDocumentModalProps> = ({
 
     setSendingEmail(true);
     try {
+      let pdfBase64 = '';
+      try {
+        const doc = generatePDFDoc();
+        pdfBase64 = doc.output('datauristring').split(',')[1];
+      } catch (pdfErr) {
+        console.warn('Could not generate PDF base64 for attachment:', pdfErr);
+      }
+
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -266,7 +280,8 @@ export const AdminDocumentModal: React.FC<AdminDocumentModalProps> = ({
           compradorCiudad,
           compradorEstado,
           compradorDestino,
-          fechaContrato
+          fechaContrato,
+          pdfAttachment: pdfBase64
         })
       });
 
