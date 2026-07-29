@@ -282,7 +282,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       destinationPort: row.puerto_destino || 'Puerto Cabello, VZLA',
       status: row.es_subasta ? 'auction' : 'direct',
       price: Number(row.precio_compra_inmediata) || 0,
-      currentBid: row.es_subasta ? Number(row.puja_actual || row.precio_inicial_subasta) : undefined,
+      currentBid: Number(row.puja_actual || row.precio_inicial_subasta || 0) || undefined,
       minBidIncrement: 500,
       bidsCount: bidsCountMap[row.id] || 0,
       auctionEndsAt: row.fecha_fin_subasta ? new Date(row.fecha_fin_subasta) : undefined,
@@ -572,10 +572,17 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         if (!isNaN(max) && item.year > max) return false;
       }
 
-      // Transaction type filter (Compra Inmediata vs Subasta en Vivo)
+      // Transaction type filter (Compra Inmediata vs Subasta en Vivo / Finalizada)
       if (transactionFilter !== 'all') {
-        if (transactionFilter === 'direct' && item.status !== 'direct') return false;
-        if (transactionFilter === 'auction' && item.status !== 'auction') return false;
+        const itemWasAuction = !!item.auctionEndsAt; // had a scheduled auction (active or closed)
+        if (transactionFilter === 'direct') {
+          // Only pure direct-sale items that never had an auction
+          if (item.status !== 'direct' || itemWasAuction) return false;
+        }
+        if (transactionFilter === 'auction') {
+          // Include active auctions AND closed/expired auctions
+          if (item.status !== 'auction' && !itemWasAuction) return false;
+        }
       }
 
       return true;
@@ -984,7 +991,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                               {isClosed ? `Monto Final Alcanzado (${item.bidsCount || 0} pujas):` : isAuction ? `Puja Actual (${item.bidsCount || 0} pujas):` : 'Precio Fijo:'}
                             </span>
                             <span className={`text-xl font-black font-mono ${ isClosed ? 'text-red-400' : 'text-amber-400' }`}>
-                              ${(isAuction ? item.currentBid || item.price : item.price).toLocaleString()} USD
+                              ${(
+                                isClosed
+                                  ? (item.currentBid || 0)                           // puja ganadora final
+                                  : isAuction
+                                  ? (item.currentBid || item.price)                  // puja actual
+                                  : item.price                                       // precio fijo
+                              ).toLocaleString()} USD
                             </span>
                           </div>
 
@@ -1089,7 +1102,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             {isListClosed ? `Monto Final (${item.bidsCount || 0} pujas):` : isAuction ? `Puja Actual (${item.bidsCount || 0} pujas):` : 'Precio Directo:'}
                           </span>
                           <span className={`text-2xl font-black font-mono ${isListClosed ? 'text-red-400' : 'text-amber-400'}`}>
-                            ${(isAuction ? item.currentBid || item.price : item.price).toLocaleString()} USD
+                            ${(
+                              isListClosed
+                                ? (item.currentBid || 0)             // puja ganadora final
+                                : isAuction
+                                ? (item.currentBid || item.price)   // puja actual
+                                : item.price                        // precio fijo
+                            ).toLocaleString()} USD
                           </span>
                           {isListClosed && (
                             <span className="block text-[10px] text-red-400/80 font-bold uppercase tracking-wider mt-0.5">Adjudicada</span>

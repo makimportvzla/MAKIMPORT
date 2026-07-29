@@ -154,6 +154,58 @@ export const AdminDashboard: React.FC = () => {
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [customRequests, setCustomRequests] = useState<CustomRequest[]>([]);
   const [loadingCustom, setLoadingCustom] = useState(false);
+  const [auctionLeaders, setAuctionLeaders] = useState<{[machineryId: string]: { userName: string; email: string; phone: string; amount: number }}>( {});
+
+  // Fetch auction leaders/winners in real-time
+  useEffect(() => {
+    const fetchLeaders = async () => {
+      const auctionMachs = machines.filter(m => m.status === 'auction' || !!m.auctionEndsAt);
+      if (auctionMachs.length === 0) return;
+      
+      const leadersMap: any = {};
+      for (const m of auctionMachs) {
+        try {
+          const { data: bidsData } = await supabase
+            .from('bids')
+            .select('amount, user_id')
+            .eq('machinery_id', m.id)
+            .order('amount', { ascending: false })
+            .limit(1);
+            
+          const bidsList = Array.isArray(bidsData) ? bidsData : [];
+          if (bidsList.length > 0) {
+            const topBid = bidsList[0];
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('nombre_completo, email, telefono')
+              .eq('id', topBid.user_id)
+              .single();
+              
+            if (profileData) {
+              leadersMap[m.id] = {
+                userName: profileData.nombre_completo || 'Usuario Anónimo',
+                email: profileData.email || '',
+                phone: profileData.telefono || 'Sin teléfono',
+                amount: Number(topBid.amount)
+              };
+            } else {
+              leadersMap[m.id] = {
+                userName: 'Usuario Sin Perfil',
+                email: '',
+                phone: 'Sin teléfono',
+                amount: Number(topBid.amount)
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('Error fetching leader for machine:', m.id, e);
+        }
+      }
+      setAuctionLeaders(leadersMap);
+    };
+
+    fetchLeaders();
+  }, [machines]);
 
   // Form State for Add / Edit Machinery
   const [showAddModal, setShowAddModal] = useState(false);
@@ -210,7 +262,8 @@ export const AdminDashboard: React.FC = () => {
             destinationPort: m.puerto_destino || 'Puerto Cabello, VZLA',
             status: m.es_subasta ? 'auction' : 'direct',
             price: Number(m.precio_compra_inmediata),
-            currentBid: m.es_subasta ? Number(m.puja_actual || m.precio_inicial_subasta) : undefined,
+            currentBid: Number(m.puja_actual || m.precio_inicial_subasta || 0) || undefined,
+            // Always preserve auctionEndsAt so we can detect closed auctions even if es_subasta=false
             auctionEndsAt: m.fecha_fin_subasta ? new Date(m.fecha_fin_subasta) : undefined,
             images: Array.isArray(m.fotos_urls) && m.fotos_urls.length > 0 ? m.fotos_urls : ['https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800'],
             serialNumber: m.numero_serie || 'SN-' + (m.id ? m.id.substring(0, 6) : '001'),
@@ -592,17 +645,36 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                         <p className="text-xs text-slate-400 mt-0.5">{m.model} | {m.year} | {m.hours.toLocaleString()} hrs</p>
                         <div className="flex items-center gap-2 mt-1">
-                          {m.status === 'auction' ? (
-                            <span className="px-2 py-0.5 rounded bg-orange-600/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold">
-                              Subasta Activa
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
-                              Compra Inmediata
-                            </span>
-                          )}
+                          {(() => {
+                            const mWasAuction = !!m.auctionEndsAt;
+                            const mEndDate = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : m.auctionEndsAt ? new Date(m.auctionEndsAt) : null;
+                            const mIsExpired = mWasAuction && mEndDate && !isNaN(mEndDate.getTime()) && mEndDate.getTime() <= Date.now();
+                            if (mIsExpired) return (
+                              <span className="px-2 py-0.5 rounded bg-red-900/30 border border-red-700/40 text-red-300 text-[10px] font-bold">
+                                Subasta Cerrada
+                              </span>
+                            );
+                            if (m.status === 'auction') return (
+                              <span className="px-2 py-0.5 rounded bg-orange-600/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold">
+                                Subasta Activa
+                              </span>
+                            );
+                            return (
+                              <span className="px-2 py-0.5 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                                Compra Inmediata
+                              </span>
+                            );
+                          })()}
                           <span className="text-[11px] text-amber-400 font-mono font-bold">
-                            ${(m.status === 'auction' ? m.currentBid || m.price : m.price).toLocaleString()} USD
+                            ${(() => {
+                              const mWasAuction = !!m.auctionEndsAt;
+                              const mEndDate = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : m.auctionEndsAt ? new Date(m.auctionEndsAt) : null;
+                              const mIsExpired = mWasAuction && mEndDate && !isNaN(mEndDate.getTime()) && mEndDate.getTime() <= Date.now();
+                              // Closed auction: show final winning bid; Active auction: show current bid; Direct: show price
+                              if (mIsExpired) return (m.currentBid || 0).toLocaleString();
+                              if (m.status === 'auction') return (m.currentBid || m.price).toLocaleString();
+                              return m.price.toLocaleString();
+                            })()} USD
                           </span>
                         </div>
                       </div>
@@ -644,44 +716,171 @@ export const AdminDashboard: React.FC = () => {
         {/* TAB 2: LIVE AUCTIONS MONITOR */}
         {activeTab === 'auctions' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {machines.filter(m => m.status === 'auction').map((m) => (
-                <div key={m.id} className="bg-slate-900 border border-orange-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Gavel className="w-5 h-5 text-orange-500 animate-bounce" />
-                      <span className="font-extrabold text-white text-sm">{m.name}</span>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded bg-orange-600 text-white font-extrabold text-[10px] uppercase">
-                      {m.bidsCount || 12} Pujas
+            {/* Summary counters */}
+            {(() => {
+              const activeAuctions = machines.filter(m => m.status === 'auction' && (() => {
+                const ed = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : m.auctionEndsAt ? new Date(m.auctionEndsAt) : null;
+                return !ed || isNaN(ed.getTime()) || ed.getTime() > Date.now();
+              })());
+              const closedAuctions = machines.filter(m => {
+                if (!m.auctionEndsAt) return false;
+                const ed = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : new Date(m.auctionEndsAt);
+                return !isNaN(ed.getTime()) && ed.getTime() <= Date.now();
+              });
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                  <div className="bg-slate-900 border border-orange-500/30 rounded-xl p-4">
+                    <span className="text-slate-400 block">Subastas en Curso</span>
+                    <span className="text-2xl font-black text-orange-400">{activeAuctions.length}</span>
+                  </div>
+                  <div className="bg-slate-900 border border-red-700/30 rounded-xl p-4">
+                    <span className="text-slate-400 block">Subastas Cerradas</span>
+                    <span className="text-2xl font-black text-red-400">{closedAuctions.length}</span>
+                  </div>
+                  <div className="bg-slate-900 border border-emerald-700/30 rounded-xl p-4 col-span-2 sm:col-span-1">
+                    <span className="text-slate-400 block">Valor Total Adjudicado</span>
+                    <span className="text-2xl font-black text-emerald-400 font-mono">
+                      ${closedAuctions.reduce((acc, m) => acc + (m.currentBid || 0), 0).toLocaleString()} USD
                     </span>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800">
-                    <div>
-                      <span className="text-slate-500 block">Puja LÃ­der Actual:</span>
-                      <span className="text-xl font-black text-amber-400 font-mono">${(m.currentBid || m.price).toLocaleString()} USD</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block">Usuario LÃ­der:</span>
-                      <span className="font-bold text-slate-200 block truncate">Constructora ***0412</span>
-                      <span className="text-[10px] text-slate-400">+58 (412) 123-4567</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <a
-                      href="https://wa.me/584121234567?text=Hola,%20te%20contactamos%20de%20MAKIMPORT%20sobre%20tu%20puja%20l%C3%ADder."
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center flex items-center justify-center gap-1.5 shadow-md"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>Contactar LÃ­der por WhatsApp</span>
-                    </a>
-                  </div>
                 </div>
-              ))}
+              );
+            })()}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {machines
+                .filter(m => m.status === 'auction' || !!m.auctionEndsAt)
+                .map((m) => {
+                  const mEndDate = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : m.auctionEndsAt ? new Date(m.auctionEndsAt) : null;
+                  const mIsClosed = !!mEndDate && !isNaN(mEndDate.getTime()) && mEndDate.getTime() <= Date.now();
+                  const finalAmount = m.currentBid || 0;
+                  const closedOnStr = mIsClosed && mEndDate ? mEndDate.toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+
+                  return (
+                    <div key={m.id} className={`bg-slate-900 border rounded-2xl p-5 space-y-4 shadow-xl ${
+                      mIsClosed ? 'border-red-700/30' : 'border-orange-500/30'
+                    }`}>
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Gavel className={`w-5 h-5 ${mIsClosed ? 'text-red-400' : 'text-orange-500 animate-bounce'}`} />
+                          <span className="font-extrabold text-white text-sm truncate">{m.name}</span>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded font-extrabold text-[10px] uppercase ${
+                          mIsClosed
+                            ? 'bg-red-900/50 border border-red-700/50 text-red-300'
+                            : 'bg-orange-600 text-white'
+                        }`}>
+                          {mIsClosed ? 'CERRADA' : `${m.bidsCount || 0} Pujas`}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div>
+                          <span className="text-slate-500 block">{mIsClosed ? 'Monto Final Adjudicado:' : 'Puja Líder Actual:'}</span>
+                          <span className={`text-xl font-black font-mono ${ mIsClosed ? 'text-red-400' : 'text-amber-400'}`}>
+                            ${(mIsClosed ? finalAmount : (m.currentBid || m.price)).toLocaleString()} USD
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">{mIsClosed ? 'Cerrada el:' : 'Cierra el:'}</span>
+                          <span className="font-bold text-slate-200 block truncate text-[11px]">
+                            {closedOnStr || (mEndDate ? mEndDate.toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Sin fecha')}
+                          </span>
+                          {!mIsClosed && (
+                            <span className="text-[10px] text-orange-400 font-mono">
+                              {mEndDate && !isNaN(mEndDate.getTime()) ? (() => {
+                                const diff = mEndDate.getTime() - Date.now();
+                                if (diff <= 0) return 'Finalizando...';
+                                const h = Math.floor(diff / 3600000);
+                                const min = Math.floor((diff % 3600000) / 60000);
+                                return `${h}h ${min}m restantes`;
+                              })() : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Winner / Leader Profile info */}
+                      {(() => {
+                        const leader = auctionLeaders[m.id];
+                        if (leader) {
+                          return (
+                            <div className={`p-3 rounded-xl border text-xs ${mIsClosed ? 'bg-red-950/20 border-red-900/30' : 'bg-slate-950 border-slate-800'}`}>
+                              <span className="text-slate-500 block uppercase text-[9px] font-bold tracking-wider mb-1">
+                                {mIsClosed ? 'Ganador de la Subasta Adjudicada' : 'Postor Líder Actual'}
+                              </span>
+                              <div className="flex justify-between items-center gap-2">
+                                <div>
+                                  <span className="font-extrabold text-white block text-sm">{leader.userName}</span>
+                                  <span className="text-slate-400 block text-[11px] font-mono mt-0.5">{leader.email || 'Sin correo registrado'}</span>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="block font-bold text-orange-400 text-xs font-mono">{leader.phone}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-center text-xs text-slate-500 italic">
+                            Sin ofertas registradas en esta subasta todavía.
+                          </div>
+                        );
+                      })()}
+
+                      {mIsClosed ? (
+                        (() => {
+                          const leader = auctionLeaders[m.id];
+                          if (leader) {
+                            return (
+                              <div className="flex flex-col gap-2 pt-1">
+                                <a
+                                  href={`https://wa.me/${leader.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${leader.userName}! Te contactamos de MAKIMPORT sobre la adjudicación de la subasta para ${m.name}.`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-[0.98]"
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                  <span>Contactar Ganador por WhatsApp</span>
+                                </a>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="bg-red-950/30 border border-red-800/40 rounded-xl p-3 text-xs text-red-300 font-bold flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 shrink-0" />
+                              <span>Subasta finalizada sin ofertas registradas.</span>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        (() => {
+                          const leader = auctionLeaders[m.id];
+                          if (leader) {
+                            return (
+                              <div className="flex items-center justify-between text-xs pt-1">
+                                <a
+                                  href={`https://wa.me/${leader.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${leader.userName}! Te contactamos de MAKIMPORT en relación a tu puja líder para ${m.name}.`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-[0.98]"
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                  <span>Contactar Postor Líder por WhatsApp</span>
+                                </a>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-xs text-slate-500 italic">
+                              Subasta abierta sin pujas.
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+                  );
+              })}
             </div>
           </div>
         )}
@@ -866,106 +1065,209 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 4: PURCHASE REQUESTS */}
+        {/* TAB 4: PURCHASE REQUESTS & ADJUDICATIONS */}
         {activeTab === 'purchases' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
-              <span>Solicitudes de Compra Inmediata</span>
-              <span>Total: {purchaseRequests.length} solicitudes</span>
-            </div>
+          <div className="space-y-8">
+            {/* Direct Purchase Section */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
+                <span>Solicitudes de Compra Inmediata</span>
+                <span>Total: {purchaseRequests.length} solicitudes</span>
+              </div>
 
-            <div className="p-0">
-              {loadingPurchases ? (
-                <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
-                  <span>Cargando solicitudes de compra...</span>
-                </div>
-              ) : purchaseRequests.length === 0 ? (
-                <div className="p-12 text-center space-y-3">
-                  <ShoppingBag className="w-10 h-10 mx-auto text-slate-700" />
-                  <p className="text-slate-500 text-sm font-medium">No hay solicitudes de compra registradas aún.</p>
-                  <p className="text-slate-600 text-xs">Cuando un cliente presione &quot;Solicitar Compra Inmediata&quot;, aparecerá aquí.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-800/80">
-                  {purchaseRequests.map((req) => (
-                    <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                        {/* Buyer Info */}
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-extrabold text-white">{req.nombre} {req.apellido}</span>
-                            <span className="text-xs text-slate-500">•</span>
-                            <span className="text-xs text-slate-400 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-orange-400" /> {req.ciudad}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                              req.estado === 'pendiente' ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' :
-                              req.estado === 'en_proceso' ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300' :
-                              req.estado === 'completado' ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300' :
-                              'bg-red-500/20 border border-red-500/40 text-red-300'
-                            }`}>
-                              {req.estado}
-                            </span>
+              <div className="p-0">
+                {loadingPurchases ? (
+                  <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+                    <span>Cargando solicitudes de compra...</span>
+                  </div>
+                ) : purchaseRequests.length === 0 ? (
+                  <div className="p-12 text-center space-y-3">
+                    <ShoppingBag className="w-10 h-10 mx-auto text-slate-700" />
+                    <p className="text-slate-500 text-sm font-medium">No hay solicitudes de compra registradas aún.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-800/80">
+                    {purchaseRequests.map((req) => (
+                      <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          {/* Buyer Info */}
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-extrabold text-white">{req.nombre} {req.apellido}</span>
+                              <span className="text-xs text-slate-500">•</span>
+                              <span className="text-xs text-slate-400 flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-orange-400" /> {req.ciudad}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                                req.estado === 'pendiente' ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' :
+                                req.estado === 'en_proceso' ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300' :
+                                req.estado === 'completado' ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300' :
+                                'bg-red-500/20 border border-red-500/40 text-red-300'
+                              }`}>
+                                {req.estado}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                              <a href={`mailto:${req.email}`} className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300">
+                                <Mail className="w-3 h-3" /> {req.email}
+                              </a>
+                              <a href={`tel:${req.telefono}`} className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300">
+                                <Phone className="w-3 h-3" /> {req.telefono}
+                              </a>
+                            </div>
+
+                            <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs">
+                              <span className="text-slate-400">Interesado en: </span>
+                              <span className="text-white font-semibold">{req.machinery_title}</span>
+                              <span className="text-amber-400 font-mono font-bold ml-2">${Number(req.machinery_price).toLocaleString()} USD</span>
+                            </div>
+
+                            <p className="text-[10px] text-slate-600 font-mono">
+                              {new Date(req.created_at).toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </p>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
-                            <a href={`mailto:${req.email}`} className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300">
-                              <Mail className="w-3 h-3" /> {req.email}
+                          {/* Actions */}
+                          <div className="flex flex-col sm:items-end gap-2 shrink-0">
+                            <select
+                              value={req.estado}
+                              onChange={(e) => handleUpdatePurchaseStatus(req.id, e.target.value)}
+                              className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500"
+                            >
+                              <option value="pendiente">🟡 Pendiente</option>
+                              <option value="en_proceso">🔵 En Proceso</option>
+                              <option value="completado">🟢 Completado</option>
+                              <option value="cancelado">🔴 Cancelado</option>
+                            </select>
+
+                            <a
+                              href={`https://t.me/makimportvzla?text=${encodeURIComponent(`Hola! Solicitud de compra de ${req.nombre} ${req.apellido} para: ${req.machinery_title} - $${Number(req.machinery_price).toLocaleString()} USD. Tel: ${req.telefono}`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600 border border-sky-500/40 text-sky-300 hover:text-white rounded-lg text-xs font-bold transition-all"
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>Telegram</span>
+                              <ExternalLink className="w-3 h-3 opacity-60" />
                             </a>
-                            <a href={`tel:${req.telefono}`} className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300">
-                              <Phone className="w-3 h-3" /> {req.telefono}
+
+                            <a
+                              href={`mailto:${req.email}?subject=MAKIMPORT - Seguimiento solicitud de compra&body=Estimado/a ${req.nombre} ${req.apellido},%0A%0AGracias por su interés en ${req.machinery_title}.%0A%0AEn breve le contactaremos.%0A%0AMAKIMPORT Venezuela%0Amakimportvzla@gmail.com`}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all"
+                            >
+                              <Mail className="w-3 h-3" />
+                              <span>Responder</span>
                             </a>
                           </div>
-
-                          <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs">
-                            <span className="text-slate-400">Interesado en: </span>
-                            <span className="text-white font-semibold">{req.machinery_title}</span>
-                            <span className="text-amber-400 font-mono font-bold ml-2">${Number(req.machinery_price).toLocaleString()} USD</span>
-                          </div>
-
-                          <p className="text-[10px] text-slate-600 font-mono">
-                            {new Date(req.created_at).toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })}
-                          </p>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex flex-col sm:items-end gap-2 shrink-0">
-                          <select
-                            value={req.estado}
-                            onChange={(e) => handleUpdatePurchaseStatus(req.id, e.target.value)}
-                            className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500"
-                          >
-                            <option value="pendiente">🟡 Pendiente</option>
-                            <option value="en_proceso">🔵 En Proceso</option>
-                            <option value="completado">🟢 Completado</option>
-                            <option value="cancelado">🔴 Cancelado</option>
-                          </select>
-
-                          <a
-                            href={`https://t.me/makimportvzla?text=${encodeURIComponent(`Hola! Solicitud de compra de ${req.nombre} ${req.apellido} para: ${req.machinery_title} - $${Number(req.machinery_price).toLocaleString()} USD. Tel: ${req.telefono}`)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600 border border-sky-500/40 text-sky-300 hover:text-white rounded-lg text-xs font-bold transition-all"
-                          >
-                            <Send className="w-3 h-3" />
-                            <span>Telegram</span>
-                            <ExternalLink className="w-3 h-3 opacity-60" />
-                          </a>
-
-                          <a
-                            href={`mailto:${req.email}?subject=MAKIMPORT - Seguimiento solicitud de compra&body=Estimado/a ${req.nombre} ${req.apellido},%0A%0AGracias por su interés en ${req.machinery_title}.%0A%0AEn breve le contactaremos.%0A%0AMAKIMPORT Venezuela%0Amakimportvzla@gmail.com`}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all"
-                          >
-                            <Mail className="w-3 h-3" />
-                            <span>Responder</span>
-                          </a>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Adjudicated Auctions Section */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
+                <span>Subastas Adjudicadas (Finalizadas con Oferta)</span>
+                <span>
+                  Total: {
+                    machines.filter(m => {
+                      if (!m.auctionEndsAt) return false;
+                      const ed = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : new Date(m.auctionEndsAt);
+                      return !isNaN(ed.getTime()) && ed.getTime() <= Date.now() && !!auctionLeaders[m.id];
+                    }).length
+                  } adjudicaciones
+                </span>
+              </div>
+
+              <div className="p-0">
+                {(() => {
+                  const adjudicatedList = machines.filter(m => {
+                    if (!m.auctionEndsAt) return false;
+                    const ed = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : new Date(m.auctionEndsAt);
+                    return !isNaN(ed.getTime()) && ed.getTime() <= Date.now() && !!auctionLeaders[m.id];
+                  });
+
+                  if (adjudicatedList.length === 0) {
+                    return (
+                      <div className="p-12 text-center space-y-3">
+                        <Gavel className="w-10 h-10 mx-auto text-slate-700" />
+                        <p className="text-slate-500 text-sm font-medium">No hay subastas finalizadas con ganador aún.</p>
+                        <p className="text-slate-600 text-xs">Las subastas cerradas que tengan al menos una puja líder se listarán automáticamente aquí.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="divide-y divide-slate-800/80">
+                      {adjudicatedList.map((m) => {
+                        const winner = auctionLeaders[m.id];
+                        const mEndDate = m.auctionEndsAt instanceof Date ? m.auctionEndsAt : new Date(m.auctionEndsAt!);
+
+                        return (
+                          <div key={m.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-extrabold text-white">{winner.userName}</span>
+                                  <span className="text-xs text-slate-500">•</span>
+                                  <span className="px-2 py-0.5 rounded bg-red-950/50 border border-red-800/40 text-red-400 text-[10px] font-bold uppercase tracking-wide">
+                                    Adjudicado por Subasta
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                                  <a href={`mailto:${winner.email}`} className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300">
+                                    <Mail className="w-3 h-3" /> {winner.email || 'Sin email'}
+                                  </a>
+                                  <a href={`tel:${winner.phone}`} className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300">
+                                    <Phone className="w-3 h-3" /> {winner.phone}
+                                  </a>
+                                </div>
+
+                                <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs">
+                                  <span className="text-slate-400">Equipo adjudicado: </span>
+                                  <span className="text-white font-semibold">{m.name} ({m.model})</span>
+                                  <span className="text-amber-400 font-mono font-bold ml-2">Monto Final: ${winner.amount.toLocaleString()} USD</span>
+                                </div>
+
+                                <p className="text-[10px] text-slate-600 font-mono">
+                                  Cerrada el: {mEndDate.toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })}
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col sm:items-end gap-2 shrink-0">
+                                <a
+                                  href={`https://wa.me/${winner.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${winner.userName}! Te contactamos de MAKIMPORT en relación a la adjudicación del equipo ${m.name} por $${winner.amount.toLocaleString()} USD.`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-650 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
+                                >
+                                  <Phone className="w-3 h-3 text-emerald-400" />
+                                  <span>WhatsApp</span>
+                                  <ExternalLink className="w-3 h-3 opacity-60" />
+                                </a>
+
+                                <a
+                                  href={`mailto:${winner.email}?subject=MAKIMPORT - Adjudicación de Subasta Ganadora&body=Estimado/a ${winner.userName},%0A%0ANos complace informarle que ha resultado ganador de la subasta del equipo ${m.name} (${m.model}) con una oferta final de $${winner.amount.toLocaleString()} USD.%0A%0APor favor, responda a este correo para coordinar los detalles de pago y logística de entrega.%0A%0AAtentamente,%0AMAKIMPORT Venezuela`}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
+                                >
+                                  <Mail className="w-3 h-3 text-orange-400" />
+                                  <span>Enviar Correo</span>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })()}
+              </div>
             </div>
           </div>
         )}
