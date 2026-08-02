@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
-import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench } from 'lucide-react';
+import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
+import { ProveedoresTab } from './ProveedoresTab';
 
 interface UserProfile {
   id: string;
@@ -148,7 +149,7 @@ const MOCK_PROFILES: UserProfile[] = [
 ];
 
 export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores'>('inventory');
   const [machines, setMachines] = useState<MachineryItem[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
@@ -569,7 +570,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Tab Controls — responsive grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
           <button
             onClick={() => setActiveTab('inventory')}
             className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
@@ -625,7 +626,7 @@ export const AdminDashboard: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('custom')}
-            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 ${
+            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'custom'
                 ? 'bg-orange-600 text-white shadow-lg'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -638,6 +639,18 @@ export const AdminDashboard: React.FC = () => {
                 <span className="ml-1 px-1.5 py-0.5 bg-orange-700 rounded-full text-[10px]">{customRequests.length}</span>
               )}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('proveedores')}
+            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'proveedores'
+                ? 'bg-emerald-700 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Building2 className="w-4 h-4 shrink-0" />
+            <span className="truncate"><span className="hidden sm:inline">6. </span>Proveedores</span>
           </button>
         </div>
 
@@ -1457,6 +1470,11 @@ export const AdminDashboard: React.FC = () => {
               )}
             </div>
           </div>
+        )}
+
+        {/* TAB 6: PROVEEDORES + DIFUSIÓN WHATSAPP */}
+        {activeTab === 'proveedores' && (
+          <ProveedoresTab />
         )}
 
       </div>

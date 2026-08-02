@@ -38,3 +38,15 @@ export interface BidDbRow {
   monto_puja: number;
   created_at: string;
 }
+
+export interface ProveedorDbRow {
+  id: string;
+  created_at: string;
+  nombre_empresa: string;
+  nombre_contacto: string | null;
+  telefono: string;
+  ubicacion: string | null;
+  instagram: string | null;
+  especialidad: string | null;
+  notas: string | null;
+}
