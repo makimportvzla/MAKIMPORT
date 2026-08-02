@@ -13,6 +13,7 @@ import { FloatingContactButtons } from '@/components/FloatingContactButtons';
 import { CustomRequestModal } from '@/components/CustomRequestModal';
 import { useAuth } from '@/context/AuthContext';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { OnboardingModal } from '@/components/OnboardingModal';
 
 export default function Home() {
   const { userRole } = useAuth();
@@ -101,6 +102,9 @@ export default function Home() {
 
       {/* Floating Telegram & WhatsApp Contact Buttons */}
       <FloatingContactButtons />
+
+      {/* First-time Onboarding Tour */}
+      <OnboardingModal />
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileBottomNav
