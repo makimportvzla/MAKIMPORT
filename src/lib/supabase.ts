@@ -29,6 +29,9 @@ export interface MachineryDbRow {
   condiciones_pago?: string;
   creado_por?: string;
   created_at?: string;
+  dueno_nombre?: string | null;
+  dueno_instagram?: string | null;
+  dueno_telefono?: string | null;
 }
 
 export interface BidDbRow {

@@ -37,6 +37,11 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
   const [ciudadVenezuela, setCiudadVenezuela] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
 
+  // Private owner details (admin only)
+  const [duenoNombre, setDuenoNombre] = useState('');
+  const [duenoInstagram, setDuenoInstagram] = useState('');
+  const [duenoTelefono, setDuenoTelefono] = useState('');
+
   // Section 2: Carga de Medios & PDF
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [pdfReportUrl, setPdfReportUrl] = useState('');
@@ -116,6 +121,9 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
         setAuctionEndDate(localISOTime);
       }
       setDetails(machineryItem.description || '');
+      setDuenoNombre(machineryItem.duenoNombre || '');
+      setDuenoInstagram(machineryItem.duenoInstagram || '');
+      setDuenoTelefono(machineryItem.duenoTelefono || '');
       setErrorMsg('');
       setToastMessage(null);
     }
@@ -210,7 +218,10 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
         inspeccionCauchos: Number(inspeccionCauchos),
         transitTime: transitTime,
         ciudadVenezuela: ciudadVenezuela || undefined,
-        unidadUso: unidadUso
+        unidadUso: unidadUso,
+        duenoNombre: duenoNombre.trim() || undefined,
+        duenoInstagram: duenoInstagram.trim() || undefined,
+        duenoTelefono: duenoTelefono.trim() || undefined
       };
 
       const { data: dbData, error: dbError } = await supabase
@@ -242,7 +253,10 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
           puerto_destino: updatedItem.destinationPort,
           tiempo_transito: transitTime,
           ciudad_venezuela: ciudadVenezuela || null,
-          unidad_uso: unidadUso
+          unidad_uso: unidadUso,
+          dueno_nombre: duenoNombre.trim() || null,
+          dueno_instagram: duenoInstagram.trim() || null,
+          dueno_telefono: duenoTelefono.trim() || null
         })
         .eq('id', machineryItem.id)
         .select();
@@ -748,6 +762,47 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
               className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-200 focus:outline-none focus:border-orange-500"
               placeholder="Describa brevemente aspectos clave no cubiertos..."
             />
+          </div>
+
+          {/* SECCIÓN E: DATOS PRIVADOS DEL PROVEEDOR / DUEÑO (SOLO ADMIN) */}
+          <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+            <h3 className="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 text-orange-400">
+              <ShieldCheck className="w-4 h-4 text-orange-500" />
+              <span>🔒 Datos Privados del Proveedor / Dueño (Solo Admin)</span>
+            </h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-400 mb-1">Nombre del Vendedor/Dueño</label>
+                <input
+                  type="text"
+                  value={duenoNombre}
+                  onChange={(e) => setDuenoNombre(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none"
+                  placeholder="Ej. Carlos Mendoza"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-400 mb-1">Instagram del Vendedor</label>
+                <input
+                  type="text"
+                  value={duenoInstagram}
+                  onChange={(e) => setDuenoInstagram(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none"
+                  placeholder="Ej. @maquinarias_valencia"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-400 mb-1">Teléfono / WhatsApp</label>
+                <input
+                  type="text"
+                  value={duenoTelefono}
+                  onChange={(e) => setDuenoTelefono(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none font-mono"
+                  placeholder="Ej. +584141234567"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Submit Action */}

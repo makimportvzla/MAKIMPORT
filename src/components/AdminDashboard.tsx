@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
-import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2 } from 'lucide-react';
+import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
@@ -250,6 +250,9 @@ export const AdminDashboard: React.FC = () => {
   const [images, setImages] = useState<string[]>([
     'https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800'
   ]);
+  const [duenoNombre, setDuenoNombre] = useState('');
+  const [duenoInstagram, setDuenoInstagram] = useState('');
+  const [duenoTelefono, setDuenoTelefono] = useState('');
 
   // Fetch Users & Machinery from Supabase and subscribe to updates
   useEffect(() => {
@@ -297,7 +300,10 @@ export const AdminDashboard: React.FC = () => {
             inspeccionTransmision: Number(m.inspeccion_transmision) || 94,
             inspeccionCabina: Number(m.inspeccion_cabina) || 90,
             inspeccionCauchos: m.inspeccion_cauchos !== undefined && m.inspeccion_cauchos !== null ? Number(m.inspeccion_cauchos) : undefined,
-            transitTime: m.tiempo_transito || '25-35 días'
+            transitTime: m.tiempo_transito || '25-35 días',
+            duenoNombre: m.dueno_nombre || undefined,
+            duenoInstagram: m.dueno_instagram || undefined,
+            duenoTelefono: m.dueno_telefono || undefined
           }));
           setMachines(converted);
         } else {
@@ -441,7 +447,10 @@ export const AdminDashboard: React.FC = () => {
       engineSpecs: 'Motor DiÃ©sel Industrial',
       inspectionScore: Number(inspectionScore),
       description: description || 'Maquinaria pesada certificada.',
-      financingAvailable: financing
+      financingAvailable: financing,
+      duenoNombre: duenoNombre.trim() || undefined,
+      duenoInstagram: duenoInstagram.trim() || undefined,
+      duenoTelefono: duenoTelefono.trim() || undefined
     };
 
     // Save to Supabase
@@ -470,7 +479,10 @@ export const AdminDashboard: React.FC = () => {
         inspeccion_transmision: 94,
         inspeccion_cabina: 90,
         puerto_destino: newItem.destinationPort || 'Puerto Cabello, VZLA',
-        tiempo_transito: '25-35 días'
+        tiempo_transito: '25-35 días',
+        dueno_nombre: duenoNombre.trim() || null,
+        dueno_instagram: duenoInstagram.trim() || null,
+        dueno_telefono: duenoTelefono.trim() || null
       }).select();
 
       if (error) {
@@ -535,6 +547,9 @@ export const AdminDashboard: React.FC = () => {
     setPriceDirect(65000);
     setPriceStartAuction(50000);
     setDescription('');
+    setDuenoNombre('');
+    setDuenoInstagram('');
+    setDuenoTelefono('');
   };
 
   return (
@@ -709,6 +724,42 @@ export const AdminDashboard: React.FC = () => {
                           </span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Proveedor Directo Info */}
+                    <div className="flex flex-col items-start sm:items-center text-xs space-y-1 bg-slate-950/50 border border-slate-800/80 rounded-xl p-2 min-w-[200px] max-w-[240px] w-full shrink-0">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🔒 Proveedor Directo</span>
+                      {m.duenoNombre ? (
+                        <div className="space-y-1 w-full text-center">
+                          <p className="text-white font-bold truncate">{m.duenoNombre}</p>
+                          <div className="flex items-center justify-center gap-2">
+                            {m.duenoInstagram && (
+                              <a
+                                href={`https://instagram.com/${m.duenoInstagram.replace('@', '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-pink-400 hover:text-pink-300 flex items-center gap-0.5 font-medium text-[11px]"
+                              >
+                                <Instagram className="w-3.5 h-3.5" />
+                                <span>Instagram</span>
+                              </a>
+                            )}
+                            {m.duenoTelefono && (
+                              <a
+                                href={`https://wa.me/${m.duenoTelefono.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola, tengo un cliente interesado en tu ${m.name}`)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 font-medium text-[11px]"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>WhatsApp</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 italic text-[11px] py-1">Sin registrar</span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
@@ -1092,8 +1143,49 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-medium text-slate-300 mb-1">Detalles de CondiciÃ³n e InspecciÃ³n</label>
-                  <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white" placeholder="Motor, bombas hidrÃ¡ulicas..." />
+                  <label className="block font-medium text-slate-300 mb-1">Detalles de Condición e Inspección</label>
+                  <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white" placeholder="Motor, bombas hidráulicas..." />
+                </div>
+
+                {/*🔒 Datos Privados del Proveedor / Dueño (Solo Admin) */}
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+                  <h3 className="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 text-orange-400">
+                    <ShieldCheck className="w-4 h-4 text-orange-500" />
+                    <span>🔒 Datos Privados del Proveedor / Dueño (Solo Admin)</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Nombre del Vendedor/Dueño</label>
+                      <input
+                        type="text"
+                        value={duenoNombre}
+                        onChange={(e) => setDuenoNombre(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                        placeholder="Ej. Carlos Mendoza"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Instagram del Vendedor</label>
+                      <input
+                        type="text"
+                        value={duenoInstagram}
+                        onChange={(e) => setDuenoInstagram(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                        placeholder="Ej. @maquinarias_valencia"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Teléfono / WhatsApp</label>
+                      <input
+                        type="text"
+                        value={duenoTelefono}
+                        onChange={(e) => setDuenoTelefono(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                        placeholder="Ej. +584141234567"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <button type="submit" className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm rounded-xl shadow-lg">
