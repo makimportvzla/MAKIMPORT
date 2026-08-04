@@ -122,8 +122,7 @@ export default function PostularEquipoPage() {
   /* ── Submit ── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step < 3) {
-      nextStep();
+    if (step !== 3) {
       return;
     }
     setLoading(true);
@@ -452,22 +451,33 @@ export default function PostularEquipoPage() {
             {/* Navigation buttons */}
             <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-4">
               {step > 1 ? (
-                <button type="button" onClick={prevStep}
-                  className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl flex items-center gap-2 transition-colors">
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl flex items-center gap-2 transition-colors"
+                >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Atrás</span>
                 </button>
               ) : <div />}
 
               {step < 3 ? (
-                <button type="button" onClick={nextStep}
-                  className="px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-colors ml-auto">
+                <button
+                  key="btn-next"
+                  type="button"
+                  onClick={nextStep}
+                  className="px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-colors ml-auto"
+                >
                   <span>Siguiente</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               ) : (
-                <button type="submit" disabled={loading}
-                  className="px-8 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold rounded-xl flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed ml-auto">
+                <button
+                  key="btn-submit"
+                  type="submit"
+                  disabled={loading}
+                  className="px-8 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold rounded-xl flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed ml-auto"
+                >
                   {loading
                     ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Registrando...</span></>
                     : <span>✅ Registrar Mi Equipo</span>

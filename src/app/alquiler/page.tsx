@@ -121,8 +121,7 @@ export default function AlquilerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step < 3) {
-      handleNextStep();
+    if (step !== 3) {
       return;
     }
     const error = validateStep(3);
@@ -587,6 +586,7 @@ export default function AlquilerPage() {
 
               {step < 3 ? (
                 <button
+                  key="btn-next"
                   type="button"
                   onClick={handleNextStep}
                   className="px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-colors ml-auto"
@@ -596,6 +596,7 @@ export default function AlquilerPage() {
                 </button>
               ) : (
                 <button
+                  key="btn-submit"
                   type="submit"
                   disabled={loading}
                   className="px-8 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold rounded-xl flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed ml-auto"
