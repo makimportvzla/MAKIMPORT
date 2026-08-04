@@ -263,7 +263,7 @@ export default function AlquilerPage() {
             </span>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 text-sm">
+          <form onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="p-6 sm:p-8 space-y-6 text-sm">
             
             {errorMsg && (
               <div className="p-4 bg-red-950/40 border border-red-500/40 rounded-xl text-red-300 flex items-start gap-2.5 animate-shake">

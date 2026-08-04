@@ -253,7 +253,7 @@ export default function PostularEquipoPage() {
             </span>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 text-sm">
+          <form onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="p-6 sm:p-8 space-y-6 text-sm">
 
             {/* Error banner */}
             {errorMsg && (
