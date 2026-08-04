@@ -122,6 +122,10 @@ export default function PostularEquipoPage() {
   /* ── Submit ── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (step < 3) {
+      nextStep();
+      return;
+    }
     setLoading(true);
     setErrorMsg('');
     try {

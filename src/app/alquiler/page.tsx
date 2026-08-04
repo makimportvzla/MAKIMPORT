@@ -121,6 +121,10 @@ export default function AlquilerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (step < 3) {
+      handleNextStep();
+      return;
+    }
     const error = validateStep(3);
     if (error) {
       setErrorMsg(error);
