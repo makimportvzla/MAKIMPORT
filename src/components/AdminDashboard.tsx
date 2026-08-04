@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
@@ -69,7 +69,7 @@ const INITIAL_DEMO_MACHINES: MachineryItem[] = [
     serialNumber: 'CAT0320DL098421',
     engineSpecs: 'Cat C6.4 ACERT (148 HP)',
     inspectionScore: 94,
-    description: 'Excavadora hidrÃ¡ulica Caterpillar 320D L en excelente condiciÃ³n operativa.',
+    description: 'Excavadora hidrÃƒÂ¡ulica Caterpillar 320D L en excelente condiciÃƒÂ³n operativa.',
     financingAvailable: true
   },
   {
@@ -212,9 +212,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [loadingRentals, setLoadingRentals] = useState(false);
   const [broadcastPrefill, setBroadcastPrefill] = useState('');
 
-  // Owner machinery registry — for auto-matching
+  // Owner machinery registry â€” for auto-matching
   const [ownerMachinery, setOwnerMachinery] = useState<OwnerMachinery[]>([]);
   const [loadingOwners, setLoadingOwners]   = useState(false);
+
+  // Alquileres module: sub-tabs, search, delete/edit modals
+  const [alquileresSubTab, setAlquileresSubTab] = useState<'solicitudes' | 'propietarios' | 'matches'>('solicitudes');
+  const [alquileresSearch, setAlquileresSearch] = useState('');
+  // Delete confirmation modal
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; table: string; id: string; label: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  // Inline quick-edit for rental status / owner status
+  const [editingRentalId, setEditingRentalId]     = useState<string | null>(null);
+  const [editingOwnerStatus, setEditingOwnerStatus] = useState<{ id: string; estado: string } | null>(null);
 
   const [auctionLeaders, setAuctionLeaders] = useState<{[machineryId: string]: { userName: string; email: string; phone: string; amount: number }}>( {});
 
@@ -245,16 +255,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               
             if (profileData) {
               leadersMap[m.id] = {
-                userName: profileData.nombre_completo || 'Usuario Anónimo',
+                userName: profileData.nombre_completo || 'Usuario AnÃ³nimo',
                 email: profileData.email || '',
-                phone: profileData.telefono || 'Sin teléfono',
+                phone: profileData.telefono || 'Sin telÃ©fono',
                 amount: Number(topBid.amount)
               };
             } else {
               leadersMap[m.id] = {
                 userName: 'Usuario Sin Perfil',
                 email: '',
-                phone: 'Sin teléfono',
+                phone: 'Sin telÃ©fono',
                 amount: Number(topBid.amount)
               };
             }
@@ -360,7 +370,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             inspeccionTransmision: Number(m.inspeccion_transmision) || 94,
             inspeccionCabina: Number(m.inspeccion_cabina) || 90,
             inspeccionCauchos: m.inspeccion_cauchos !== undefined && m.inspeccion_cauchos !== null ? Number(m.inspeccion_cauchos) : undefined,
-            transitTime: m.tiempo_transito || '25-35 días',
+            transitTime: m.tiempo_transito || '25-35 dÃ­as',
             duenoNombre: m.dueno_nombre || undefined,
             duenoInstagram: m.dueno_instagram || undefined,
             duenoTelefono: m.dueno_telefono || undefined
@@ -528,6 +538,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     }
   };
 
+  const handleUpdateOwnerStatus = async (id: string, estado: string) => {
+    try {
+      await supabase.from('owner_machinery').update({ estado }).eq('id', id);
+      setOwnerMachinery((prev) => prev.map((o) => o.id === id ? { ...o, estado: estado as any } : o));
+      setEditingOwnerStatus(null);
+    } catch (err) {
+      console.warn('Owner status update error:', err);
+    }
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!deleteConfirm) return;
+    setDeleteLoading(true);
+    try {
+      await supabase.from(deleteConfirm.table as any).delete().eq('id', deleteConfirm.id);
+      if (deleteConfirm.table === 'rental_requests') {
+        setRentalRequests((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
+      } else if (deleteConfirm.table === 'owner_machinery') {
+        setOwnerMachinery((prev) => prev.filter((o) => o.id !== deleteConfirm.id));
+      }
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.warn('Delete error:', err);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleUpdatePurchaseStatus = async (id: string, estado: string) => {
     try {
       await supabase.from('purchase_requests').update({ estado }).eq('id', id);
@@ -567,7 +605,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
       auctionEndsAt: endDate,
       images: images,
       serialNumber: 'VIN-' + Math.floor(100000 + Math.random() * 900000),
-      engineSpecs: 'Motor DiÃ©sel Industrial',
+      engineSpecs: 'Motor DiÃƒÂ©sel Industrial',
       inspectionScore: Number(inspectionScore),
       description: description || 'Maquinaria pesada certificada.',
       financingAvailable: financing,
@@ -602,7 +640,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         inspeccion_transmision: 94,
         inspeccion_cabina: 90,
         puerto_destino: newItem.destinationPort || 'Puerto Cabello, VZLA',
-        tiempo_transito: '25-35 días',
+        tiempo_transito: '25-35 dÃ­as',
         dueno_nombre: duenoNombre.trim() || null,
         dueno_instagram: duenoInstagram.trim() || null,
         dueno_telefono: duenoTelefono.trim() || null
@@ -632,7 +670,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   };
 
   const handleDeleteMachine = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta publicación de la plataforma?')) return;
+    if (!confirm('Â¿EstÃ¡s seguro de eliminar esta publicaciÃ³n de la plataforma?')) return;
 
     try {
       const { error } = await supabase.from('machinery').delete().eq('id', id);
@@ -641,7 +679,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         return;
       }
     } catch (err: any) {
-      alert(`Error de conexión al eliminar: ${err.message || err}`);
+      alert(`Error de conexiÃ³n al eliminar: ${err.message || err}`);
       return;
     }
 
@@ -693,7 +731,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                GestiÃ³n de Inventario, Control de Subastas en Tiempo Real y VerificaciÃ³n de Usuarios.
+                GestiÃƒÂ³n de Inventario, Control de Subastas en Tiempo Real y VerificaciÃƒÂ³n de Usuarios.
               </p>
             </div>
           </div>
@@ -707,7 +745,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           </button>
         </div>
 
-        {/* Tab Controls — responsive grid */}
+        {/* Tab Controls â€” responsive grid */}
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
           <button
             onClick={() => setActiveTab('inventory')}
@@ -814,7 +852,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
               <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
-                <span>CatÃ¡logo Publicado</span>
+                <span>CatÃƒÂ¡logo Publicado</span>
                 <span>Total: {machines.length} equipos</span>
               </div>
 
@@ -826,7 +864,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-orange-400">{m.brand}</span>
-                          <span className="text-xs text-slate-500">â€¢</span>
+                          <span className="text-xs text-slate-500">Ã¢â‚¬Â¢</span>
                           <span className="text-xs text-white font-bold">{m.name}</span>
                         </div>
                         <p className="text-xs text-slate-400 mt-0.5">{m.model} | {m.year} | {m.hours.toLocaleString()} hrs</p>
@@ -868,7 +906,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
 
                     {/* Proveedor Directo Info */}
                     <div className="flex flex-col items-start sm:items-center text-xs space-y-1 bg-slate-950/50 border border-slate-800/80 rounded-xl p-2 min-w-[200px] max-w-[240px] w-full shrink-0">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🔒 Proveedor Directo</span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ðŸ”’ Proveedor Directo</span>
                       {m.duenoNombre ? (
                         <div className="space-y-1 w-full text-center">
                           <p className="text-white font-bold truncate">{m.duenoNombre}</p>
@@ -1007,7 +1045,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
 
                       <div className="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800">
                         <div>
-                          <span className="text-slate-500 block">{mIsClosed ? 'Monto Final Adjudicado:' : 'Puja Líder Actual:'}</span>
+                          <span className="text-slate-500 block">{mIsClosed ? 'Monto Final Adjudicado:' : 'Puja LÃ­der Actual:'}</span>
                           <span className={`text-xl font-black font-mono ${ mIsClosed ? 'text-red-400' : 'text-amber-400'}`}>
                             ${(mIsClosed ? finalAmount : (m.currentBid || m.price)).toLocaleString()} USD
                           </span>
@@ -1038,7 +1076,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                           return (
                             <div className={`p-3 rounded-xl border text-xs ${mIsClosed ? 'bg-red-950/20 border-red-900/30' : 'bg-slate-950 border-slate-800'}`}>
                               <span className="text-slate-500 block uppercase text-[9px] font-bold tracking-wider mb-1">
-                                {mIsClosed ? 'Ganador de la Subasta Adjudicada' : 'Postor Líder Actual'}
+                                {mIsClosed ? 'Ganador de la Subasta Adjudicada' : 'Postor LÃ­der Actual'}
                               </span>
                               <div className="flex justify-between items-center gap-2">
                                 <div>
@@ -1054,7 +1092,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                         }
                         return (
                           <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-center text-xs text-slate-500 italic">
-                            Sin ofertas registradas en esta subasta todavía.
+                            Sin ofertas registradas en esta subasta todavÃ­a.
                           </div>
                         );
                       })()}
@@ -1066,7 +1104,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                             return (
                               <div className="flex flex-col gap-2 pt-1">
                                 <a
-                                  href={`https://wa.me/${leader.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${leader.userName}! Te contactamos de MAKIMPORT sobre la adjudicación de la subasta para ${m.name}.`)}`}
+                                  href={`https://wa.me/${leader.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${leader.userName}! Te contactamos de MAKIMPORT sobre la adjudicaciÃ³n de la subasta para ${m.name}.`)}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-[0.98]"
@@ -1091,13 +1129,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                             return (
                               <div className="flex items-center justify-between text-xs pt-1">
                                 <a
-                                  href={`https://wa.me/${leader.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${leader.userName}! Te contactamos de MAKIMPORT en relación a tu puja líder para ${m.name}.`)}`}
+                                  href={`https://wa.me/${leader.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${leader.userName}! Te contactamos de MAKIMPORT en relaciÃ³n a tu puja lÃ­der para ${m.name}.`)}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-[0.98]"
                                 >
                                   <Phone className="w-3.5 h-3.5" />
-                                  <span>Contactar Postor Líder por WhatsApp</span>
+                                  <span>Contactar Postor LÃ­der por WhatsApp</span>
                                 </a>
                               </div>
                             );
@@ -1128,12 +1166,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               <table className="w-full text-left text-xs text-slate-300">
                 <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] border-b border-slate-800">
                   <tr>
-                    <th className="p-4">CÃ©dula / RIF</th>
-                    <th className="p-4">Nombre / RazÃ³n Social</th>
-                    <th className="p-4">Correo ElectrÃ³nico</th>
-                    <th className="p-4">TelÃ©fono</th>
+                    <th className="p-4">CÃƒÂ©dula / RIF</th>
+                    <th className="p-4">Nombre / RazÃƒÂ³n Social</th>
+                    <th className="p-4">Correo ElectrÃƒÂ³nico</th>
+                    <th className="p-4">TelÃƒÂ©fono</th>
                     <th className="p-4">Rol</th>
-                    <th className="p-4 text-center">AcciÃ³n Directa</th>
+                    <th className="p-4 text-center">AcciÃƒÂ³n Directa</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -1142,7 +1180,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       <td className="p-4 font-mono font-bold text-orange-400">{u.cedula_rif || 'N/A'}</td>
                       <td className="p-4 font-bold text-white">{u.nombre_completo || 'Usuario'}</td>
                       <td className="p-4 text-slate-300">{u.email || 'Sin correo'}</td>
-                      <td className="p-4 font-mono text-slate-200">{u.telefono || 'Sin teléfono'}</td>
+                      <td className="p-4 font-mono text-slate-200">{u.telefono || 'Sin telÃ©fono'}</td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                           (u.role || 'client') === 'admin' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-300'
@@ -1177,13 +1215,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
                 <span className="font-bold text-white text-sm">Publicar / Editar Maquinaria (Admin)</span>
                 <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
-                  âœ•
+                  Ã¢Å“â€¢
                 </button>
               </div>
 
               <form onSubmit={handleSaveMachine} className="p-6 overflow-y-auto space-y-4 text-xs">
                 <div>
-                  <label className="block font-medium text-slate-300 mb-1">TÃ­tulo de la Maquinaria *</label>
+                  <label className="block font-medium text-slate-300 mb-1">TÃƒÂ­tulo de la Maquinaria *</label>
                   <input
                     type="text"
                     required
@@ -1196,7 +1234,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-slate-300 mb-1">Categoría *</label>
+                    <label className="block font-medium text-slate-300 mb-1">CategorÃ­a *</label>
                     <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
                       <option value="Excavadora">Excavadora</option>
                       <option value="Retroexcavadora">Retroexcavadora</option>
@@ -1204,8 +1242,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       <option value="Bulldozer">Bulldozer / Tractor</option>
                       <option value="Compactadora">Compactadora</option>
                       <option value="Trituradora">Trituradora</option>
-                      <option value="Volteo">Camión de Volteo</option>
-                      <option value="Grúa">Grúa Industrial</option>
+                      <option value="Volteo">CamiÃ³n de Volteo</option>
+                      <option value="GrÃºa">GrÃºa Industrial</option>
                       <option value="Otros">Otros</option>
                     </select>
                   </div>
@@ -1240,7 +1278,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-slate-300 mb-1">AÃ±o</label>
+                    <label className="block font-medium text-slate-300 mb-1">AÃƒÂ±o</label>
                     <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
                   </div>
                   <div>
@@ -1283,20 +1321,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 </div>
 
                 <div>
-                  <label className="block font-medium text-slate-300 mb-1">Detalles de Condición e Inspección</label>
-                  <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white" placeholder="Motor, bombas hidráulicas..." />
+                  <label className="block font-medium text-slate-300 mb-1">Detalles de CondiciÃ³n e InspecciÃ³n</label>
+                  <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white" placeholder="Motor, bombas hidrÃ¡ulicas..." />
                 </div>
 
-                {/*🔒 Datos Privados del Proveedor / Dueño (Solo Admin) */}
+                {/*ðŸ”’ Datos Privados del Proveedor / DueÃ±o (Solo Admin) */}
                 <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
                   <h3 className="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 text-orange-400">
                     <ShieldCheck className="w-4 h-4 text-orange-500" />
-                    <span>🔒 Datos Privados del Proveedor / Dueño (Solo Admin)</span>
+                    <span>ðŸ”’ Datos Privados del Proveedor / DueÃ±o (Solo Admin)</span>
                   </h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-slate-400 mb-1">Nombre del Vendedor/Dueño</label>
+                      <label className="block text-slate-400 mb-1">Nombre del Vendedor/DueÃ±o</label>
                       <input
                         type="text"
                         value={duenoNombre}
@@ -1316,7 +1354,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-400 mb-1">Teléfono / WhatsApp</label>
+                      <label className="block text-slate-400 mb-1">TelÃ©fono / WhatsApp</label>
                       <input
                         type="text"
                         value={duenoTelefono}
@@ -1356,7 +1394,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 ) : purchaseRequests.length === 0 ? (
                   <div className="p-12 text-center space-y-3">
                     <ShoppingBag className="w-10 h-10 mx-auto text-slate-700" />
-                    <p className="text-slate-500 text-sm font-medium">No hay solicitudes de compra registradas aún.</p>
+                    <p className="text-slate-500 text-sm font-medium">No hay solicitudes de compra registradas aÃºn.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-800/80">
@@ -1367,7 +1405,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                           <div className="flex-1 space-y-2">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-extrabold text-white">{req.nombre} {req.apellido}</span>
-                              <span className="text-xs text-slate-500">•</span>
+                              <span className="text-xs text-slate-500">â€¢</span>
                               <span className="text-xs text-slate-400 flex items-center gap-1">
                                 <MapPin className="w-3 h-3 text-orange-400" /> {req.ciudad}
                               </span>
@@ -1443,10 +1481,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                               onChange={(e) => handleUpdatePurchaseStatus(req.id, e.target.value)}
                               className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500 w-full"
                             >
-                              <option value="pendiente">🟡 Pendiente</option>
-                              <option value="en_proceso">🔵 En Proceso</option>
-                              <option value="completado">🟢 Completado</option>
-                              <option value="cancelado">🔴 Cancelado</option>
+                              <option value="pendiente">ðŸŸ¡ Pendiente</option>
+                              <option value="en_proceso">ðŸ”µ En Proceso</option>
+                              <option value="completado">ðŸŸ¢ Completado</option>
+                              <option value="cancelado">ðŸ”´ Cancelado</option>
                             </select>
 
                             <a
@@ -1461,7 +1499,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                             </a>
 
                             <a
-                              href={`mailto:${req.email}?subject=MAKIMPORT - Seguimiento solicitud de compra&body=Estimado/a ${req.nombre} ${req.apellido},%0A%0AGracias por su interés en ${req.machinery_title}.%0A%0AEn breve le contactaremos.%0A%0AMAKIMPORT Venezuela%0Amakimportvzla@gmail.com`}
+                              href={`mailto:${req.email}?subject=MAKIMPORT - Seguimiento solicitud de compra&body=Estimado/a ${req.nombre} ${req.apellido},%0A%0AGracias por su interÃ©s en ${req.machinery_title}.%0A%0AEn breve le contactaremos.%0A%0AMAKIMPORT Venezuela%0Amakimportvzla@gmail.com`}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all"
                             >
                               <Mail className="w-3 h-3" />
@@ -1503,8 +1541,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                     return (
                       <div className="p-12 text-center space-y-3">
                         <Gavel className="w-10 h-10 mx-auto text-slate-700" />
-                        <p className="text-slate-500 text-sm font-medium">No hay subastas finalizadas con ganador aún.</p>
-                        <p className="text-slate-600 text-xs">Las subastas cerradas que tengan al menos una puja líder se listarán automáticamente aquí.</p>
+                        <p className="text-slate-500 text-sm font-medium">No hay subastas finalizadas con ganador aÃºn.</p>
+                        <p className="text-slate-600 text-xs">Las subastas cerradas que tengan al menos una puja lÃ­der se listarÃ¡n automÃ¡ticamente aquÃ­.</p>
                       </div>
                     );
                   }
@@ -1521,7 +1559,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                               <div className="flex-1 space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-sm font-extrabold text-white">{winner.userName}</span>
-                                  <span className="text-xs text-slate-500">•</span>
+                                  <span className="text-xs text-slate-500">â€¢</span>
                                   <span className="px-2 py-0.5 rounded bg-red-950/50 border border-red-800/40 text-red-400 text-[10px] font-bold uppercase tracking-wide">
                                     Adjudicado por Subasta
                                   </span>
@@ -1563,7 +1601,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 </button>
 
                                 <a
-                                  href={`https://wa.me/${winner.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${winner.userName}! Te contactamos de MAKIMPORT en relación a la adjudicación del equipo ${m.name} por $${winner.amount.toLocaleString()} USD.`)}`}
+                                  href={`https://wa.me/${winner.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${winner.userName}! Te contactamos de MAKIMPORT en relaciÃ³n a la adjudicaciÃ³n del equipo ${m.name} por $${winner.amount.toLocaleString()} USD.`)}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-650 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
@@ -1574,7 +1612,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 </a>
 
                                 <a
-                                  href={`mailto:${winner.email}?subject=MAKIMPORT - Adjudicación de Subasta Ganadora&body=Estimado/a ${winner.userName},%0A%0ANos complace informarle que ha resultado ganador de la subasta del equipo ${m.name} (${m.model}) con una oferta final de $${winner.amount.toLocaleString()} USD.%0A%0APor favor, responda a este correo para coordinar los detalles de pago y logística de entrega.%0A%0AAtentamente,%0AMAKIMPORT Venezuela`}
+                                  href={`mailto:${winner.email}?subject=MAKIMPORT - AdjudicaciÃ³n de Subasta Ganadora&body=Estimado/a ${winner.userName},%0A%0ANos complace informarle que ha resultado ganador de la subasta del equipo ${m.name} (${m.model}) con una oferta final de $${winner.amount.toLocaleString()} USD.%0A%0APor favor, responda a este correo para coordinar los detalles de pago y logÃ­stica de entrega.%0A%0AAtentamente,%0AMAKIMPORT Venezuela`}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
                                 >
                                   <Mail className="w-3 h-3 text-orange-400" />
@@ -1610,8 +1648,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               ) : customRequests.length === 0 ? (
                 <div className="p-12 text-center space-y-3">
                   <Search className="w-10 h-10 mx-auto text-slate-700" />
-                  <p className="text-slate-500 text-sm font-medium">No hay cotizaciones solicitadas aún.</p>
-                  <p className="text-slate-600 text-xs">Cuando un cliente solicite cotización, aparecerá aquí.</p>
+                  <p className="text-slate-500 text-sm font-medium">No hay cotizaciones solicitadas aÃºn.</p>
+                  <p className="text-slate-600 text-xs">Cuando un cliente solicite cotizaciÃ³n, aparecerÃ¡ aquÃ­.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-800/80">
@@ -1622,7 +1660,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-extrabold text-white">{req.nombre}</span>
-                            <span className="text-xs text-slate-500">•</span>
+                            <span className="text-xs text-slate-500">â€¢</span>
                             <span className="text-xs text-slate-400 flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-orange-400" /> {req.puerto_destino}
                             </span>
@@ -1648,10 +1686,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                           <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs space-y-1.5">
                             <div className="flex items-center justify-between text-slate-400">
                               <span>Equipo deseado:</span>
-                              <span className="text-amber-400 font-mono font-bold">Presupuesto Máx: ${Number(req.presupuesto_maximo).toLocaleString()} USD</span>
+                              <span className="text-amber-400 font-mono font-bold">Presupuesto MÃ¡x: ${Number(req.presupuesto_maximo).toLocaleString()} USD</span>
                             </div>
                             <p className="text-white text-sm font-bold">
-                              {req.marca} {req.modelo} <span className="text-xs text-slate-400 font-normal">(Año mínimo: {req.ano_minimo})</span>
+                              {req.marca} {req.modelo} <span className="text-xs text-slate-400 font-normal">(AÃ±o mÃ­nimo: {req.ano_minimo})</span>
                             </p>
                           </div>
 
@@ -1667,14 +1705,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                             onChange={(e) => handleUpdateCustomStatus(req.id, e.target.value)}
                             className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500"
                           >
-                            <option value="pendiente">🟡 Pendiente</option>
-                            <option value="en_proceso">🔵 En Proceso</option>
-                            <option value="completado">🟢 Completado</option>
-                            <option value="cancelado">🔴 Cancelado</option>
+                            <option value="pendiente">ðŸŸ¡ Pendiente</option>
+                            <option value="en_proceso">ðŸ”µ En Proceso</option>
+                            <option value="completado">ðŸŸ¢ Completado</option>
+                            <option value="cancelado">ðŸ”´ Cancelado</option>
                           </select>
 
                           <a
-                            href={`https://wa.me/${(req.telefono || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${req.nombre}, nos contactamos de MAKIMPORT en relación a tu cotización para un equipo ${req.marca} ${req.modelo}.`)}`}
+                            href={`https://wa.me/${(req.telefono || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${req.nombre}, nos contactamos de MAKIMPORT en relaciÃ³n a tu cotizaciÃ³n para un equipo ${req.marca} ${req.modelo}.`)}`}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
@@ -1685,7 +1723,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                           </a>
 
                           <a
-                            href={`https://t.me/makimportvzla?text=${encodeURIComponent(`Hola! Solicitud de cotización de ${req.nombre} para un equipo ${req.marca} ${req.modelo} (${req.ano_minimo}) en ${req.puerto_destino}. Presupuesto: $${Number(req.presupuesto_maximo).toLocaleString()} USD.`)}`}
+                            href={`https://t.me/makimportvzla?text=${encodeURIComponent(`Hola! Solicitud de cotizaciÃ³n de ${req.nombre} para un equipo ${req.marca} ${req.modelo} (${req.ano_minimo}) en ${req.puerto_destino}. Presupuesto: $${Number(req.presupuesto_maximo).toLocaleString()} USD.`)}`}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600 border border-sky-500/40 text-sky-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full justify-center"
@@ -1704,304 +1742,564 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           </div>
         )}
 
-        {/* TAB 6: PROVEEDORES + DIFUSIÓN WHATSAPP */}
+        {/* TAB 6: PROVEEDORES + DIFUSIÃ“N WHATSAPP */}
         {activeTab === 'proveedores' && (
           <ProveedoresTab initialMessage={broadcastPrefill} />
         )}
 
-        {/* TAB 7: SOLICITUDES DE ALQUILER */}
-        {activeTab === 'alquileres' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
-              <span>Solicitudes de Alquiler y Licitación Recibidas</span>
-              <span>Total: {rentalRequests.length} solicitudes</span>
-            </div>
+        {/* TAB 7: MÃ“DULO DE ALQUILERES â€” Sub-tabs */}
+        {activeTab === 'alquileres' && (() => {
+          // â”€â”€ Scoring helper â”€â”€
+          const computeMatches = (req: RentalRequest) =>
+            ownerMachinery
+              .map(owner => {
+                let score = 0;
+                const rc = (req.categoria_equipo || '').toLowerCase();
+                const oc = (owner.categoria_equipo || '').toLowerCase();
+                const rm = (req.marca_preferida || '').toLowerCase();
+                const om = (owner.marca || '').toLowerCase();
+                const re = (req.estado || '').toLowerCase();
+                const oe = (owner.estado_base || '').toLowerCase();
+                if (oc === rc) score += 3; else if (oc.includes(rc) || rc.includes(oc)) score += 2;
+                if (rm && rm !== 'cualquier marca') { if (om.includes(rm) || rm.includes(om)) score += 2; } else score += 1;
+                if (oe && re && (oe.includes(re) || re.includes(oe))) score += 1;
+                return { owner, score };
+              })
+              .filter(m => m.score >= 2)
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 5);
 
-            <div className="p-0">
-              {loadingRentals ? (
-                <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
-                  <span>Cargando solicitudes de alquiler...</span>
+          // â”€â”€ Search filter helpers â”€â”€
+          const sq = alquileresSearch.toLowerCase();
+          const filteredRentals = rentalRequests.filter(r =>
+            !sq ||
+            r.nombre_completo?.toLowerCase().includes(sq) ||
+            r.categoria_equipo?.toLowerCase().includes(sq) ||
+            r.estado?.toLowerCase().includes(sq) ||
+            r.ciudad?.toLowerCase().includes(sq) ||
+            r.telefono?.includes(sq)
+          );
+          const filteredOwners = ownerMachinery.filter(o =>
+            !sq ||
+            o.nombre_propietario?.toLowerCase().includes(sq) ||
+            o.categoria_equipo?.toLowerCase().includes(sq) ||
+            o.estado_base?.toLowerCase().includes(sq) ||
+            o.ciudad_base?.toLowerCase().includes(sq) ||
+            o.telefono?.includes(sq) ||
+            o.marca?.toLowerCase().includes(sq)
+          );
+
+          // All matches across all active rental requests
+          const allMatches: { req: RentalRequest; owner: OwnerMachinery; score: number }[] = [];
+          rentalRequests.forEach(req => {
+            computeMatches(req).forEach(({ owner, score }) => {
+              allMatches.push({ req, owner, score });
+            });
+          });
+          const filteredMatches = allMatches.filter(({ req, owner }) =>
+            !sq ||
+            req.nombre_completo?.toLowerCase().includes(sq) ||
+            owner.nombre_propietario?.toLowerCase().includes(sq) ||
+            req.categoria_equipo?.toLowerCase().includes(sq) ||
+            owner.estado_base?.toLowerCase().includes(sq)
+          );
+
+          const SUB_TABS = [
+            { key: 'solicitudes',  label: 'Solicitudes',           count: rentalRequests.length,  emoji: 'ðŸ“‹' },
+            { key: 'propietarios', label: 'Equipos / Propietarios', count: ownerMachinery.length,  emoji: 'ðŸ—ï¸' },
+            { key: 'matches',      label: 'Matches AutomÃ¡ticos',    count: allMatches.length,      emoji: 'âš¡' },
+          ] as const;
+
+          return (
+            <div className="space-y-4">
+
+              {/* â”€â”€ Header bar: sub-tabs + search â”€â”€ */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Sub-tabs */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {SUB_TABS.map(tab => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setAlquileresSubTab(tab.key)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          alquileresSubTab === tab.key
+                            ? 'bg-orange-600 text-white shadow-md shadow-orange-950/30'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                      >
+                        <span>{tab.emoji}</span>
+                        <span>{tab.label}</span>
+                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                          alquileresSubTab === tab.key ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-300'
+                        }`}>{tab.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {/* Search bar */}
+                  <div className="relative flex-1 max-w-xs sm:max-w-[260px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={alquileresSearch}
+                      onChange={e => setAlquileresSearch(e.target.value)}
+                      placeholder="Buscar por nombre, equipo, estado..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-colors"
+                    />
+                    {alquileresSearch && (
+                      <button onClick={() => setAlquileresSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors text-xs">âœ•</button>
+                    )}
+                  </div>
                 </div>
-              ) : rentalRequests.length === 0 ? (
-                <div className="p-12 text-center space-y-3">
-                  <Clock className="w-10 h-10 mx-auto text-slate-700" />
-                  <p className="text-slate-500 text-sm font-medium">No hay solicitudes de alquiler registradas aún.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-800/80">
-                  {rentalRequests.map((req) => {
-                    const reqDate = new Date(req.created_at);
-                    
-                    // ── Broadcast text ──
-                    const operatorStr   = req.incluye_operador ? 'Con Operador' : 'Sin Operador';
-                    const brandModelStr = `${req.marca_preferida || 'Cualquier marca'} ${req.modelo_especificacion || ''}`.trim() || 'No especificado';
-                    const broadcastText = `🚨 REQUERIMIENTO DE ALQUILER - MAKIMPORT\n\nBuscamos para cliente directo en ${req.ciudad}, ${req.estado}:\n- Equipo: ${req.categoria_equipo} - ${brandModelStr}\n- Duración: ${req.duracion_estimada}\n- Modalidad: ${operatorStr} | ${req.modalidad_gastos}\n- Trabajo: Sector ${req.industria}\n\n¿Tienes disponibilidad inmediata? Por favor enviar tarifa y ficha por privado.`;
 
-                    // ── Auto-match engine ──
-                    // Score: +3 categoría, +2 marca, +1 mismo estado, +1 disponible
-                    const matches = ownerMachinery
-                      .map(owner => {
-                        let score = 0;
-                        const reqCat   = (req.categoria_equipo || '').toLowerCase();
-                        const ownerCat = (owner.categoria_equipo || '').toLowerCase();
-                        const reqMarca  = (req.marca_preferida || '').toLowerCase();
-                        const ownerMarca = (owner.marca || '').toLowerCase();
-                        const reqEstado = (req.estado || '').toLowerCase();
-                        const ownerEstado = (owner.estado_base || '').toLowerCase();
+                {/* â•â• SUB-TAB 1: SOLICITUDES â•â• */}
+                {alquileresSubTab === 'solicitudes' && (
+                  <div>
+                    {loadingRentals ? (
+                      <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-orange-500" /><span>Cargando solicitudes...</span>
+                      </div>
+                    ) : filteredRentals.length === 0 ? (
+                      <div className="p-12 text-center space-y-2">
+                        <Clock className="w-10 h-10 mx-auto text-slate-700" />
+                        <p className="text-slate-500 text-sm font-medium">{alquileresSearch ? 'Sin resultados para esa bÃºsqueda.' : 'No hay solicitudes de alquiler aÃºn.'}</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-800/80">
+                        {filteredRentals.map((req) => {
+                          const reqDate       = new Date(req.created_at);
+                          const opStr         = req.incluye_operador ? 'Con Operador' : 'Sin Operador';
+                          const bmStr         = `${req.marca_preferida || 'Cualquier marca'} ${req.modelo_especificacion || ''}`.trim();
+                          const broadcastText = `ðŸš¨ REQUERIMIENTO DE ALQUILER - MAKIMPORT\n\nBuscamos para cliente directo en ${req.ciudad}, ${req.estado}:\n- Equipo: ${req.categoria_equipo} - ${bmStr}\n- DuraciÃ³n: ${req.duracion_estimada}\n- Modalidad: ${opStr} | ${req.modalidad_gastos}\n- Trabajo: Sector ${req.industria}\n\nÂ¿Tienes disponibilidad inmediata? Por favor enviar tarifa y ficha por privado.`;
+                          const matches       = computeMatches(req);
+                          const isEditing     = editingRentalId === req.id;
 
-                        // Category match (partial or exact)
-                        if (ownerCat === reqCat) score += 3;
-                        else if (ownerCat.includes(reqCat) || reqCat.includes(ownerCat)) score += 2;
+                          return (
+                            <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors group">
+                              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
 
-                        // Brand match (only if requested)
-                        if (reqMarca && reqMarca !== 'cualquier marca' && reqMarca !== '') {
-                          if (ownerMarca.includes(reqMarca) || reqMarca.includes(ownerMarca)) score += 2;
-                        } else {
-                          score += 1; // no brand preference — any brand is fine
-                        }
-
-                        // State match
-                        if (ownerEstado && reqEstado && (ownerEstado.includes(reqEstado) || reqEstado.includes(ownerEstado))) score += 1;
-
-                        return { owner, score };
-                      })
-                      .filter(m => m.score >= 2)          // minimum threshold
-                      .sort((a, b) => b.score - a.score)  // best match first
-                      .slice(0, 5);                        // max 5 matches per request
-
-                    return (
-                      <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors">
-                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                          
-                          {/* Main Info */}
-                          <div className="flex-1 space-y-3">
-                            {/* Contact Header */}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-extrabold text-white">{req.nombre_completo}</span>
-                              <span className="text-xs text-slate-500">•</span>
-                              <span className="text-xs text-slate-400 flex items-center gap-1">
-                                <MapPin className="w-3.5 h-3.5 text-orange-400" /> {req.ciudad}, {req.estado}
-                              </span>
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                                req.estado_solicitud === 'pendiente' ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' :
-                                req.estado_solicitud === 'en_proceso' ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300' :
-                                'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                              }`}>
-                                {req.estado_solicitud}
-                              </span>
-                            </div>
-
-                            {/* Contact Methods */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
-                              <a href={`mailto:${req.email}`} className="flex items-center gap-1.5 text-sky-400 hover:text-sky-350">
-                                <Mail className="w-3.5 h-3.5 text-slate-400" /> {req.email}
-                              </a>
-                              <a href={`tel:${req.telefono}`} className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-350">
-                                <Phone className="w-3.5 h-3.5 text-slate-400" /> {req.telefono}
-                              </a>
-                            </div>
-
-                            {/* Technical Requirements Card */}
-                            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
-                              <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[11px] font-bold text-slate-400">
-                                <span>REQUERIMIENTO TÉCNICO</span>
-                                <span className="text-orange-400">{req.industria}</span>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                                <div>
-                                  <span className="text-slate-500">Equipo:</span> <strong className="text-white">{req.categoria_equipo}</strong>
-                                </div>
-                                <div>
-                                  <span className="text-slate-500">Marca/Modelo:</span> <strong className="text-white">{brandModelStr}</strong>
-                                </div>
-                                {req.ano_deseado && (
-                                  <div>
-                                    <span className="text-slate-500">Año Deseado:</span> <strong className="text-white">&gt;= {req.ano_deseado}</strong>
+                                {/* â”€â”€ Main Info â”€â”€ */}
+                                <div className="flex-1 min-w-0 space-y-3">
+                                  {/* Header row */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-extrabold text-white">{req.nombre_completo}</span>
+                                      <span className="text-slate-600">â€¢</span>
+                                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                                        <MapPin className="w-3.5 h-3.5 text-orange-400" /> {req.ciudad}, {req.estado}
+                                      </span>
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                                        req.estado_solicitud === 'pendiente'  ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' :
+                                        req.estado_solicitud === 'en_proceso' ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300' :
+                                        'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                                      }`}>{req.estado_solicitud}</span>
+                                      {matches.length > 0 && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600/20 border border-emerald-500/40 text-emerald-300">
+                                          âš¡ {matches.length} match{matches.length > 1 ? 'es' : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* Edit / Delete action buttons */}
+                                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                      <button
+                                        onClick={() => setEditingRentalId(isEditing ? null : req.id)}
+                                        title="Editar estado"
+                                        className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/40 border border-sky-600/30 text-sky-400 transition-all"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => setDeleteConfirm({ open: true, table: 'rental_requests', id: req.id, label: req.nombre_completo })}
+                                        title="Eliminar solicitud"
+                                        className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 border border-red-600/30 text-red-400 transition-all"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
                                   </div>
-                                )}
-                                {req.horas_maximas && (
-                                  <div>
-                                    <span className="text-slate-500">Uso Máximo:</span> <strong className="text-white">{req.horas_maximas.toLocaleString()} Hrs/Km</strong>
+
+                                  {/* Inline edit panel */}
+                                  {isEditing && (
+                                    <div className="p-3 bg-sky-950/30 border border-sky-700/40 rounded-xl flex items-center gap-3 flex-wrap">
+                                      <label className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">Cambiar estado:</label>
+                                      {(['pendiente', 'en_proceso', 'cotizado'] as const).map(s => (
+                                        <button
+                                          key={s}
+                                          onClick={() => { handleUpdateRentalStatus(req.id, s); setEditingRentalId(null); }}
+                                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
+                                            req.estado_solicitud === s
+                                              ? 'bg-orange-600 text-white border-orange-500'
+                                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                                          }`}
+                                        >
+                                          {s === 'pendiente' ? 'ðŸŸ¡ Pendiente' : s === 'en_proceso' ? 'ðŸ”µ En Proceso' : 'ðŸŸ¢ Cotizado'}
+                                        </button>
+                                      ))}
+                                      <button onClick={() => setEditingRentalId(null)} className="text-[10px] text-slate-500 hover:text-slate-300 ml-auto">âœ• Cerrar</button>
+                                    </div>
+                                  )}
+
+                                  {/* Contact */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                                    <a href={`mailto:${req.email}`} className="flex items-center gap-1.5 text-sky-400 hover:underline"><Mail className="w-3.5 h-3.5 text-slate-400" />{req.email}</a>
+                                    <a href={`tel:${req.telefono}`} className="flex items-center gap-1.5 text-emerald-400 hover:underline"><Phone className="w-3.5 h-3.5 text-slate-400" />{req.telefono}</a>
                                   </div>
-                                )}
+
+                                  {/* Technical card */}
+                                  <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
+                                    <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[11px] font-bold text-slate-400">
+                                      <span>REQUERIMIENTO TÃ‰CNICO</span>
+                                      <span className="text-orange-400">{req.industria}</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                                      <div><span className="text-slate-500">Equipo:</span> <strong className="text-white">{req.categoria_equipo}</strong></div>
+                                      <div><span className="text-slate-500">Marca/Modelo:</span> <strong className="text-white">{bmStr || 'No especificado'}</strong></div>
+                                      {req.ano_deseado && <div><span className="text-slate-500">AÃ±o Deseado:</span> <strong className="text-white">&gt;= {req.ano_deseado}</strong></div>}
+                                      {req.horas_maximas && <div><span className="text-slate-500">Uso MÃ¡ximo:</span> <strong className="text-white">{req.horas_maximas.toLocaleString()} Hrs</strong></div>}
+                                    </div>
+                                  </div>
+
+                                  {/* Contract card */}
+                                  <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2 text-xs">
+                                    <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[11px] font-bold text-slate-400">
+                                      <span>CONDICIONES DE CONTRATO</span>
+                                      {req.presupuesto_estimado
+                                        ? <span className="text-emerald-400 font-mono font-bold">Pres: ${req.presupuesto_estimado}/hr</span>
+                                        : <span className="text-slate-500 font-mono">Presupuesto abierto</span>
+                                      }
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                                      <div><span className="text-slate-500">DuraciÃ³n:</span> <strong className="text-slate-200">{req.duracion_estimada}</strong></div>
+                                      <div><span className="text-slate-500">Operador:</span> <strong className="text-slate-200">{req.incluye_operador ? 'SÃ­, incluido' : 'No (Solo mÃ¡quina)'}</strong></div>
+                                      <div className="sm:col-span-2"><span className="text-slate-500">Esquema Gastos:</span> <strong className="text-slate-200">{req.modalidad_gastos}</strong></div>
+                                    </div>
+                                    {req.notas_adicionales && (
+                                      <div className="mt-2 pt-2 border-t border-slate-900 text-slate-400 bg-slate-950/40 p-2 rounded-lg italic text-[11px]">
+                                        &ldquo;{req.notas_adicionales}&rdquo;
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Matches mini-preview */}
+                                  {matches.length > 0 && (
+                                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 overflow-hidden">
+                                      <div className="px-3 py-2 bg-emerald-900/20 border-b border-emerald-500/20 text-[11px] font-black text-emerald-400">
+                                        âš¡ {matches.length} MATCH{matches.length > 1 ? 'ES' : ''} AUTOMÃTICO{matches.length > 1 ? 'S' : ''} â€” propietarios en tu red
+                                      </div>
+                                      <div className="divide-y divide-emerald-900/20">
+                                        {matches.map(({ owner, score }) => {
+                                          const lbl = score >= 5 ? 'ðŸŸ¢ Alta' : score >= 3 ? 'ðŸŸ¡ Media' : 'ðŸ”µ Parcial';
+                                          const waT = `Hola ${owner.nombre_propietario}, soy de MAKIMPORT. Tenemos un cliente buscando alquilar un ${req.categoria_equipo} en ${req.estado}. Â¿Tu equipo (${owner.marca} ${owner.modelo || ''}) estÃ¡ disponible? Por favor envÃ­ame tarifa y condiciones. Â¡Gracias!`;
+                                          return (
+                                            <div key={owner.id} className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-emerald-900/10 transition-colors">
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                                                  <span className="font-bold text-white truncate">{owner.nombre_propietario}</span>
+                                                  <span className="font-bold text-[10px]">{lbl}</span>
+                                                </div>
+                                                <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                                                  {owner.categoria_equipo} Â· {owner.marca} {owner.modelo || ''} Â· {owner.ciudad_base}, {owner.estado_base}
+                                                  {owner.tarifa_hora && <span className="text-amber-300 font-mono ml-2">${owner.tarifa_hora}/hr</span>}
+                                                </div>
+                                              </div>
+                                              <a href={`https://wa.me/${owner.telefono.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(waT)}`} target="_blank" rel="noreferrer"
+                                                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-all">
+                                                <Phone className="w-3 h-3" /><span>Contactar</span>
+                                              </a>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <p className="text-[10px] text-slate-600 font-mono">
+                                    Solicitado el: {reqDate.toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })}
+                                  </p>
+                                </div>
+
+                                {/* â”€â”€ Action sidebar â”€â”€ */}
+                                <div className="flex flex-col gap-2.5 shrink-0 w-full lg:w-44">
+                                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Estado</label>
+                                  <select
+                                    value={req.estado_solicitud}
+                                    onChange={(e) => handleUpdateRentalStatus(req.id, e.target.value)}
+                                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-orange-500 font-bold"
+                                  >
+                                    <option value="pendiente">ðŸŸ¡ Pendiente</option>
+                                    <option value="en_proceso">ðŸ”µ En Proceso</option>
+                                    <option value="cotizado">ðŸŸ¢ Cotizado</option>
+                                  </select>
+                                  <a href={`https://wa.me/${req.telefono.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(`Hola ${req.nombre_completo}, te contactamos de MAKIMPORT en relaciÃ³n a tu solicitud de alquiler para un equipo ${req.categoria_equipo}.`)}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-lg text-xs font-bold transition-all text-center">
+                                    <Phone className="w-4 h-4 text-emerald-400" /><span>WA Cliente</span><ExternalLink className="w-3 h-3 opacity-60" />
+                                  </a>
+                                  <button onClick={() => { setBroadcastPrefill(broadcastText); setActiveTab('proveedores'); navigator.clipboard.writeText(broadcastText); }}
+                                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-lg text-xs font-black transition-all text-center shadow-md shadow-orange-950/20 border border-orange-500/45">
+                                    <Send className="w-4 h-4" /><span>Difundir a Proveedores</span>
+                                  </button>
+                                  <button onClick={() => { navigator.clipboard.writeText(broadcastText); }}
+                                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold transition-all text-center">
+                                    <Copy className="w-3.5 h-3.5" /><span>Copiar Texto</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                            {/* Contract Conditions Card */}
-                            <div className="p-3.5 bg-slate-950/70 border border-slate-850 rounded-xl space-y-2 text-xs">
-                              <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[11px] font-bold text-slate-400">
-                                <span>CONDICIONES DE CONTRATO</span>
-                                {req.presupuesto_estimado ? (
-                                  <span className="text-emerald-400 font-bold font-mono">Presupuesto: ${req.presupuesto_estimado}/hr</span>
-                                ) : (
-                                  <span className="text-slate-500 font-mono">Presupuesto abierto</span>
-                                )}
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                                <div>
-                                  <span className="text-slate-500">Duración:</span> <strong className="text-slate-200">{req.duracion_estimada}</strong>
-                                </div>
-                                <div>
-                                  <span className="text-slate-500">Operador:</span> <strong className="text-slate-200">{req.incluye_operador ? 'Sí, incluido' : 'No (Solo máquina)'}</strong>
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <span className="text-slate-500">Esquema Gastos:</span> <strong className="text-slate-200">{req.modalidad_gastos}</strong>
-                                </div>
-                              </div>
-                              {req.notas_adicionales && (
-                                <div className="mt-2 pt-2 border-t border-slate-900 text-slate-400 bg-slate-950/40 p-2 rounded-lg italic">
-                                  &ldquo;{req.notas_adicionales}&rdquo;
-                                </div>
-                              )}
-                            </div>
+                {/* â•â• SUB-TAB 2: PROPIETARIOS / EQUIPOS REGISTRADOS â•â• */}
+                {alquileresSubTab === 'propietarios' && (
+                  <div>
+                    {loadingOwners ? (
+                      <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-orange-500" /><span>Cargando propietarios...</span>
+                      </div>
+                    ) : filteredOwners.length === 0 ? (
+                      <div className="p-12 text-center space-y-2">
+                        <Wrench className="w-10 h-10 mx-auto text-slate-700" />
+                        <p className="text-slate-500 text-sm font-medium">{alquileresSearch ? 'Sin resultados para esa bÃºsqueda.' : 'No hay equipos registrados en la red de propietarios aÃºn.'}</p>
+                        <a href="/postular-equipo" target="_blank" className="inline-block mt-2 text-xs text-orange-400 hover:underline font-bold">â†’ Ir al formulario de postulaciÃ³n</a>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-800/80">
+                        {filteredOwners.map((owner) => {
+                          const isEditingO = editingOwnerStatus?.id === owner.id;
+                          const statusColors: Record<string, string> = {
+                            disponible:    'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
+                            ocupado:       'bg-amber-500/20  border-amber-500/40  text-amber-300',
+                            mantenimiento: 'bg-red-500/20    border-red-500/40    text-red-300',
+                          };
+                          return (
+                            <div key={owner.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors group">
+                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
 
-                            {/* ── AUTO-MATCH Card ── */}
-                            {matches.length > 0 && (
-                              <div className="rounded-xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 to-slate-950/60 overflow-hidden">
-                                <div className="px-3.5 py-2 bg-emerald-900/30 border-b border-emerald-500/30 flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-emerald-400 text-xs font-black tracking-wide flex items-center gap-1.5">
-                                      ⚡ {matches.length} MATCH{matches.length > 1 ? 'ES' : ''} AUTOMÁTICO{matches.length > 1 ? 'S' : ''}
-                                    </span>
-                                    <span className="text-[10px] text-emerald-500/80 font-medium">— propietarios en tu red</span>
+                                <div className="flex-1 min-w-0 space-y-3">
+                                  {/* Header */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-extrabold text-white">{owner.nombre_propietario}</span>
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${statusColors[owner.estado] || 'bg-slate-700 border-slate-600 text-slate-300'}`}>
+                                        {owner.estado}
+                                      </span>
+                                    </div>
+                                    {/* Edit / Delete */}
+                                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                      <button
+                                        onClick={() => setEditingOwnerStatus(isEditingO ? null : { id: owner.id, estado: owner.estado })}
+                                        title="Editar estado"
+                                        className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/40 border border-sky-600/30 text-sky-400 transition-all"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => setDeleteConfirm({ open: true, table: 'owner_machinery', id: owner.id, label: `${owner.nombre_propietario} â€” ${owner.categoria_equipo}` })}
+                                        title="Eliminar registro"
+                                        className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 border border-red-600/30 text-red-400 transition-all"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
                                   </div>
-                                  <span className="text-[10px] font-bold text-emerald-300/60 bg-emerald-900/50 px-2 py-0.5 rounded-full">
-                                    {loadingOwners ? 'Cargando...' : `${ownerMachinery.length} registrados`}
-                                  </span>
-                                </div>
 
-                                <div className="divide-y divide-emerald-900/30">
-                                  {matches.map(({ owner, score }) => {
-                                    const matchLabel = score >= 5 ? '🟢 Alta coincidencia' : score >= 3 ? '🟡 Coincidencia media' : '🔵 Coincidencia parcial';
-                                    const matchColor = score >= 5 ? 'text-emerald-300' : score >= 3 ? 'text-amber-300' : 'text-sky-300';
-                                    const waText = `Hola ${owner.nombre_propietario}, soy del equipo de MAKIMPORT Venezuela. Tenemos un cliente buscando alquilar un ${req.categoria_equipo} en ${req.estado}. ¿Tu equipo (${owner.categoria_equipo} ${owner.marca} ${owner.modelo || ''}) está disponible? Por favor envíame tarifa y condiciones. ¡Gracias!`;
+                                  {/* Inline edit status */}
+                                  {isEditingO && (
+                                    <div className="p-3 bg-sky-950/30 border border-sky-700/40 rounded-xl flex items-center gap-3 flex-wrap">
+                                      <label className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">Cambiar estado:</label>
+                                      {(['disponible', 'ocupado', 'mantenimiento'] as const).map(s => (
+                                        <button key={s}
+                                          onClick={() => handleUpdateOwnerStatus(owner.id, s)}
+                                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border capitalize ${
+                                            owner.estado === s
+                                              ? 'bg-orange-600 text-white border-orange-500'
+                                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                                          }`}
+                                        >
+                                          {s === 'disponible' ? 'ðŸŸ¢' : s === 'ocupado' ? 'ðŸŸ¡' : 'ðŸ”´'} {s}
+                                        </button>
+                                      ))}
+                                      <button onClick={() => setEditingOwnerStatus(null)} className="text-[10px] text-slate-500 hover:text-slate-300 ml-auto">âœ• Cerrar</button>
+                                    </div>
+                                  )}
+
+                                  {/* Equipment info */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide border-b border-slate-800 pb-1">EQUIPO</p>
+                                      <div className="text-slate-300"><span className="text-slate-500">CategorÃ­a:</span> <strong className="text-white">{owner.categoria_equipo}</strong></div>
+                                      <div className="text-slate-300"><span className="text-slate-500">Marca:</span> <strong className="text-white">{owner.marca} {owner.modelo || ''}</strong></div>
+                                      {owner.ano && <div className="text-slate-300"><span className="text-slate-500">AÃ±o:</span> <strong className="text-white">{owner.ano}</strong></div>}
+                                      {owner.capacidad && <div className="text-slate-300"><span className="text-slate-500">Capacidad:</span> <strong className="text-white">{owner.capacidad}</strong></div>}
+                                      {owner.horas_uso && <div className="text-slate-300"><span className="text-slate-500">Uso:</span> <strong className="text-white">{owner.horas_uso.toLocaleString()} hrs</strong></div>}
+                                    </div>
+                                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide border-b border-slate-800 pb-1">TARIFAS Y UBICACIÃ“N</p>
+                                      <div className="flex items-center gap-1 text-slate-300"><MapPin className="w-3 h-3 text-orange-400" /> {owner.ciudad_base}, {owner.estado_base}</div>
+                                      {owner.tarifa_hora && <div className="text-amber-300 font-mono font-bold">${owner.tarifa_hora} / hora</div>}
+                                      {owner.tarifa_dia  && <div className="text-amber-300/70 font-mono">${owner.tarifa_dia} / dÃ­a</div>}
+                                      <div className="text-slate-300 text-[11px]">{owner.incluye_operador ? 'âœ… Operador incluido' : 'â­• Solo mÃ¡quina'}</div>
+                                      <div className="text-slate-400 text-[11px] capitalize">{owner.modalidad_disponible?.replace('_', ' ')}</div>
+                                    </div>
+                                  </div>
+
+                                  {/* Contact row */}
+                                  <div className="flex flex-wrap gap-3 text-xs items-center">
+                                    <a href={`tel:${owner.telefono}`} className="flex items-center gap-1.5 text-emerald-400 hover:underline"><Phone className="w-3.5 h-3.5 text-slate-400" />{owner.telefono}</a>
+                                    {owner.email && <a href={`mailto:${owner.email}`} className="flex items-center gap-1.5 text-sky-400 hover:underline"><Mail className="w-3.5 h-3.5 text-slate-400" />{owner.email}</a>}
+                                    {owner.instagram && <span className="flex items-center gap-1.5 text-pink-400"><Instagram className="w-3.5 h-3.5 text-slate-400" />{owner.instagram}</span>}
+                                    <a href={`https://wa.me/${owner.telefono.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(`Hola ${owner.nombre_propietario}, soy del equipo de MAKIMPORT. Tenemos un cliente interesado en alquilar tu equipo (${owner.categoria_equipo} ${owner.marca}). Â¿EstÃ¡ disponible?`)}`}
+                                      target="_blank" rel="noreferrer"
+                                      className="ml-auto flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-black transition-all">
+                                      <Phone className="w-3.5 h-3.5" />WhatsApp
+                                    </a>
+                                  </div>
+
+                                  {owner.notas && (
+                                    <div className="text-[11px] text-slate-400 italic p-2 bg-slate-950/50 rounded-lg border border-slate-800">&ldquo;{owner.notas}&rdquo;</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* â•â• SUB-TAB 3: MATCHES AUTOMÃTICOS â•â• */}
+                {alquileresSubTab === 'matches' && (
+                  <div>
+                    {filteredMatches.length === 0 ? (
+                      <div className="p-12 text-center space-y-2">
+                        <Search className="w-10 h-10 mx-auto text-slate-700" />
+                        <p className="text-slate-500 text-sm font-medium">
+                          {alquileresSearch
+                            ? 'Sin matches para esa bÃºsqueda.'
+                            : ownerMachinery.length === 0
+                              ? 'No hay propietarios registrados aÃºn. Los matches aparecerÃ¡n aquÃ­ automÃ¡ticamente.'
+                              : 'No hay coincidencias activas entre solicitudes y propietarios.'
+                          }
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-800/80">
+                        {/* Group matches by request */}
+                        {rentalRequests.map((req) => {
+                          const reqMatches = filteredMatches.filter(m => m.req.id === req.id);
+                          if (reqMatches.length === 0) return null;
+                          return (
+                            <div key={req.id} className="p-4 sm:p-5 space-y-3">
+                              {/* Request summary header */}
+                              <div className="flex items-center gap-2 flex-wrap text-xs">
+                                <span className="font-extrabold text-white">{req.nombre_completo}</span>
+                                <span className="text-slate-500">â†’</span>
+                                <span className="text-orange-300 font-bold">{req.categoria_equipo}</span>
+                                <span className="text-slate-500">en</span>
+                                <span className="flex items-center gap-1 text-slate-300"><MapPin className="w-3 h-3 text-orange-400" />{req.ciudad}, {req.estado}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                                  req.estado_solicitud === 'pendiente'  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' :
+                                  req.estado_solicitud === 'en_proceso' ? 'bg-sky-500/20 border-sky-500/40 text-sky-300' :
+                                  'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                }`}>{req.estado_solicitud}</span>
+                              </div>
+
+                              {/* Match cards */}
+                              <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 to-slate-950/60 overflow-hidden">
+                                <div className="px-3.5 py-2 border-b border-emerald-500/20 flex items-center gap-2">
+                                  <span className="text-emerald-400 text-[11px] font-black">âš¡ {reqMatches.length} match{reqMatches.length > 1 ? 'es' : ''} automÃ¡tico{reqMatches.length > 1 ? 's' : ''}</span>
+                                </div>
+                                <div className="divide-y divide-emerald-900/25">
+                                  {reqMatches.map(({ owner, score }) => {
+                                    const lbl = score >= 5 ? 'ðŸŸ¢ Alta coincidencia' : score >= 3 ? 'ðŸŸ¡ Media' : 'ðŸ”µ Parcial';
+                                    const col = score >= 5 ? 'text-emerald-300' : score >= 3 ? 'text-amber-300' : 'text-sky-300';
+                                    const waT = `Hola ${owner.nombre_propietario}, soy del equipo MAKIMPORT Venezuela. Un cliente en ${req.estado} necesita alquilar urgente un ${req.categoria_equipo} (${req.marca_preferida || 'cualquier marca'}). Â¿Tu equipo (${owner.categoria_equipo} ${owner.marca} ${owner.modelo || ''}) en ${owner.ciudad_base} estÃ¡ disponible? Por favor envÃ­ame tarifa y condiciones. Â¡Gracias!`;
                                     return (
-                                      <div key={owner.id} className="px-3.5 py-3 hover:bg-emerald-900/10 transition-colors">
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div className="flex-1 min-w-0 space-y-1">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <span className="font-bold text-white text-xs truncate">{owner.nombre_propietario}</span>
-                                              <span className={`text-[10px] font-bold ${matchColor}`}>{matchLabel}</span>
-                                            </div>
-                                            <div className="text-[11px] text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
-                                              <span className="text-emerald-300/80 font-semibold">{owner.categoria_equipo}</span>
-                                              <span>·</span>
-                                              <span>{owner.marca} {owner.modelo || ''}</span>
-                                              {owner.ano && <><span>·</span><span>{owner.ano}</span></>}
-                                              <span>·</span>
-                                              <span className="flex items-center gap-1">
-                                                <MapPin className="w-3 h-3 text-orange-400" />
-                                                {owner.ciudad_base}, {owner.estado_base}
-                                              </span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px]">
-                                              {owner.tarifa_hora && (
-                                                <span className="text-amber-300 font-mono font-bold">${owner.tarifa_hora}/hr</span>
-                                              )}
-                                              {owner.tarifa_dia && (
-                                                <span className="text-amber-300/70 font-mono">${owner.tarifa_dia}/día</span>
-                                              )}
-                                              {owner.incluye_operador && (
-                                                <span className="text-sky-400">+ Operador incluido</span>
-                                              )}
-                                            </div>
+                                      <div key={`${req.id}-${owner.id}`} className="px-4 py-3 flex items-start justify-between gap-4 hover:bg-emerald-900/10 transition-colors">
+                                        <div className="flex-1 min-w-0 space-y-1">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-bold text-white text-xs">{owner.nombre_propietario}</span>
+                                            <span className={`text-[10px] font-bold ${col}`}>{lbl}</span>
+                                            <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-1.5 py-0.5 rounded">Score: {score}</span>
                                           </div>
-                                          <a
-                                            href={`https://wa.me/${owner.telefono.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-all shadow-sm shadow-emerald-900"
-                                          >
-                                            <Phone className="w-3.5 h-3.5" />
-                                            <span>Contactar</span>
-                                          </a>
+                                          <div className="text-[11px] text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
+                                            <span className="text-emerald-300/80 font-semibold">{owner.categoria_equipo}</span>
+                                            <span>Â·</span>
+                                            <span>{owner.marca} {owner.modelo || ''}</span>
+                                            {owner.ano && <><span>Â·</span><span>{owner.ano}</span></>}
+                                            <span>Â·</span>
+                                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-orange-400" />{owner.ciudad_base}, {owner.estado_base}</span>
+                                          </div>
+                                          <div className="flex flex-wrap gap-x-4 text-[11px]">
+                                            {owner.tarifa_hora && <span className="text-amber-300 font-mono font-bold">${owner.tarifa_hora}/hr</span>}
+                                            {owner.tarifa_dia  && <span className="text-amber-300/70 font-mono">${owner.tarifa_dia}/dÃ­a</span>}
+                                            {owner.incluye_operador && <span className="text-sky-400">+ Operador</span>}
+                                            <span className="text-slate-500">{owner.telefono}</span>
+                                          </div>
                                         </div>
+                                        <a href={`https://wa.me/${owner.telefono.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(waT)}`}
+                                          target="_blank" rel="noreferrer"
+                                          className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-all shadow-sm shadow-emerald-900/50">
+                                          <Phone className="w-3.5 h-3.5" /><span>Contactar</span>
+                                        </a>
                                       </div>
                                     );
                                   })}
                                 </div>
                               </div>
-                            )}
-
-                            {matches.length === 0 && ownerMachinery.length > 0 && (
-                              <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-[11px] text-slate-500 flex items-center gap-2">
-                                <Search className="w-4 h-4 shrink-0 text-slate-600" />
-                                <span>Sin coincidencias en la base de propietarios para este requerimiento específico.</span>
-                              </div>
-                            )}
-
-                            <p className="text-[10px] text-slate-600 font-mono">
-                              Solicitado el: {reqDate.toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })}
-                            </p>
-                          </div>
-
-                          {/* Control Actions & Broadcast */}
-                          <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2.5 shrink-0 w-full lg:w-48 justify-end">
-                            
-                            {/* Update Status Selector */}
-                            <div className="w-full">
-                              <label className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Estado de Solicitud</label>
-                              <select
-                                value={req.estado_solicitud}
-                                onChange={(e) => handleUpdateRentalStatus(req.id, e.target.value)}
-                                className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-orange-500 font-bold"
-                              >
-                                <option value="pendiente">🟡 Pendiente</option>
-                                <option value="en_proceso">🔵 En Proceso</option>
-                                <option value="cotizado">🟢 Cotizado</option>
-                              </select>
                             </div>
-
-                            {/* Direct client WhatsApp */}
-                            <a
-                              href={`https://wa.me/${req.telefono.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${req.nombre_completo}, te contactamos de MAKIMPORT en relación a tu solicitud de alquiler para un equipo ${req.categoria_equipo}.`)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-650 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full text-center"
-                            >
-                              <Phone className="w-4 h-4 text-emerald-400" />
-                              <span>WhatsApp Cliente</span>
-                              <ExternalLink className="w-3 h-3 opacity-60" />
-                            </a>
-
-                            {/* Launch WhatsApp broadcast to suppliers */}
-                            <button
-                              onClick={() => {
-                                setBroadcastPrefill(broadcastText);
-                                setActiveTab('proveedores');
-                                if (typeof window !== 'undefined') {
-                                  // Copy to clipboard for easy pasting
-                                  navigator.clipboard.writeText(broadcastText);
-                                  alert('¡Texto de requerimiento copiado al portapapeles y redirigido al módulo de proveedores!');
-                                }
-                              }}
-                              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-lg text-xs font-black transition-all w-full text-center shadow-md shadow-orange-950/20 border border-orange-500/45"
-                            >
-                              <Send className="w-4 h-4 text-white" />
-                              <span>Difundir a Proveedores</span>
-                            </button>
-                            
-                            {/* Copy text only */}
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(broadcastText);
-                                alert('¡Texto de requerimiento copiado al portapapeles!');
-                              }}
-                              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold transition-all w-full text-center"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copiar Texto</span>
-                            </button>
-
-                          </div>
-
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
+                )}
+
+              </div>{/* end main panel */}
+
+            </div>
+          );
+        })()}
+
+        {/* â”€â”€ Delete Confirmation Modal â”€â”€ */}
+        {deleteConfirm?.open && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+            <div className="max-w-sm w-full bg-slate-900 border border-red-800/50 rounded-2xl p-6 shadow-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-950/60 border border-red-600/40 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5 text-red-400" />
                 </div>
-              )}
+                <div>
+                  <h4 className="font-extrabold text-white text-sm">Â¿Eliminar este registro?</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Esta acciÃ³n no se puede deshacer.</p>
+                </div>
+              </div>
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                <p className="text-xs text-slate-300 font-semibold truncate">{deleteConfirm.label}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wide">{deleteConfirm.table === 'rental_requests' ? 'Solicitud de Alquiler' : 'Propietario / Equipo'}</p>
+              </div>
+              <div className="flex gap-2.5 pt-1">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  disabled={deleteLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteRecord}
+                  disabled={deleteLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  {deleteLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  <span>{deleteLoading ? 'Eliminando...' : 'SÃ­, eliminar'}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
