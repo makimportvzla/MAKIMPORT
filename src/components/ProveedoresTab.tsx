@@ -258,7 +258,11 @@ function ProveedorModal({ isOpen, initial, editingId, onClose, onSaved }: ModalF
 
 // ─── Main ProveedoresTab ─────────────────────────────────────────────────────
 
-export const ProveedoresTab: React.FC = () => {
+interface ProveedoresTabProps {
+  initialMessage?: string;
+}
+
+export const ProveedoresTab: React.FC<ProveedoresTabProps> = ({ initialMessage }) => {
   // ── CRUD state ──
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,9 +273,15 @@ export const ProveedoresTab: React.FC = () => {
 
   // ── WhatsApp Broadcast state ──
   const [broadcastOpen, setBroadcastOpen] = useState(true);
-  const [mensaje, setMensaje] = useState('');
+  const [mensaje, setMensaje] = useState(initialMessage || '');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (initialMessage) {
+      setMensaje(initialMessage);
+    }
+  }, [initialMessage]);
 
   // ── Toast ──
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);

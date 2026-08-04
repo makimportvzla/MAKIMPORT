@@ -126,6 +126,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Link href="/catalogo" className="hover:text-orange-400 transition-colors py-1 border-b-2 border-transparent hover:border-orange-500/50">
               Catálogo Completo
             </Link>
+            <Link href="/alquiler" className="hover:text-orange-400 transition-colors py-1 border-b-2 border-transparent hover:border-orange-500/50">
+              Alquiler de Equipos
+            </Link>
             <a href="#subastas" className="hover:text-orange-400 transition-colors py-1 border-b-2 border-transparent hover:border-orange-500/50 flex items-center gap-1.5">
               Subastas
               <span className="bg-orange-600/90 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
@@ -345,6 +348,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               </Link>
               <Link href="/catalogo" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 border-b border-slate-800/50">
                 Catálogo Completo
+              </Link>
+              <Link href="/alquiler" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 border-b border-slate-800/50">
+                Alquiler de Equipos
               </Link>
 
               {/* Mobile: Atención Personalizada Section */}

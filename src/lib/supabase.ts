@@ -53,3 +53,25 @@ export interface ProveedorDbRow {
   especialidad: string | null;
   notas: string | null;
 }
+
+export interface RentalRequestDbRow {
+  id: string;
+  created_at: string;
+  nombre_completo: string;
+  telefono: string;
+  email: string;
+  estado: string;
+  ciudad: string;
+  industria: string;
+  categoria_equipo: string;
+  marca_preferida: string | null;
+  modelo_especificacion: string | null;
+  ano_deseado: number | null;
+  horas_maximas: number | null;
+  duracion_estimada: string;
+  incluye_operador: boolean;
+  modalidad_gastos: string;
+  presupuesto_estimado: number | null;
+  notas_adicionales: string | null;
+  estado_solicitud: 'pendiente' | 'en_proceso' | 'cotizado';
+}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
-import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle } from 'lucide-react';
+import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle, Copy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
@@ -148,14 +148,46 @@ const MOCK_PROFILES: UserProfile[] = [
   }
 ];
 
-export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores'>('inventory');
+interface RentalRequest {
+  id: string;
+  created_at: string;
+  nombre_completo: string;
+  telefono: string;
+  email: string;
+  estado: string;
+  ciudad: string;
+  industria: string;
+  categoria_equipo: string;
+  marca_preferida?: string;
+  modelo_especificacion?: string;
+  ano_deseado?: number;
+  horas_maximas?: number;
+  duracion_estimada: string;
+  incluye_operador: boolean;
+  modalidad_gastos: string;
+  presupuesto_estimado?: number;
+  notas_adicionales?: string;
+  estado_solicitud: 'pendiente' | 'en_proceso' | 'cotizado';
+}
+
+interface AdminDashboardProps {
+  initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres';
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'inventory' }) => {
+  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres'>(initialTab);
   const [machines, setMachines] = useState<MachineryItem[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [customRequests, setCustomRequests] = useState<CustomRequest[]>([]);
   const [loadingCustom, setLoadingCustom] = useState(false);
+  
+  // Rental requests state
+  const [rentalRequests, setRentalRequests] = useState<RentalRequest[]>([]);
+  const [loadingRentals, setLoadingRentals] = useState(false);
+  const [broadcastPrefill, setBroadcastPrefill] = useState('');
+
   const [auctionLeaders, setAuctionLeaders] = useState<{[machineryId: string]: { userName: string; email: string; phone: string; amount: number }}>( {});
 
   // Fetch auction leaders/winners in real-time
@@ -372,15 +404,34 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchRentalRequests = async () => {
+    setLoadingRentals(true);
+    try {
+      const { data, error } = await supabase
+        .from('rental_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setRentalRequests(data as RentalRequest[]);
+      }
+    } catch (err) {
+      console.warn('[AdminDashboard] Could not fetch rental_requests:', err);
+    } finally {
+      setLoadingRentals(false);
+    }
+  };
+
   useEffect(() => {
-    // Always prefetch both lists on mount so badge counts show immediately
+    // Always prefetch all lists on mount so badge counts show immediately
     fetchPurchaseRequests();
     fetchCustomRequests();
+    fetchRentalRequests();
   }, []);
 
   useEffect(() => {
     if (activeTab === 'purchases') fetchPurchaseRequests();
     if (activeTab === 'custom')    fetchCustomRequests();
+    if (activeTab === 'alquileres') fetchRentalRequests();
   }, [activeTab]);
 
   // Realtime: auto-refresh when new requests are inserted
@@ -399,11 +450,28 @@ export const AdminDashboard: React.FC = () => {
       })
       .subscribe();
 
+    const rentalCh = supabase
+      .channel('admin-rental-requests')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rental_requests' }, () => {
+        fetchRentalRequests();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(purchaseCh);
       supabase.removeChannel(customCh);
+      supabase.removeChannel(rentalCh);
     };
   }, []);
+
+  const handleUpdateRentalStatus = async (id: string, estado: string) => {
+    try {
+      await supabase.from('rental_requests').update({ estado_solicitud: estado }).eq('id', id);
+      setRentalRequests((prev) => prev.map((r) => r.id === id ? { ...r, estado_solicitud: estado as any } : r));
+    } catch (err) {
+      console.warn('Rental status update error:', err);
+    }
+  };
 
   const handleUpdatePurchaseStatus = async (id: string, estado: string) => {
     try {
@@ -585,7 +653,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Tab Controls — responsive grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
           <button
             onClick={() => setActiveTab('inventory')}
             className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
@@ -666,6 +734,23 @@ export const AdminDashboard: React.FC = () => {
           >
             <Building2 className="w-4 h-4 shrink-0" />
             <span className="truncate"><span className="hidden sm:inline">6. </span>Proveedores</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('alquileres')}
+            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'alquileres'
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Clock className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              <span className="hidden sm:inline">7. </span>Alquileres
+              {rentalRequests.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-orange-700 rounded-full text-[10px]">{rentalRequests.length}</span>
+              )}
+            </span>
           </button>
         </div>
 
@@ -1566,7 +1651,197 @@ export const AdminDashboard: React.FC = () => {
 
         {/* TAB 6: PROVEEDORES + DIFUSIÓN WHATSAPP */}
         {activeTab === 'proveedores' && (
-          <ProveedoresTab />
+          <ProveedoresTab initialMessage={broadcastPrefill} />
+        )}
+
+        {/* TAB 7: SOLICITUDES DE ALQUILER */}
+        {activeTab === 'alquileres' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
+              <span>Solicitudes de Alquiler y Licitación Recibidas</span>
+              <span>Total: {rentalRequests.length} solicitudes</span>
+            </div>
+
+            <div className="p-0">
+              {loadingRentals ? (
+                <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+                  <span>Cargando solicitudes de alquiler...</span>
+                </div>
+              ) : rentalRequests.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <Clock className="w-10 h-10 mx-auto text-slate-700" />
+                  <p className="text-slate-500 text-sm font-medium">No hay solicitudes de alquiler registradas aún.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800/80">
+                  {rentalRequests.map((req) => {
+                    const reqDate = new Date(req.created_at);
+                    
+                    // Formulate broadcast text
+                    const operatorStr = req.incluye_operador ? 'Con Operador' : 'Sin Operador';
+                    const brandModelStr = `${req.marca_preferida || 'Cualquier marca'} ${req.modelo_especificacion || ''}`.trim() || 'No especificado';
+                    const broadcastText = `🚨 REQUERIMIENTO DE ALQUILER - MAKIMPORT\n\nBuscamos para cliente directo en ${req.ciudad}, ${req.estado}:\n- Equipo: ${req.categoria_equipo} - ${brandModelStr}\n- Duración: ${req.duracion_estimada}\n- Modalidad: ${operatorStr} | ${req.modalidad_gastos}\n- Trabajo: Sector ${req.industria}\n\n¿Tienes disponibilidad inmediata? Por favor enviar tarifa y ficha por privado.`;
+
+                    return (
+                      <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors">
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                          
+                          {/* Main Info */}
+                          <div className="flex-1 space-y-3">
+                            {/* Contact Header */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-extrabold text-white">{req.nombre_completo}</span>
+                              <span className="text-xs text-slate-500">•</span>
+                              <span className="text-xs text-slate-400 flex items-center gap-1">
+                                <MapPin className="w-3.5 h-3.5 text-orange-400" /> {req.ciudad}, {req.estado}
+                              </span>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                                req.estado_solicitud === 'pendiente' ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' :
+                                req.estado_solicitud === 'en_proceso' ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300' :
+                                'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                              }`}>
+                                {req.estado_solicitud}
+                              </span>
+                            </div>
+
+                            {/* Contact Methods */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                              <a href={`mailto:${req.email}`} className="flex items-center gap-1.5 text-sky-400 hover:text-sky-350">
+                                <Mail className="w-3.5 h-3.5 text-slate-400" /> {req.email}
+                              </a>
+                              <a href={`tel:${req.telefono}`} className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-350">
+                                <Phone className="w-3.5 h-3.5 text-slate-400" /> {req.telefono}
+                              </a>
+                            </div>
+
+                            {/* Technical Requirements Card */}
+                            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
+                              <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[11px] font-bold text-slate-400">
+                                <span>REQUERIMIENTO TÉCNICO</span>
+                                <span className="text-orange-400">{req.industria}</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                                <div>
+                                  <span className="text-slate-500">Equipo:</span> <strong className="text-white">{req.categoria_equipo}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500">Marca/Modelo:</span> <strong className="text-white">{brandModelStr}</strong>
+                                </div>
+                                {req.ano_deseado && (
+                                  <div>
+                                    <span className="text-slate-500">Año Deseado:</span> <strong className="text-white">&gt;= {req.ano_deseado}</strong>
+                                  </div>
+                                )}
+                                {req.horas_maximas && (
+                                  <div>
+                                    <span className="text-slate-500">Uso Máximo:</span> <strong className="text-white">{req.horas_maximas.toLocaleString()} Hrs/Km</strong>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Contract Conditions Card */}
+                            <div className="p-3.5 bg-slate-950/70 border border-slate-850 rounded-xl space-y-2 text-xs">
+                              <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[11px] font-bold text-slate-400">
+                                <span>CONDICIONES DE CONTRATO</span>
+                                {req.presupuesto_estimado ? (
+                                  <span className="text-emerald-400 font-bold font-mono">Presupuesto: ${req.presupuesto_estimado}/hr</span>
+                                ) : (
+                                  <span className="text-slate-500 font-mono">Presupuesto abierto</span>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                                <div>
+                                  <span className="text-slate-500">Duración:</span> <strong className="text-slate-200">{req.duracion_estimada}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500">Operador:</span> <strong className="text-slate-200">{req.incluye_operador ? 'Sí, incluido' : 'No (Solo máquina)'}</strong>
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <span className="text-slate-500">Esquema Gastos:</span> <strong className="text-slate-200">{req.modalidad_gastos}</strong>
+                                </div>
+                              </div>
+                              {req.notas_adicionales && (
+                                <div className="mt-2 pt-2 border-t border-slate-900 text-slate-400 bg-slate-950/40 p-2 rounded-lg italic">
+                                  &ldquo;{req.notas_adicionales}&rdquo;
+                                </div>
+                              )}
+                            </div>
+
+                            <p className="text-[10px] text-slate-600 font-mono">
+                              Solicitado el: {reqDate.toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </p>
+                          </div>
+
+                          {/* Control Actions & Broadcast */}
+                          <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2.5 shrink-0 w-full lg:w-48 justify-end">
+                            
+                            {/* Update Status Selector */}
+                            <div className="w-full">
+                              <label className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Estado de Solicitud</label>
+                              <select
+                                value={req.estado_solicitud}
+                                onChange={(e) => handleUpdateRentalStatus(req.id, e.target.value)}
+                                className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-orange-500 font-bold"
+                              >
+                                <option value="pendiente">🟡 Pendiente</option>
+                                <option value="en_proceso">🔵 En Proceso</option>
+                                <option value="cotizado">🟢 Cotizado</option>
+                              </select>
+                            </div>
+
+                            {/* Direct client WhatsApp */}
+                            <a
+                              href={`https://wa.me/${req.telefono.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${req.nombre_completo}, te contactamos de MAKIMPORT en relación a tu solicitud de alquiler para un equipo ${req.categoria_equipo}.`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-650 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-lg text-xs font-bold transition-all w-full text-center"
+                            >
+                              <Phone className="w-4 h-4 text-emerald-400" />
+                              <span>WhatsApp Cliente</span>
+                              <ExternalLink className="w-3 h-3 opacity-60" />
+                            </a>
+
+                            {/* Launch WhatsApp broadcast to suppliers */}
+                            <button
+                              onClick={() => {
+                                setBroadcastPrefill(broadcastText);
+                                setActiveTab('proveedores');
+                                if (typeof window !== 'undefined') {
+                                  // Copy to clipboard for easy pasting
+                                  navigator.clipboard.writeText(broadcastText);
+                                  alert('¡Texto de requerimiento copiado al portapapeles y redirigido al módulo de proveedores!');
+                                }
+                              }}
+                              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-lg text-xs font-black transition-all w-full text-center shadow-md shadow-orange-950/20 border border-orange-500/45"
+                            >
+                              <Send className="w-4 h-4 text-white" />
+                              <span>Difundir a Proveedores</span>
+                            </button>
+                            
+                            {/* Copy text only */}
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(broadcastText);
+                                alert('¡Texto de requerimiento copiado al portapapeles!');
+                              }}
+                              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold transition-all w-full text-center"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copiar Texto</span>
+                            </button>
+
+                          </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
       </div>
