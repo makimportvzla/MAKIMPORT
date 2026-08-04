@@ -170,6 +170,30 @@ interface RentalRequest {
   estado_solicitud: 'pendiente' | 'en_proceso' | 'cotizado';
 }
 
+interface OwnerMachinery {
+  id: string;
+  created_at: string;
+  nombre_propietario: string;
+  telefono: string;
+  email: string | null;
+  instagram: string | null;
+  estado_base: string;
+  ciudad_base: string;
+  categoria_equipo: string;
+  marca: string;
+  modelo: string | null;
+  ano: number | null;
+  horas_uso: number | null;
+  capacidad: string | null;
+  tarifa_hora: number | null;
+  tarifa_dia: number | null;
+  incluye_operador: boolean;
+  modalidad_disponible: string;
+  disponible_desde: string | null;
+  notas: string | null;
+  estado: 'disponible' | 'ocupado' | 'mantenimiento';
+}
+
 interface AdminDashboardProps {
   initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres';
 }
@@ -187,6 +211,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [rentalRequests, setRentalRequests] = useState<RentalRequest[]>([]);
   const [loadingRentals, setLoadingRentals] = useState(false);
   const [broadcastPrefill, setBroadcastPrefill] = useState('');
+
+  // Owner machinery registry — for auto-matching
+  const [ownerMachinery, setOwnerMachinery] = useState<OwnerMachinery[]>([]);
+  const [loadingOwners, setLoadingOwners]   = useState(false);
 
   const [auctionLeaders, setAuctionLeaders] = useState<{[machineryId: string]: { userName: string; email: string; phone: string; amount: number }}>( {});
 
@@ -421,17 +449,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     }
   };
 
+  const fetchOwnerMachinery = async () => {
+    setLoadingOwners(true);
+    try {
+      const { data, error } = await supabase
+        .from('owner_machinery')
+        .select('*')
+        .eq('estado', 'disponible')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setOwnerMachinery(data as OwnerMachinery[]);
+      }
+    } catch (err) {
+      console.warn('[AdminDashboard] Could not fetch owner_machinery:', err);
+    } finally {
+      setLoadingOwners(false);
+    }
+  };
+
   useEffect(() => {
     // Always prefetch all lists on mount so badge counts show immediately
     fetchPurchaseRequests();
     fetchCustomRequests();
     fetchRentalRequests();
+    fetchOwnerMachinery();
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'purchases') fetchPurchaseRequests();
-    if (activeTab === 'custom')    fetchCustomRequests();
-    if (activeTab === 'alquileres') fetchRentalRequests();
+    if (activeTab === 'purchases')   fetchPurchaseRequests();
+    if (activeTab === 'custom')      fetchCustomRequests();
+    if (activeTab === 'alquileres')  { fetchRentalRequests(); fetchOwnerMachinery(); }
   }, [activeTab]);
 
   // Realtime: auto-refresh when new requests are inserted
@@ -457,10 +504,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
       })
       .subscribe();
 
+    const ownerCh = supabase
+      .channel('admin-owner-machinery')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'owner_machinery' }, () => {
+        fetchOwnerMachinery();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(purchaseCh);
       supabase.removeChannel(customCh);
       supabase.removeChannel(rentalCh);
+      supabase.removeChannel(ownerCh);
     };
   }, []);
 
@@ -1678,10 +1733,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                   {rentalRequests.map((req) => {
                     const reqDate = new Date(req.created_at);
                     
-                    // Formulate broadcast text
-                    const operatorStr = req.incluye_operador ? 'Con Operador' : 'Sin Operador';
+                    // ── Broadcast text ──
+                    const operatorStr   = req.incluye_operador ? 'Con Operador' : 'Sin Operador';
                     const brandModelStr = `${req.marca_preferida || 'Cualquier marca'} ${req.modelo_especificacion || ''}`.trim() || 'No especificado';
                     const broadcastText = `🚨 REQUERIMIENTO DE ALQUILER - MAKIMPORT\n\nBuscamos para cliente directo en ${req.ciudad}, ${req.estado}:\n- Equipo: ${req.categoria_equipo} - ${brandModelStr}\n- Duración: ${req.duracion_estimada}\n- Modalidad: ${operatorStr} | ${req.modalidad_gastos}\n- Trabajo: Sector ${req.industria}\n\n¿Tienes disponibilidad inmediata? Por favor enviar tarifa y ficha por privado.`;
+
+                    // ── Auto-match engine ──
+                    // Score: +3 categoría, +2 marca, +1 mismo estado, +1 disponible
+                    const matches = ownerMachinery
+                      .map(owner => {
+                        let score = 0;
+                        const reqCat   = (req.categoria_equipo || '').toLowerCase();
+                        const ownerCat = (owner.categoria_equipo || '').toLowerCase();
+                        const reqMarca  = (req.marca_preferida || '').toLowerCase();
+                        const ownerMarca = (owner.marca || '').toLowerCase();
+                        const reqEstado = (req.estado || '').toLowerCase();
+                        const ownerEstado = (owner.estado_base || '').toLowerCase();
+
+                        // Category match (partial or exact)
+                        if (ownerCat === reqCat) score += 3;
+                        else if (ownerCat.includes(reqCat) || reqCat.includes(ownerCat)) score += 2;
+
+                        // Brand match (only if requested)
+                        if (reqMarca && reqMarca !== 'cualquier marca' && reqMarca !== '') {
+                          if (ownerMarca.includes(reqMarca) || reqMarca.includes(ownerMarca)) score += 2;
+                        } else {
+                          score += 1; // no brand preference — any brand is fine
+                        }
+
+                        // State match
+                        if (ownerEstado && reqEstado && (ownerEstado.includes(reqEstado) || reqEstado.includes(ownerEstado))) score += 1;
+
+                        return { owner, score };
+                      })
+                      .filter(m => m.score >= 2)          // minimum threshold
+                      .sort((a, b) => b.score - a.score)  // best match first
+                      .slice(0, 5);                        // max 5 matches per request
 
                     return (
                       <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-950/40 transition-colors">
@@ -1768,6 +1855,81 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 </div>
                               )}
                             </div>
+
+                            {/* ── AUTO-MATCH Card ── */}
+                            {matches.length > 0 && (
+                              <div className="rounded-xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 to-slate-950/60 overflow-hidden">
+                                <div className="px-3.5 py-2 bg-emerald-900/30 border-b border-emerald-500/30 flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-emerald-400 text-xs font-black tracking-wide flex items-center gap-1.5">
+                                      ⚡ {matches.length} MATCH{matches.length > 1 ? 'ES' : ''} AUTOMÁTICO{matches.length > 1 ? 'S' : ''}
+                                    </span>
+                                    <span className="text-[10px] text-emerald-500/80 font-medium">— propietarios en tu red</span>
+                                  </div>
+                                  <span className="text-[10px] font-bold text-emerald-300/60 bg-emerald-900/50 px-2 py-0.5 rounded-full">
+                                    {loadingOwners ? 'Cargando...' : `${ownerMachinery.length} registrados`}
+                                  </span>
+                                </div>
+
+                                <div className="divide-y divide-emerald-900/30">
+                                  {matches.map(({ owner, score }) => {
+                                    const matchLabel = score >= 5 ? '🟢 Alta coincidencia' : score >= 3 ? '🟡 Coincidencia media' : '🔵 Coincidencia parcial';
+                                    const matchColor = score >= 5 ? 'text-emerald-300' : score >= 3 ? 'text-amber-300' : 'text-sky-300';
+                                    const waText = `Hola ${owner.nombre_propietario}, soy del equipo de MAKIMPORT Venezuela. Tenemos un cliente buscando alquilar un ${req.categoria_equipo} en ${req.estado}. ¿Tu equipo (${owner.categoria_equipo} ${owner.marca} ${owner.modelo || ''}) está disponible? Por favor envíame tarifa y condiciones. ¡Gracias!`;
+                                    return (
+                                      <div key={owner.id} className="px-3.5 py-3 hover:bg-emerald-900/10 transition-colors">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="flex-1 min-w-0 space-y-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-bold text-white text-xs truncate">{owner.nombre_propietario}</span>
+                                              <span className={`text-[10px] font-bold ${matchColor}`}>{matchLabel}</span>
+                                            </div>
+                                            <div className="text-[11px] text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
+                                              <span className="text-emerald-300/80 font-semibold">{owner.categoria_equipo}</span>
+                                              <span>·</span>
+                                              <span>{owner.marca} {owner.modelo || ''}</span>
+                                              {owner.ano && <><span>·</span><span>{owner.ano}</span></>}
+                                              <span>·</span>
+                                              <span className="flex items-center gap-1">
+                                                <MapPin className="w-3 h-3 text-orange-400" />
+                                                {owner.ciudad_base}, {owner.estado_base}
+                                              </span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px]">
+                                              {owner.tarifa_hora && (
+                                                <span className="text-amber-300 font-mono font-bold">${owner.tarifa_hora}/hr</span>
+                                              )}
+                                              {owner.tarifa_dia && (
+                                                <span className="text-amber-300/70 font-mono">${owner.tarifa_dia}/día</span>
+                                              )}
+                                              {owner.incluye_operador && (
+                                                <span className="text-sky-400">+ Operador incluido</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <a
+                                            href={`https://wa.me/${owner.telefono.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-all shadow-sm shadow-emerald-900"
+                                          >
+                                            <Phone className="w-3.5 h-3.5" />
+                                            <span>Contactar</span>
+                                          </a>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {matches.length === 0 && ownerMachinery.length > 0 && (
+                              <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-[11px] text-slate-500 flex items-center gap-2">
+                                <Search className="w-4 h-4 shrink-0 text-slate-600" />
+                                <span>Sin coincidencias en la base de propietarios para este requerimiento específico.</span>
+                              </div>
+                            )}
 
                             <p className="text-[10px] text-slate-600 font-mono">
                               Solicitado el: {reqDate.toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })}

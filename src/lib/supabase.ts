@@ -75,3 +75,32 @@ export interface RentalRequestDbRow {
   notas_adicionales: string | null;
   estado_solicitud: 'pendiente' | 'en_proceso' | 'cotizado';
 }
+
+export interface OwnerMachineryDbRow {
+  id: string;
+  created_at: string;
+  // Owner/contact
+  nombre_propietario: string;
+  telefono: string;
+  email: string | null;
+  instagram: string | null;
+  // Location
+  estado_base: string;
+  ciudad_base: string;
+  // Equipment
+  categoria_equipo: string;
+  marca: string;
+  modelo: string | null;
+  ano: number | null;
+  horas_uso: number | null;
+  capacidad: string | null;
+  // Rental terms
+  tarifa_hora: number | null;
+  tarifa_dia: number | null;
+  incluye_operador: boolean;
+  modalidad_disponible: string;   // 'dias' | 'semanas' | 'meses' | 'largo_plazo'
+  disponible_desde: string | null;
+  // Admin
+  notas: string | null;
+  estado: 'disponible' | 'ocupado' | 'mantenimiento';
+}
