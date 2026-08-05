@@ -26,6 +26,10 @@ import {
   Hammer,
   Zap,
   Star,
+  Camera,
+  X,
+  Upload,
+  ImageIcon,
 } from 'lucide-react';
 
 const ESTADOS_VZ = [
@@ -82,10 +86,16 @@ export default function PostularEquipoPage() {
   const [disponibleDesde, setDisponibleDesde]     = useState('');
   const [notas, setNotas]                         = useState('');
 
+  /* Step 3 — Photos */
+  const [photoFiles, setPhotoFiles]     = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   /* UI */
   const [loading, setLoading]         = useState(false);
   const [errorMsg, setErrorMsg]       = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [dragOver, setDragOver]       = useState(false);
 
   const handleOpenAuth = (mode: 'login' | 'register' = 'login') => {
     setAuthMode(mode);
@@ -108,7 +118,26 @@ export default function PostularEquipoPage() {
       if (!categoriaEquipo) return 'Categoría del equipo es requerida.';
       if (!marca.trim())    return 'Marca del equipo es requerida.';
     }
+    if (s === 3) {
+      if (photoFiles.length < 3) return `Se requieren mínimo 3 fotos del equipo. Tienes ${photoFiles.length} cargada${photoFiles.length === 1 ? '' : 's'}.`;
+    }
     return '';
+  };
+
+  /* ── Photo helpers ── */
+  const addPhotos = (files: FileList | File[]) => {
+    const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+    const combined = [...photoFiles, ...arr].slice(0, 10); // max 10 photos
+    setPhotoFiles(combined);
+    // Generate previews
+    const prevs = combined.map(f => URL.createObjectURL(f));
+    setPhotoPreviews(prevs);
+  };
+
+  const removePhoto = (idx: number) => {
+    const updated = photoFiles.filter((_, i) => i !== idx);
+    setPhotoFiles(updated);
+    setPhotoPreviews(updated.map(f => URL.createObjectURL(f)));
   };
 
   const nextStep = () => {
@@ -122,40 +151,63 @@ export default function PostularEquipoPage() {
   /* ── Submit ── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step !== 3) {
-      return;
-    }
+    if (step !== 3) return;
+
+    const validErr = validate(3);
+    if (validErr) { setErrorMsg(validErr); return; }
+
     setLoading(true);
     setErrorMsg('');
+    setUploadProgress(0);
+
     try {
+      // 1. Upload photos to Supabase Storage
+      const photoUrls: string[] = [];
+      for (let i = 0; i < photoFiles.length; i++) {
+        const file = photoFiles[i];
+        const ext  = file.name.split('.').pop() || 'jpg';
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('machinery-photos')
+          .upload(path, file, { cacheControl: '3600', upsert: false });
+        if (upErr) throw new Error(`Error subiendo foto ${i + 1}: ${upErr.message}`);
+        const { data: urlData } = supabase.storage.from('machinery-photos').getPublicUrl(path);
+        photoUrls.push(urlData.publicUrl);
+        setUploadProgress(Math.round(((i + 1) / photoFiles.length) * 80));
+      }
+
+      // 2. Insert record with photo URLs
       const { error } = await supabase.from('owner_machinery').insert({
-        nombre_propietario: nombrePropietario.trim(),
-        telefono:           telefono.trim(),
-        email:              email.trim() || null,
-        instagram:          instagram.trim() || null,
-        estado_base:        estadoBase,
-        ciudad_base:        ciudadBase.trim(),
-        categoria_equipo:   categoriaEquipo,
-        marca:              marca.trim(),
-        modelo:             modelo.trim() || null,
-        ano:                ano ? Number(ano) : null,
-        horas_uso:          horasUso ? Number(horasUso) : null,
-        capacidad:          capacidad.trim() || null,
-        tarifa_hora:        tarifaHora ? Number(tarifaHora) : null,
-        tarifa_dia:         tarifaDia  ? Number(tarifaDia)  : null,
-        incluye_operador:   incluyeOperador === 'si',
+        nombre_propietario:   nombrePropietario.trim(),
+        telefono:             telefono.trim(),
+        email:                email.trim() || null,
+        instagram:            instagram.trim() || null,
+        estado_base:          estadoBase,
+        ciudad_base:          ciudadBase.trim(),
+        categoria_equipo:     categoriaEquipo,
+        marca:                marca.trim(),
+        modelo:               modelo.trim() || null,
+        ano:                  ano ? Number(ano) : null,
+        horas_uso:            horasUso ? Number(horasUso) : null,
+        capacidad:            capacidad.trim() || null,
+        tarifa_hora:          tarifaHora ? Number(tarifaHora) : null,
+        tarifa_dia:           tarifaDia  ? Number(tarifaDia)  : null,
+        incluye_operador:     incluyeOperador === 'si',
         modalidad_disponible: modalidadDisponible,
-        disponible_desde:   disponibleDesde || null,
-        notas:              notas.trim() || null,
-        estado:             'disponible',
+        disponible_desde:     disponibleDesde || null,
+        notas:                notas.trim() || null,
+        estado:               'disponible',
+        photos:               photoUrls.length > 0 ? photoUrls : null,
       });
       if (error) throw new Error(error.message);
+      setUploadProgress(100);
       setShowSuccess(true);
       resetForm();
     } catch (err: any) {
       setErrorMsg(err.message || 'Error al registrar el equipo. Intente nuevamente.');
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -167,6 +219,7 @@ export default function PostularEquipoPage() {
     setAno(''); setHorasUso(''); setCapacidad('');
     setTarifaHora(''); setTarifaDia(''); setIncluyeOperador('si');
     setModalidadDisponible('dias'); setDisponibleDesde(''); setNotas('');
+    setPhotoFiles([]); setPhotoPreviews([]);
     setErrorMsg('');
   };
 
@@ -440,11 +493,96 @@ export default function PostularEquipoPage() {
                     placeholder="Ej. El equipo no incluye combustible, disponibilidad solo en Zulia y Mérida, requiere traslado previo mínimo 5 días..." />
                 </div>
 
+                {/* ── Photo Upload ── */}
+                <div>
+                  <label className="block font-medium text-slate-300 mb-2 flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-orange-400" />
+                    Fotos del Equipo
+                    <span className="text-orange-400 font-bold">*</span>
+                    <span className="text-slate-500 text-[11px] font-normal ml-1">(Mínimo 3, máximo 10)</span>
+                  </label>
+
+                  {/* Drop zone */}
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => { e.preventDefault(); setDragOver(false); addPhotos(e.dataTransfer.files); }}
+                    className={`relative border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+                      dragOver
+                        ? 'border-orange-500 bg-orange-950/20'
+                        : photoFiles.length >= 3
+                          ? 'border-emerald-600/60 bg-emerald-950/10'
+                          : 'border-slate-700 bg-slate-950/50 hover:border-orange-600/50 hover:bg-orange-950/10'
+                    }`}
+                    onClick={() => document.getElementById('photo-input')?.click()}
+                  >
+                    <input
+                      id="photo-input"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="sr-only"
+                      onChange={(e) => { if (e.target.files) addPhotos(e.target.files); }}
+                    />
+                    {photoFiles.length === 0 ? (
+                      <div className="space-y-2 pointer-events-none">
+                        <Upload className="w-8 h-8 text-slate-600 mx-auto" />
+                        <p className="text-sm text-slate-400 font-medium">Arrastra fotos aquí o <span className="text-orange-400 font-bold">haz clic para seleccionar</span></p>
+                        <p className="text-[11px] text-slate-600">JPG, PNG, WEBP — Mínimo 3 fotos requeridas</p>
+                      </div>
+                    ) : (
+                      <div className="pointer-events-none space-y-1">
+                        <ImageIcon className={`w-6 h-6 mx-auto ${photoFiles.length >= 3 ? 'text-emerald-400' : 'text-orange-400'}`} />
+                        <p className={`text-sm font-bold ${photoFiles.length >= 3 ? 'text-emerald-300' : 'text-orange-300'}`}>
+                          {photoFiles.length >= 3
+                            ? `✓ ${photoFiles.length} foto${photoFiles.length > 1 ? 's' : ''} lista${photoFiles.length > 1 ? 's' : ''}`
+                            : `${photoFiles.length} de 3 mínimas — agrega ${3 - photoFiles.length} más`}
+                        </p>
+                        <p className="text-[11px] text-slate-500">Haz clic para agregar más fotos</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Thumbnails grid */}
+                  {photoPreviews.length > 0 && (
+                    <div className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {photoPreviews.map((src, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-800">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={src} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removePhoto(idx); }}
+                            className="absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-white text-center py-0.5">{idx + 1}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload progress */}
+                  {loading && uploadProgress > 0 && uploadProgress < 100 && (
+                    <div className="mt-3 space-y-1">
+                      <div className="flex justify-between text-[11px] text-slate-400">
+                        <span>Subiendo fotos...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-orange-500 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Disclaimer */}
                 <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl text-[11px] text-slate-400 space-y-1">
                   <p className="font-bold text-slate-300">📋 Información importante antes de enviar:</p>
                   <p>Al registrar tu equipo aceptas ser contactado por el equipo de MAKIMPORT para validar la disponibilidad y condiciones del contrato. Tu información de contacto es confidencial y no se comparte públicamente.</p>
                 </div>
+
               </div>
             )}
 
