@@ -194,7 +194,7 @@ export default function AlquilerPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-0">
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-36 md:pb-0">
       
       {/* Navbar */}
       <Navbar
@@ -203,7 +203,7 @@ export default function AlquilerPage() {
       />
 
       {/* Main Content Area */}
-      <div className="pt-28 pb-16 flex-grow flex flex-col items-center justify-center px-4 max-w-4xl mx-auto w-full">
+      <div className="pt-28 pb-28 flex-grow flex flex-col items-center justify-center px-4 max-w-4xl mx-auto w-full">
         
         {/* Header Block */}
         <div className="text-center space-y-3 mb-10 w-full">

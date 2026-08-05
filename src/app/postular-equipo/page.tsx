@@ -227,7 +227,7 @@ export default function PostularEquipoPage() {
   const stepLabels = ['Propietario', 'Equipo', 'Términos'];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-0">
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-36 md:pb-0">
       <Navbar onOpenAuth={handleOpenAuth} onOpenAdminPublish={handleOpenAdminPublish} />
 
       {/* ── Hero ── */}
@@ -266,7 +266,7 @@ export default function PostularEquipoPage() {
       </section>
 
       {/* ── Form Card ── */}
-      <section className="px-4 pb-16 flex-grow flex flex-col items-center max-w-3xl mx-auto w-full">
+      <section className="px-4 pb-28 flex-grow flex flex-col items-center max-w-3xl mx-auto w-full">
 
         <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
 

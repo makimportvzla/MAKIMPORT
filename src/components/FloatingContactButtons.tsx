@@ -13,13 +13,13 @@ export const FloatingContactButtons: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-[60] flex flex-col items-end gap-3">
+    <div className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-[60] flex flex-col items-end gap-3 pointer-events-none">
 
       {/* Telegram Button */}
       <div
-        className={`flex items-center gap-2 transition-all duration-300 ease-out ${
+        className={`flex items-center gap-2 transition-all duration-300 ease-out pointer-events-auto ${
           expanded
-            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            ? 'opacity-100 translate-y-0'
             : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
@@ -39,9 +39,9 @@ export const FloatingContactButtons: React.FC = () => {
 
       {/* WhatsApp Button */}
       <div
-        className={`flex items-center gap-2 transition-all duration-300 ease-out delay-75 ${
+        className={`flex items-center gap-2 transition-all duration-300 ease-out delay-75 pointer-events-auto ${
           expanded
-            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            ? 'opacity-100 translate-y-0'
             : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
@@ -63,10 +63,10 @@ export const FloatingContactButtons: React.FC = () => {
       <button
         onClick={() => setExpanded((prev) => !prev)}
         aria-label={expanded ? 'Cerrar contacto' : 'Atención personalizada'}
-        className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group ${
+        className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group pointer-events-auto ${
           expanded
             ? 'bg-slate-700 hover:bg-slate-600 shadow-slate-900/60 rotate-45'
-            : 'bg-gradient-to-br from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-500 shadow-orange-900/60'
+            : 'bg-gradient-to-br from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-500 shadow-orange-950/60'
         }`}
       >
         {/* Pulse ring (only when collapsed) */}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Home, Gavel, Calculator, Settings, MessageCircle, Send, Plus, LayoutDashboard, X, Wrench, User } from 'lucide-react';
+import { Home, Gavel, Calculator, Settings, MessageCircle, Send, Plus, LayoutDashboard, X, Wrench, User, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
 interface MobileBottomNavProps {
@@ -20,6 +20,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const displayName = profile?.nombre_completo || user?.email?.split('@')[0] || 'Usuario';
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [alquilerOpen, setAlquilerOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -27,13 +28,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
+        setAlquilerOpen(false);
       }
     };
-    if (menuOpen) {
+    if (menuOpen || alquilerOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [menuOpen]);
+  }, [menuOpen, alquilerOpen]);
 
   const handleHomeClick = () => {
     setMenuOpen(false);
@@ -46,16 +48,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
   const handleCatalogClick = () => {
     setMenuOpen(false);
-    const element = document.getElementById('catalogo-marketplace');
-    if (element) {
-      element.scrollIntoView({ behavior: 'auto' });
-    } else {
-      window.location.href = '/catalogo';
-    }
+    setAlquilerOpen(false);
+    window.location.href = '/catalogo';
   };
 
   const handleSubastasClick = () => {
     setMenuOpen(false);
+    setAlquilerOpen(false);
     if (onSelectSubastas) {
       onSelectSubastas();
     } else {
@@ -63,22 +62,52 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     }
   };
 
-  const handleCotizarClick = () => {
+  const handleAlquilerClick = () => {
     setMenuOpen(false);
-    const element = document.getElementById('importacion');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      window.location.href = '/#importacion';
-    }
+    setAlquilerOpen(!alquilerOpen);
   };
 
   const handleMenuToggle = () => {
+    setAlquilerOpen(false);
     setMenuOpen(!menuOpen);
   };
 
   return (
     <div className="md:hidden" ref={menuRef}>
+      {/* Floating Alquiler Options Overlay */}
+      {alquilerOpen && (
+        <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Servicio de Alquileres
+            </span>
+            <button
+              onClick={() => setAlquilerOpen(false)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800/40"
+              aria-label="Cerrar menú"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/alquiler"
+              onClick={() => setAlquilerOpen(false)}
+              className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 active:scale-[0.98] transition-all text-center"
+            >
+              <span>Alquiler de Equipos</span>
+            </Link>
+            <Link
+              href="/postular-equipo"
+              onClick={() => setAlquilerOpen(false)}
+              className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 border border-slate-700/60 active:scale-[0.98] transition-all text-center"
+            >
+              <span>Alquilar mi Equipo</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Floating Menu Overlay (WhatsApp/Telegram or Admin Menu) */}
       {menuOpen && (
         <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
@@ -234,13 +263,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           </span>
         </button>
 
-        {/* Cotizar */}
+        {/* Alquiler */}
         <button
-          onClick={handleCotizarClick}
-          className="flex flex-col items-center justify-center flex-1 h-full text-slate-400 active:text-orange-500 hover:text-slate-200 transition-colors"
+          onClick={handleAlquilerClick}
+          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+            alquilerOpen ? 'text-orange-500 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
         >
-          <Calculator className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] font-semibold tracking-wide">Cotizar</span>
+          <Calendar className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold tracking-wide">Alquiler</span>
         </button>
 
         {/* Perfil / Admin / Menú */}
