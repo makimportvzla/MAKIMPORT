@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { MachineryDetailModal } from './MachineryDetailModal';
-import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench } from 'lucide-react';
+import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench, Star } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CustomRequestModal } from './CustomRequestModal';
 import { CATEGORIES, BRANDS, PREDEFINED_CATEGORY_VALUES as PREDEFINED_CATEGORIES, PREDEFINED_BRAND_VALUES as PREDEFINED_BRANDS } from '@/constants/machineryOptions';
@@ -247,6 +247,44 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'ending-soon' | 'newest'>('featured');
   // Transaction type filter: 'all' | 'direct' | 'auction'
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'direct' | 'auction'>(initialFilters?.transaction === 'direct' ? 'direct' : initialFilters?.transaction === 'auction' ? 'auction' : 'all');
+
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  // Load favorites
+  useEffect(() => {
+    const loadFavs = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id || 'guest';
+        const stored = localStorage.getItem(`makimport_favorites_${userId}`);
+        if (stored) {
+          setFavorites(JSON.parse(stored));
+        }
+      } catch (err) {
+        console.warn('Error loading favorites:', err);
+      }
+    };
+    loadFavs();
+  }, []);
+
+  const toggleFavorite = async (id: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || 'guest';
+      let updated = [...favorites];
+      if (updated.includes(id)) {
+        updated = updated.filter(x => x !== id);
+      } else {
+        updated.push(id);
+      }
+      setFavorites(updated);
+      localStorage.setItem(`makimport_favorites_${userId}`, JSON.stringify(updated));
+    } catch (err) {
+      console.warn('Error toggling favorite:', err);
+    }
+  };
+
+  const isFavorite = (id: string) => favorites.includes(id);
 
   const [timeLeftMap, setTimeLeftMap] = useState<{ [key: string]: string }>({});
 
@@ -917,9 +955,22 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           </div>
 
                           {/* Origin Tag */}
-                          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-slate-900/90 border border-slate-700 text-white text-xs font-bold">
+                          <div className="absolute top-3 right-14 px-2.5 py-1 rounded-md bg-slate-900/90 border border-slate-700 text-white text-xs font-bold z-10">
                             {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
                           </div>
+
+                          {/* Star Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(item.id);
+                            }}
+                            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95 z-10"
+                            title={isFavorite(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}
+                          >
+                            <Star className={`w-4 h-4 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          </button>
 
                           {/* Timer bar: active auction shows countdown, closed shows ADJUDICADO */}
                           {isAuction && (
@@ -1054,9 +1105,22 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             alt={item.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
-                          <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-slate-950/80 text-white text-[10px] font-bold">
+                          <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-slate-950/80 text-white text-[10px] font-bold z-10">
                             {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
                           </div>
+                          
+                          {/* Star Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(item.id);
+                            }}
+                            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95 z-10"
+                            title={isFavorite(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}
+                          >
+                            <Star className={`w-4 h-4 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          </button>
                         </div>
 
                         <div className="space-y-2 w-full">
