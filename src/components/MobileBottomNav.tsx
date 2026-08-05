@@ -90,20 +90,26 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             </button>
           </div>
           <div className="flex flex-col gap-2">
-            <Link
-              href="/alquiler"
-              onClick={() => setAlquilerOpen(false)}
+            <button
+              type="button"
+              onClick={() => {
+                setAlquilerOpen(false);
+                window.location.href = '/alquiler';
+              }}
               className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 active:scale-[0.98] transition-all text-center"
             >
               <span>Alquiler de Equipos</span>
-            </Link>
-            <Link
-              href="/postular-equipo"
-              onClick={() => setAlquilerOpen(false)}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAlquilerOpen(false);
+                window.location.href = '/postular-equipo';
+              }}
               className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 border border-slate-700/60 active:scale-[0.98] transition-all text-center"
             >
               <span>Alquilar mi Equipo</span>
-            </Link>
+            </button>
           </div>
         </div>
       )}
