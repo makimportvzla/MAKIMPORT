@@ -360,7 +360,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden mt-3 pt-4 border-t border-slate-800 bg-slate-900/95 rounded-xl p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
+          <div className="lg:hidden mt-3 pt-4 pb-24 border-t border-slate-800 bg-slate-900/95 rounded-xl p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
             <div className="flex flex-col space-y-3 font-medium text-slate-200 text-sm">
               
               {/* Mobile: show user info if logged in */}

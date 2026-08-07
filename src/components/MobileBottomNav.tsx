@@ -84,9 +84,17 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
   return (
     <div className="md:hidden" ref={menuRef}>
+      {/* Backdrop Overlay to block background interactions */}
+      {(serviciosOpen || alquilerOpen || menuOpen) && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-[65] backdrop-blur-xs transition-all duration-300"
+          onClick={() => { setServiciosOpen(false); setAlquilerOpen(false); setMenuOpen(false); }}
+        />
+      )}
+
       {/* Floating Servicios Options Overlay */}
       {serviciosOpen && (
-        <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-[70] backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Servicios y Proyectos
@@ -123,7 +131,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       {/* Floating Alquiler Options Overlay */}
 
       {alquilerOpen && (
-        <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-[70] backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Servicio de Alquileres
@@ -157,7 +165,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
       {/* Floating Menu Overlay (WhatsApp/Telegram or Admin Menu) */}
       {menuOpen && (
-        <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-20 right-4 left-4 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-4 z-[70] backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               {isAdmin ? 'Panel de Administración' : isLoggedIn ? 'Mi Cuenta MAKIMPORT' : 'Atención Personalizada'}

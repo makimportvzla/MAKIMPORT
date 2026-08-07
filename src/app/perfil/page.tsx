@@ -275,6 +275,34 @@ export default function PerfilPage() {
     }
   };
 
+  const handleDeleteProjectQuote = async (id: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar esta solicitud de cotización?')) return;
+    try {
+      const { error } = await supabase.from('project_quotes').delete().eq('id', id);
+      if (!error) {
+        setProjectQuotes(prev => prev.filter(q => q.id !== id));
+      } else {
+        alert('Error al eliminar el registro');
+      }
+    } catch (err) {
+      console.warn('Error deleting project quote:', err);
+    }
+  };
+
+  const handleDeleteServiceApplication = async (id: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar esta postulación de servicio?')) return;
+    try {
+      const { error } = await supabase.from('services_applications').delete().eq('id', id);
+      if (!error) {
+        setServiceApplications(prev => prev.filter(s => s.id !== id));
+      } else {
+        alert('Error al eliminar el registro');
+      }
+    } catch (err) {
+      console.warn('Error deleting service application:', err);
+    }
+  };
+
   const fetchFavorites = async () => {
     if (!user) return;
     setLoadingFavorites(true);
@@ -1163,22 +1191,29 @@ export default function PerfilPage() {
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
-                        <div>
-                          <span className="text-[9px] text-slate-505 block uppercase font-black text-right">Estatus comercial</span>
+                        <div className="text-right">
+                          <span className="text-[9px] text-slate-500 block uppercase font-black">Estatus comercial</span>
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border mt-0.5 ${
                             req.status === 'quoted'
                               ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/40'
                               : req.status === 'archived'
-                              ? 'bg-slate-955/70 text-slate-405 border-slate-800/40'
+                              ? 'bg-slate-900 text-slate-400 border-slate-850'
                               : req.status === 'in_review'
-                              ? 'bg-sky-955/70 text-sky-400 border-sky-800/40'
-                              : 'bg-amber-955/75 text-amber-400 border-amber-800/40'
+                              ? 'bg-sky-950/70 text-sky-400 border-sky-800/40'
+                              : 'bg-amber-950/75 text-amber-400 border-amber-800/40'
                           }`}>
                             {req.status === 'received' ? 'Recibido' : 
                              req.status === 'in_review' ? 'En Revisión' : 
                              req.status === 'quoted' ? 'Cotizado' : 'Archivado'}
                           </span>
                         </div>
+                        <button
+                          onClick={() => handleDeleteProjectQuote(req.id)}
+                          className="p-2 text-red-550 hover:text-red-400 bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 rounded-xl transition-all self-end shrink-0"
+                          title="Eliminar Cotización"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1229,19 +1264,26 @@ export default function PerfilPage() {
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
-                        <div>
-                          <span className="text-[9px] text-slate-505 block uppercase font-black text-right">Estatus revisión</span>
+                        <div className="text-right">
+                          <span className="text-[9px] text-slate-500 block uppercase font-black">Estatus revisión</span>
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border mt-0.5 ${
                             req.status === 'approved'
                               ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/40'
                               : req.status === 'rejected'
-                              ? 'bg-red-955/70 text-red-405 border-red-800/40'
-                              : 'bg-amber-955/75 text-amber-400 border-amber-800/40'
+                              ? 'bg-red-950/70 text-red-400 border-red-800/40'
+                              : 'bg-amber-950/75 text-amber-400 border-amber-800/40'
                           }`}>
                             {req.status === 'pending' ? 'En Revisión' : 
                              req.status === 'approved' ? 'Aprobado' : 'Rechazado'}
                           </span>
                         </div>
+                        <button
+                          onClick={() => handleDeleteServiceApplication(req.id)}
+                          className="p-2 text-red-550 hover:text-red-400 bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 rounded-xl transition-all self-end shrink-0"
+                          title="Eliminar Postulación"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}

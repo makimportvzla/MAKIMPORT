@@ -654,6 +654,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         setRentalRequests((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
       } else if (deleteConfirm.table === 'owner_machinery') {
         setOwnerMachinery((prev) => prev.filter((o) => o.id !== deleteConfirm.id));
+      } else if (deleteConfirm.table === 'project_quotes') {
+        setProjectQuotes((prev) => prev.filter((q) => q.id !== deleteConfirm.id));
+      } else if (deleteConfirm.table === 'services_applications') {
+        setServiceApplications((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
       }
       setDeleteConfirm(null);
     } catch (err) {
@@ -2580,13 +2584,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                               <select
                                 value={q.status}
                                 onChange={(e) => { e.stopPropagation(); handleUpdateProjectQuoteStatus(q.id, e.target.value); }}
-                                className="bg-slate-950 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-200 px-2 py-1 focus:outline-none focus:border-orange-500 transition-colors"
+                                className="bg-slate-950 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-205 px-2 py-1 focus:outline-none focus:border-orange-500 transition-colors"
                               >
                                 <option value="received">Recibido</option>
                                 <option value="in_review">En Revisión</option>
                                 <option value="quoted">Cotizado</option>
                                 <option value="archived">Archivado</option>
                               </select>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirm({
+                                    open: true,
+                                    table: 'project_quotes',
+                                    id: q.id,
+                                    label: q.client_name_or_company
+                                  });
+                                }}
+                                className="p-1 text-red-500 hover:text-red-400 bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 rounded-lg transition-colors shrink-0"
+                                title="Eliminar Cotización"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -2863,6 +2883,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 <option value="approved">Aprobado</option>
                                 <option value="rejected">Rechazado</option>
                               </select>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirm({
+                                    open: true,
+                                    table: 'services_applications',
+                                    id: app.id,
+                                    label: app.full_name_or_company
+                                  });
+                                }}
+                                className="p-1 text-red-500 hover:text-red-400 bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 rounded-lg transition-colors shrink-0"
+                                title="Eliminar Postulación"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -2992,7 +3028,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               </div>
               <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
                 <p className="text-xs text-slate-300 font-semibold truncate">{deleteConfirm.label}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wide">{deleteConfirm.table === 'rental_requests' ? 'Solicitud de Alquiler' : 'Propietario / Equipo'}</p>
+                <p className="text-[10px] text-slate-505 mt-0.5 uppercase tracking-wide">
+                  {deleteConfirm.table === 'rental_requests' ? 'Solicitud de Alquiler' : 
+                   deleteConfirm.table === 'owner_machinery' ? 'Propietario / Equipo' : 
+                   deleteConfirm.table === 'project_quotes' ? 'Cotización de Obra' : 
+                   'Postulación de Servicio'}
+                </p>
               </div>
               <div className="flex gap-2.5 pt-1">
                 <button
