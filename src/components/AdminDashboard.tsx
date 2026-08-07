@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
-import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle, Copy, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle, Copy, X, ChevronLeft, ChevronRight, HardHat } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
@@ -196,17 +196,19 @@ interface OwnerMachinery {
 }
 
 interface AdminDashboardProps {
-  initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres';
+  initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'inventory' }) => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications'>(initialTab);
   const [machines, setMachines] = useState<MachineryItem[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [customRequests, setCustomRequests] = useState<CustomRequest[]>([]);
   const [loadingCustom, setLoadingCustom] = useState(false);
+  const [projectQuotes, setProjectQuotes] = useState<any[]>([]);
+  const [serviceApplications, setServiceApplications] = useState<any[]>([]);
   
   // Rental requests state
   const [rentalRequests, setRentalRequests] = useState<RentalRequest[]>([]);
@@ -481,18 +483,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     }
   };
 
+  const [loadingProjectQuotes, setLoadingProjectQuotes] = useState(false);
+  const [loadingServiceApplications, setLoadingServiceApplications] = useState(false);
+
+  const fetchProjectQuotes = async () => {
+    setLoadingProjectQuotes(true);
+    try {
+      const { data, error } = await supabase
+        .from('project_quotes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setProjectQuotes(data);
+      }
+    } catch (err) {
+      console.warn('[AdminDashboard] Could not fetch project_quotes:', err);
+    } finally {
+      setLoadingProjectQuotes(false);
+    }
+  };
+
+  const fetchServiceApplications = async () => {
+    setLoadingServiceApplications(true);
+    try {
+      const { data, error } = await supabase
+        .from('services_applications')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setServiceApplications(data);
+      }
+    } catch (err) {
+      console.warn('[AdminDashboard] Could not fetch services_applications:', err);
+    } finally {
+      setLoadingServiceApplications(false);
+    }
+  };
+
+  const handleUpdateProjectQuoteStatus = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase.from('project_quotes').update({ status }).eq('id', id);
+      if (!error) {
+        setProjectQuotes((prev) => prev.map((q) => q.id === id ? { ...q, status: status as any } : q));
+      }
+    } catch (err) {
+      console.warn('Project quote status update error:', err);
+    }
+  };
+
+  const handleUpdateServiceApplicationStatus = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase.from('services_applications').update({ status }).eq('id', id);
+      if (!error) {
+        setServiceApplications((prev) => prev.map((a) => a.id === id ? { ...a, status: status as any } : a));
+      }
+    } catch (err) {
+      console.warn('Service application status update error:', err);
+    }
+  };
+
+  const handleUpdateRentalStatus = async (id: string, estado: string) => {
+    try {
+      await supabase.from('rental_requests').update({ estado_solicitud: estado }).eq('id', id);
+      setRentalRequests((prev) => prev.map((r) => r.id === id ? { ...r, estado_solicitud: estado as any } : r));
+    } catch (err) {
+      console.warn('Rental status update error:', err);
+    }
+  };
+
+  const handleUpdateOwnerStatus = async (id: string, estado: string) => {
+    try {
+      await supabase.from('owner_machinery').update({ estado }).eq('id', id);
+      setOwnerMachinery((prev) => prev.map((o) => o.id === id ? { ...o, estado: estado as any } : o));
+      setEditingOwnerStatus(null);
+    } catch (err) {
+      console.warn('Owner status update error:', err);
+    }
+  };
+
   useEffect(() => {
     // Always prefetch all lists on mount so badge counts show immediately
     fetchPurchaseRequests();
     fetchCustomRequests();
     fetchRentalRequests();
     fetchOwnerMachinery();
+    fetchProjectQuotes();
+    fetchServiceApplications();
   }, []);
 
   useEffect(() => {
     if (activeTab === 'purchases')   fetchPurchaseRequests();
     if (activeTab === 'custom')      fetchCustomRequests();
     if (activeTab === 'alquileres')  { fetchRentalRequests(); fetchOwnerMachinery(); }
+    if (activeTab === 'projectQuotes') fetchProjectQuotes();
+    if (activeTab === 'serviceApplications') fetchServiceApplications();
   }, [activeTab]);
 
   // Realtime: auto-refresh when new requests are inserted
@@ -525,32 +609,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
       })
       .subscribe();
 
+    const quotesCh = supabase
+      .channel('admin-project-quotes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_quotes' }, () => {
+        fetchProjectQuotes();
+      })
+      .subscribe();
+
+    const servicesCh = supabase
+      .channel('admin-services-applications')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services_applications' }, () => {
+        fetchServiceApplications();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(purchaseCh);
       supabase.removeChannel(customCh);
       supabase.removeChannel(rentalCh);
       supabase.removeChannel(ownerCh);
+      supabase.removeChannel(quotesCh);
+      supabase.removeChannel(servicesCh);
     };
   }, []);
 
-  const handleUpdateRentalStatus = async (id: string, estado: string) => {
-    try {
-      await supabase.from('rental_requests').update({ estado_solicitud: estado }).eq('id', id);
-      setRentalRequests((prev) => prev.map((r) => r.id === id ? { ...r, estado_solicitud: estado as any } : r));
-    } catch (err) {
-      console.warn('Rental status update error:', err);
-    }
-  };
-
-  const handleUpdateOwnerStatus = async (id: string, estado: string) => {
-    try {
-      await supabase.from('owner_machinery').update({ estado }).eq('id', id);
-      setOwnerMachinery((prev) => prev.map((o) => o.id === id ? { ...o, estado: estado as any } : o));
-      setEditingOwnerStatus(null);
-    } catch (err) {
-      console.warn('Owner status update error:', err);
-    }
-  };
 
   const handleDeleteRecord = async () => {
     if (!deleteConfirm) return;
@@ -749,8 +831,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           </button>
         </div>
 
-        {/* Tab Controls â€” responsive grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
+        {/* Tab Controls — responsive grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-9 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
           <button
             onClick={() => setActiveTab('inventory')}
             className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
@@ -760,7 +842,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             }`}
           >
             <FileText className="w-4 h-4 shrink-0" />
-            <span className="truncate"><span className="hidden sm:inline">1. </span>Inventario</span>
+            <span className="truncate">Inventario</span>
           </button>
 
           <button
@@ -772,7 +854,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             }`}
           >
             <Gavel className="w-4 h-4 shrink-0" />
-            <span className="truncate"><span className="hidden sm:inline">2. </span>Subastas</span>
+            <span className="truncate">Subastas</span>
           </button>
 
           <button
@@ -784,7 +866,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             }`}
           >
             <Users className="w-4 h-4 shrink-0" />
-            <span className="truncate"><span className="hidden sm:inline">3. </span>Usuarios</span>
+            <span className="truncate">Usuarios</span>
           </button>
 
           <button
@@ -797,7 +879,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           >
             <ShoppingBag className="w-4 h-4 shrink-0" />
             <span className="truncate">
-              <span className="hidden sm:inline">4. </span>Compras
+              Compras
               {purchaseRequests.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 bg-emerald-700 rounded-full text-[10px]">{purchaseRequests.length}</span>
               )}
@@ -814,7 +896,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           >
             <Wrench className="w-4 h-4 shrink-0" />
             <span className="truncate">
-              <span className="hidden sm:inline">5. </span>Cotizaciones
+              Cotizaciones
               {customRequests.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 bg-orange-700 rounded-full text-[10px]">{customRequests.length}</span>
               )}
@@ -830,7 +912,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             }`}
           >
             <Building2 className="w-4 h-4 shrink-0" />
-            <span className="truncate"><span className="hidden sm:inline">6. </span>Proveedores</span>
+            <span className="truncate">Proveedores</span>
           </button>
 
           <button
@@ -843,9 +925,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           >
             <Clock className="w-4 h-4 shrink-0" />
             <span className="truncate">
-              <span className="hidden sm:inline">7. </span>Alquileres
+              Alquileres
               {rentalRequests.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 bg-orange-700 rounded-full text-[10px]">{rentalRequests.length}</span>
+              )}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('projectQuotes')}
+            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'projectQuotes'
+                ? 'bg-emerald-705 bg-emerald-700 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <HardHat className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              Obras
+              {projectQuotes.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-emerald-850 bg-emerald-800 rounded-full text-[10px]">{projectQuotes.length}</span>
+              )}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('serviceApplications')}
+            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'serviceApplications'
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Wrench className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              Postulaciones
+              {serviceApplications.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-orange-700 rounded-full text-[10px]">{serviceApplications.length}</span>
               )}
             </span>
           </button>
@@ -2315,7 +2431,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                             </div>
                           );
                         })}
-                      </div>
+</div>
                     )}
                   </div>
                 )}
@@ -2326,6 +2442,233 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           );
         })()}
 
+        {/* TAB 8: COTIZACIONES DE OBRA */}
+        {activeTab === 'projectQuotes' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
+                <span>Cotizaciones de Obra y Proyectos</span>
+                <span>Total: {projectQuotes.length} solicitudes</span>
+              </div>
+              
+              {loadingProjectQuotes ? (
+                <div className="p-12 text-center text-slate-400">
+                  <RefreshCw className="w-8 h-8 animate-spin mx-auto text-orange-500 mb-2" />
+                  <span>Cargando cotizaciones...</span>
+                </div>
+              ) : projectQuotes.length === 0 ? (
+                <div className="p-12 text-center text-slate-500">
+                  <span>No hay solicitudes de cotización de obra registradas.</span>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800/85">
+                  {projectQuotes.map((q) => (
+                    <div key={q.id} className="p-5 space-y-4 hover:bg-slate-950/20 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm font-extrabold text-white">{q.client_name_or_company}</h4>
+                            <span className="text-[10px] text-slate-500 font-mono">RIF/Cédula: {q.id_document}</span>
+                          </div>
+                          <p className="text-xs text-orange-400 font-bold">{q.project_type}</p>
+                        </div>
+
+                        {/* Status Select */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold">Estatus:</span>
+                          <select
+                            value={q.status}
+                            onChange={(e) => handleUpdateProjectQuoteStatus(q.id, e.target.value)}
+                            className="bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 px-3 py-1.5 focus:outline-none focus:border-orange-500 transition-colors"
+                          >
+                            <option value="received">Recibido</option>
+                            <option value="in_review">En Revisión</option>
+                            <option value="quoted">Cotizado</option>
+                            <option value="archived">Archivado</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs bg-slate-950/40 p-4 rounded-xl border border-slate-850/60">
+                        <div>
+                          <p className="text-slate-500 font-bold uppercase text-[9px]">Ubicación</p>
+                          <p className="text-slate-200 mt-0.5">{q.project_location}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 font-bold uppercase text-[9px]">Duración / Inicio</p>
+                          <p className="text-slate-200 mt-0.5">{q.duration_and_start_date}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 font-bold uppercase text-[9px]">Presupuesto</p>
+                          <p className="text-amber-400 font-semibold mt-0.5">{q.estimated_budget || 'No indicado'}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">Alcance requerido</p>
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {Array.isArray(q.scope) && q.scope.map((s: string, idx: number) => (
+                            <span key={idx} className="px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-300 text-[10px] font-semibold rounded-md">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">Descripción de la Obra</p>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/30 p-3 rounded-lg border border-slate-850">
+                          {q.project_description}
+                        </p>
+                      </div>
+
+                      {/* File Attachments */}
+                      {Array.isArray(q.attachments_urls) && q.attachments_urls.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Planos / Documentos Adjuntos</p>
+                          <div className="flex flex-wrap gap-2">
+                            {q.attachments_urls.map((url: string, idx: number) => (
+                              <a
+                                key={idx}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white rounded-lg transition-colors"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-orange-400" />
+                                <span>Ver Adjunto {idx + 1}</span>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-900/60">
+                        <span>Visita Técnica: {q.requires_site_visit ? '⚠️ Sí' : 'No'}</span>
+                        <span>Registrado el: {new Date(q.created_at).toLocaleDateString('es-VE')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 9: POSTULACIONES / SERVICIOS */}
+        {activeTab === 'serviceApplications' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
+                <span>Postulaciones de Proveedores de Servicios</span>
+                <span>Total: {serviceApplications.length} postulaciones</span>
+              </div>
+
+              {loadingServiceApplications ? (
+                <div className="p-12 text-center text-slate-400">
+                  <RefreshCw className="w-8 h-8 animate-spin mx-auto text-orange-500 mb-2" />
+                  <span>Cargando postulaciones...</span>
+                </div>
+              ) : serviceApplications.length === 0 ? (
+                <div className="p-12 text-center text-slate-500">
+                  <span>No hay postulaciones registradas aún.</span>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800/85">
+                  {serviceApplications.map((app) => (
+                    <div key={app.id} className="p-5 space-y-4 hover:bg-slate-950/20 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm font-extrabold text-white">{app.full_name_or_company}</h4>
+                            <span className="px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-400 text-[9px] font-bold rounded uppercase">
+                              {app.applicant_type === 'company' ? 'Empresa' : 'Persona Natural'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-orange-400 font-bold capitalize">
+                            Categoría: {app.category_id}
+                          </p>
+                        </div>
+
+                        {/* Status Select */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold">Estatus:</span>
+                          <select
+                            value={app.status}
+                            onChange={(e) => handleUpdateServiceApplicationStatus(app.id, e.target.value)}
+                            className="bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 px-3 py-1.5 focus:outline-none focus:border-orange-500 transition-colors"
+                          >
+                            <option value="pending">Pendiente</option>
+                            <option value="approved">Aprobado</option>
+                            <option value="rejected">Rechazado</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs bg-slate-950/40 p-4 rounded-xl border border-slate-850/60">
+                        <div>
+                          <p className="text-slate-500 font-bold uppercase text-[9px]">Documento / RIF</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-slate-200 font-mono">{app.id_document_number}</span>
+                            {app.id_document_url && (
+                              <a
+                                href={app.id_document_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-orange-400 hover:text-orange-300 font-bold flex items-center gap-0.5"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                <span>Ver foto</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 font-bold uppercase text-[9px]">Ubicación & Cobertura</p>
+                          <p className="text-slate-200 mt-0.5">{app.state_city} ({app.coverage_radius})</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 font-bold uppercase text-[9px]">Horario de Trabajo</p>
+                          <p className="text-slate-200 mt-0.5">{app.work_schedule}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">Detalles / Experiencia</p>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/30 p-3 rounded-lg border border-slate-850">
+                          {app.specialization_details}
+                        </p>
+                      </div>
+
+                      {/* Portfolio Gallery */}
+                      {Array.isArray(app.portfolio_urls) && app.portfolio_urls.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Fotos del Portafolio</p>
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            {app.portfolio_urls.map((url: string, idx: number) => (
+                              <div
+                                key={idx}
+                                className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer group"
+                                onClick={() => setLightbox({ photos: app.portfolio_urls, idx })}
+                              >
+                                <img src={url} alt={`Trabajo ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="text-[10px] text-slate-500 pt-1 text-right">
+                        Registrado el: {new Date(app.created_at).toLocaleDateString('es-VE')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Delete Confirmation Modal ── */}
         {deleteConfirm?.open && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
@@ -2333,8 +2676,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-950/60 border border-red-600/40 flex items-center justify-center shrink-0">
                   <Trash2 className="w-5 h-5 text-red-400" />
-                </div>
-                <div>
                   <h4 className="font-extrabold text-white text-sm">¿Eliminar este registro?</h4>
                   <p className="text-[11px] text-slate-400 mt-0.5">Esta acción no se puede deshacer.</p>
                 </div>

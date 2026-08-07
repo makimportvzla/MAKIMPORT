@@ -28,14 +28,17 @@ import {
   Heart,
   Building2,
   HelpCircle,
-  Eye
+  Eye,
+  HardHat,
+  FileText,
+  Briefcase
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PerfilPage() {
   const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'auctions' | 'purchases' | 'rentals' | 'postulations' | 'favorites' | 'support'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'auctions' | 'purchases' | 'rentals' | 'postulations' | 'projectQuotes' | 'serviceApplications' | 'favorites' | 'support'>('profile');
   
   // Profile state fields
   const [nombreCompleto, setNombreCompleto] = useState('');
@@ -62,6 +65,12 @@ export default function PerfilPage() {
   const [loadingRentals, setLoadingRentals] = useState(false);
   const [postulatedEquipments, setPostulatedEquipments] = useState<any[]>([]);
   const [loadingPostulations, setLoadingPostulations] = useState(false);
+
+  // Cotizaciones de Proyectos y Postulaciones de Servicios
+  const [projectQuotes, setProjectQuotes] = useState<any[]>([]);
+  const [loadingProjectQuotes, setLoadingProjectQuotes] = useState(false);
+  const [serviceApplications, setServiceApplications] = useState<any[]>([]);
+  const [loadingServiceApplications, setLoadingServiceApplications] = useState(false);
 
   // Favoritos
   const [favoriteMachineries, setFavoriteMachineries] = useState<any[]>([]);
@@ -90,6 +99,10 @@ export default function PerfilPage() {
         fetchRentalRequests();
       } else if (activeTab === 'postulations') {
         fetchPostulatedEquipments();
+      } else if (activeTab === 'projectQuotes') {
+        fetchProjectQuotes();
+      } else if (activeTab === 'serviceApplications') {
+        fetchServiceApplications();
       } else if (activeTab === 'favorites') {
         fetchFavorites();
       }
@@ -219,6 +232,46 @@ export default function PerfilPage() {
       console.warn('Error loading postulated equipments:', err);
     } finally {
       setLoadingPostulations(false);
+    }
+  };
+
+  const fetchProjectQuotes = async () => {
+    if (!user) return;
+    setLoadingProjectQuotes(true);
+    try {
+      const { data, error } = await supabase
+        .from('project_quotes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setProjectQuotes(data);
+      }
+    } catch (err) {
+      console.warn('Error loading project quotes:', err);
+    } finally {
+      setLoadingProjectQuotes(false);
+    }
+  };
+
+  const fetchServiceApplications = async () => {
+    if (!user) return;
+    setLoadingServiceApplications(true);
+    try {
+      const { data, error } = await supabase
+        .from('services_applications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setServiceApplications(data);
+      }
+    } catch (err) {
+      console.warn('Error loading service applications:', err);
+    } finally {
+      setLoadingServiceApplications(false);
     }
   };
 
@@ -464,6 +517,36 @@ export default function PerfilPage() {
             {postulatedEquipments.length > 0 && (
               <span className="bg-orange-600 text-white text-[10px] font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
                 {postulatedEquipments.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('projectQuotes')}
+            className={`pb-3 flex items-center gap-2 transition-all relative shrink-0 ${
+              activeTab === 'projectQuotes' ? 'text-orange-400 border-b-2 border-orange-500' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <HardHat className="w-4 h-4" />
+            <span>Mis Cotizaciones de Proyectos</span>
+            {projectQuotes.length > 0 && (
+              <span className="bg-orange-600 text-white text-[10px] font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+                {projectQuotes.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('serviceApplications')}
+            className={`pb-3 flex items-center gap-2 transition-all relative shrink-0 ${
+              activeTab === 'serviceApplications' ? 'text-orange-400 border-b-2 border-orange-500' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Briefcase className="w-4 h-4" />
+            <span>Mis Postulaciones de Servicios</span>
+            {serviceApplications.length > 0 && (
+              <span className="bg-orange-600 text-white text-[10px] font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+                {serviceApplications.length}
               </span>
             )}
           </button>
@@ -1034,6 +1117,134 @@ export default function PerfilPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: Project Quotes */}
+          {activeTab === 'projectQuotes' && (
+            <div className="space-y-6">
+              {loadingProjectQuotes ? (
+                <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+                  <Loader2 className="w-8 h-8 text-orange-505 animate-spin" />
+                  <span className="text-xs font-semibold mt-2">Cargando tus cotizaciones de proyectos...</span>
+                </div>
+              ) : projectQuotes.length === 0 ? (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center max-w-xl space-y-3">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500">
+                    <HardHat className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">No has solicitado cotizaciones de proyectos</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Si eres una constructora y necesitas cotizar una obra, puedes registrar tus solicitudes en nuestra plataforma.
+                  </p>
+                  <Link href="/servicios/ejecucion-obras" className="inline-block mt-2 px-4 py-2 bg-slate-950 border border-slate-850 hover:border-slate-700 text-xs font-bold rounded-xl text-slate-200">
+                    Solicitar Cotización de Obra
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4 max-w-4xl">
+                  {projectQuotes.map((req, idx) => (
+                    <div key={req.id || idx} className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-white">{req.project_type}</h4>
+                          <span className="text-xs text-slate-500">•</span>
+                          <span className="text-xs text-orange-400 font-bold">{req.project_location}</span>
+                        </div>
+                        <div className="text-xs text-slate-400 space-y-1">
+                          <div><span className="text-slate-500">Duración Estimada:</span> {req.duration_and_start_date}</div>
+                          <div><span className="text-slate-500">Presupuesto Estimado:</span> {req.estimated_budget || 'No indicado'}</div>
+                        </div>
+                        <div className="text-[10px] text-slate-505 font-mono">
+                          Registrado el: {req.created_at ? new Date(req.created_at).toLocaleDateString('es-VE') : 'Recientemente'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+                        <div>
+                          <span className="text-[9px] text-slate-505 block uppercase font-black text-right">Estatus comercial</span>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border mt-0.5 ${
+                            req.status === 'quoted'
+                              ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/40'
+                              : req.status === 'archived'
+                              ? 'bg-slate-955/70 text-slate-405 border-slate-800/40'
+                              : req.status === 'in_review'
+                              ? 'bg-sky-955/70 text-sky-400 border-sky-800/40'
+                              : 'bg-amber-955/75 text-amber-400 border-amber-800/40'
+                          }`}>
+                            {req.status === 'received' ? 'Recibido' : 
+                             req.status === 'in_review' ? 'En Revisión' : 
+                             req.status === 'quoted' ? 'Cotizado' : 'Archivado'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: Service Applications */}
+          {activeTab === 'serviceApplications' && (
+            <div className="space-y-6">
+              {loadingServiceApplications ? (
+                <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+                  <Loader2 className="w-8 h-8 text-orange-505 animate-spin" />
+                  <span className="text-xs font-semibold mt-2">Cargando tus postulaciones...</span>
+                </div>
+              ) : serviceApplications.length === 0 ? (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center max-w-xl space-y-3">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500">
+                    <Briefcase className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">No tienes postulaciones de servicios</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Si ofreces servicios técnicos, mecánicos, o de consultoría y deseas postularte a la red de proveedores de MAKIMPORT, registra tu perfil.
+                  </p>
+                  <Link href="/postulacion" className="inline-block mt-2 px-4 py-2 bg-slate-950 border border-slate-850 hover:border-slate-700 text-xs font-bold rounded-xl text-slate-200">
+                    Ir al Formulario de Postulación
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4 max-w-4xl">
+                  {serviceApplications.map((req, idx) => (
+                    <div key={req.id || idx} className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-white capitalize">{req.category_id}</h4>
+                          <span className="px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-400 text-[9px] font-bold rounded uppercase">
+                            {req.applicant_type === 'company' ? 'Empresa' : 'Independiente'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 space-y-1">
+                          <div><span className="text-slate-500">Ubicación y Cobertura:</span> {req.state_city} ({req.coverage_radius})</div>
+                          <div><span className="text-slate-500">Horario de Disponibilidad:</span> {req.work_schedule}</div>
+                        </div>
+                        <div className="text-[10px] text-slate-505 font-mono">
+                          Postulado el: {req.created_at ? new Date(req.created_at).toLocaleDateString('es-VE') : 'Recientemente'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+                        <div>
+                          <span className="text-[9px] text-slate-505 block uppercase font-black text-right">Estatus revisión</span>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border mt-0.5 ${
+                            req.status === 'approved'
+                              ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/40'
+                              : req.status === 'rejected'
+                              ? 'bg-red-955/70 text-red-405 border-red-800/40'
+                              : 'bg-amber-955/75 text-amber-400 border-amber-800/40'
+                          }`}>
+                            {req.status === 'pending' ? 'En Revisión' : 
+                             req.status === 'approved' ? 'Aprobado' : 'Rechazado'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

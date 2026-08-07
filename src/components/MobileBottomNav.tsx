@@ -100,28 +100,22 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             </button>
           </div>
           <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setServiciosOpen(false);
-                window.location.href = '/servicios';
-              }}
+            <Link
+              href="/servicios"
+              onClick={() => setServiciosOpen(false)}
               className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 active:scale-[0.98] transition-all"
             >
               <Wrench className="w-4 h-4" />
               <span>Postular como Proveedor</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setServiciosOpen(false);
-                window.location.href = '/cotizacion-obra';
-              }}
+            </Link>
+            <Link
+              href="/cotizacion-obra"
+              onClick={() => setServiciosOpen(false)}
               className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 border border-slate-700/60 active:scale-[0.98] transition-all"
             >
               <HardHat className="w-4 h-4 text-amber-400" />
               <span>Cotizar Obra o Proyecto</span>
-            </button>
+            </Link>
           </div>
         </div>
       )}
@@ -143,26 +137,20 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             </button>
           </div>
           <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setAlquilerOpen(false);
-                window.location.href = '/alquiler';
-              }}
+            <Link
+              href="/alquiler"
+              onClick={() => setAlquilerOpen(false)}
               className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 active:scale-[0.98] transition-all text-center"
             >
               <span>Alquiler de Equipos</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAlquilerOpen(false);
-                window.location.href = '/postular-equipo';
-              }}
+            </Link>
+            <Link
+              href="/postular-equipo"
+              onClick={() => setAlquilerOpen(false)}
               className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 border border-slate-700/60 active:scale-[0.98] transition-all text-center"
             >
               <span>Alquilar mi Equipo</span>
-            </button>
+            </Link>
           </div>
         </div>
       )}
