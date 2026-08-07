@@ -236,6 +236,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   // Service Applications — search, filter, selected detail
   const [servicesSearch, setServicesSearch] = useState('');
   const [servicesFilter, setServicesFilter] = useState('all');
+  const [servicesCategory, setServicesCategory] = useState('all');
   const [selectedServiceApp, setSelectedServiceApp] = useState<any>(null);
 
   // Inline quick-edit for rental status / owner status
@@ -2718,7 +2719,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               app.state_city, app.category_id
             ].some(f => (f || '').toLowerCase().includes(sq));
             const matchStatus = servicesFilter === 'all' || app.status === servicesFilter;
-            return matchText && matchStatus;
+            const matchCategory = servicesCategory === 'all' || app.category_id === servicesCategory;
+            return matchText && matchStatus && matchCategory;
           });
 
           const statusBadge = (s: string) => {
@@ -2765,6 +2767,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       <option value="approved">Aprobado</option>
                       <option value="rejected">Rechazado</option>
                     </select>
+                    <select
+                      value={servicesCategory}
+                      onChange={e => setServicesCategory(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 focus:outline-none focus:border-orange-500 transition-colors"
+                    >
+                      <option value="all">Todas las Categorías</option>
+                      <option value="mecanico">Mecánico / Taller</option>
+                      <option value="camion_servicio">Camión de Servicio / Grúa</option>
+                      <option value="lavado">Lavado Industrial</option>
+                      <option value="restauracion">Restauración y Pintura</option>
+                      <option value="repuestos">Proveedor de Repuestos</option>
+                      <option value="operador">Operador Certificado</option>
+                      <option value="transporte">Transporte y Logística</option>
+                    </select>
                   </div>
                 </div>
 
@@ -2776,7 +2792,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 ) : filtered.length === 0 ? (
                   <div className="p-12 text-center text-slate-500">
                     <Search className="w-10 h-10 mx-auto text-slate-700 mb-2" />
-                    <span>{servicesSearch || servicesFilter !== 'all' ? 'Sin resultados para esa búsqueda.' : 'No hay postulaciones registradas aún.'}</span>
+                    <span>{servicesSearch || servicesFilter !== 'all' || servicesCategory !== 'all' ? 'Sin resultados para esa búsqueda.' : 'No hay postulaciones registradas aún.'}</span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 divide-y md:divide-y-0 divide-slate-800/80">
