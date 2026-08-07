@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Gavel, FileText, ArrowRight, ShieldCheck, Ship, CheckCircle2, ChevronRight, Globe2, Wrench } from 'lucide-react';
+import { Search, Gavel, FileText, ArrowRight, ShieldCheck, Ship, CheckCircle2, ChevronRight, Globe2, Wrench, ShoppingBag, Calendar, BarChart3 } from 'lucide-react';
 import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
 
 interface HeroProps {
@@ -38,6 +38,16 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
     }
   };
 
+  const handleCatalogClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const catalogEl = document.getElementById('catalogo-marketplace');
+    if (catalogEl) {
+      catalogEl.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.location.href = '/catalogo';
+    }
+  };
+
   return (
     <section className="relative min-h-screen pt-28 pb-20 flex flex-col justify-center overflow-hidden bg-slate-950">
       
@@ -53,8 +63,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
         {/* Top Tag / Pill */}
         <div className="flex justify-center mb-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-orange-500/30 text-xs font-semibold text-orange-400 backdrop-blur-md shadow-lg shadow-black/40">
-            <Globe2 className="w-4 h-4 text-orange-500 animate-pulse" />
-            <span>Importación Directa desde EE.UU. y China hacia Venezuela</span>
+            <Globe2 className="w-4 h-4 text-orange-500 animate-pulse animate-duration-[2000ms]" />
+            <span>Ecosistema Integral de Maquinaria Pesada en Venezuela</span>
             <span className="hidden sm:inline text-slate-500">|</span>
             <span className="hidden sm:inline text-slate-300 font-normal">Aduanas en Puerto Cabello & La Guaira</span>
           </div>
@@ -63,35 +73,103 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
         {/* Hero Title & Subtitle */}
         <div className="text-center max-w-4xl mx-auto space-y-6">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15]">
-            La plataforma líder en importación y subastas de{' '}
+            Compra, Vende, Alquila y Cotiza{' '}
             <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent underline decoration-orange-500/40 decoration-wavy decoration-2">
-              maquinaria pesada
-            </span>{' '}
-            para Venezuela
+              Maquinaria Pesada
+            </span>
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
-            Accede a subastas en vivo e inventario verificado en <strong className="text-white">Estados Unidos (Houston, Miami)</strong> y <strong className="text-white">China (Shanghai, Ningbo)</strong>. Inspección técnica de 140 puntos y logística marítima integral garantizada.
+            Tu solución integral: catálogo nacional verificado, alquiler de equipos para proyectos, red de servicios técnicos e importación directa desde EE.UU. y China.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <button
-              onClick={handleSeeAuctions}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-base flex items-center justify-center gap-3 shadow-xl shadow-orange-950/50 hover:shadow-orange-600/30 transition-all transform hover:-translate-y-0.5"
+          {/* CTA SECUNDARIO DESTACADO: Banner de Cotización de Obra */}
+          <div className="pt-4 max-w-3xl mx-auto">
+            <div
+              onClick={() => { window.location.href = '/cotizacion-obra'; }}
+              className="group relative bg-gradient-to-r from-orange-950/40 via-slate-900 to-amber-950/40 border border-orange-500/30 hover:border-orange-500/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300 cursor-pointer shadow-xl shadow-black/30 hover:shadow-orange-950/20 hover:-translate-y-0.5"
             >
-              <Gavel className="w-5 h-5 text-white" />
-              <span>Ver Subastas Activas</span>
-              <ChevronRight className="w-5 h-5" />
-            </button>
+              {/* Decorative side glows */}
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-500"></div>
 
-            <button
-              onClick={onOpenCustomRequest}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg backdrop-blur-md transition-all border-orange-500/20 hover:border-orange-500/50"
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-12 h-12 rounded-xl bg-orange-600/20 border border-orange-500/35 flex items-center justify-center text-orange-400 shrink-0">
+                  <BarChart3 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                    Cotizar Obra o Proyecto
+                    <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[9px] font-black rounded-full uppercase tracking-wider">Nuevo</span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1">¿Necesitas presupuesto de obra con maquinarias y operadores? Solicita tu propuesta formal 24h.</p>
+                </div>
+              </div>
+              <button
+                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/50 transition-colors z-10"
+              >
+                <span>Cotizar Proyecto</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+
+          {/* MATRIZ DE ACCIONES RÁPIDAS (Grid 4 columnas) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 max-w-5xl mx-auto">
+            {/* Accion 1: Catálogo */}
+            <div
+              onClick={handleCatalogClick}
+              className="group p-4 bg-slate-900/60 border border-slate-800/80 hover:border-orange-500/40 rounded-2xl text-center space-y-3 cursor-pointer transition-all hover:bg-slate-900/90 hover:-translate-y-0.5 shadow-lg shadow-black/20"
             >
-              <Wrench className="w-5 h-5 text-orange-400" />
-              <span>Cotizar Maquinaria</span>
-            </button>
+              <div className="mx-auto w-10 h-10 rounded-xl bg-orange-600/10 border border-orange-500/20 flex items-center justify-center text-orange-400 group-hover:bg-orange-600/20 group-hover:border-orange-500/35 transition-colors">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-white group-hover:text-orange-400 transition-colors uppercase tracking-wider">Catálogo Nacional</h3>
+                <p className="text-[10px] text-slate-500 mt-1 leading-normal">Compra y venta directa de maquinaria pesada verificada.</p>
+              </div>
+            </div>
+
+            {/* Accion 2: Alquiler */}
+            <div
+              onClick={() => { window.location.href = '/alquiler'; }}
+              className="group p-4 bg-slate-900/60 border border-slate-800/80 hover:border-orange-500/40 rounded-2xl text-center space-y-3 cursor-pointer transition-all hover:bg-slate-900/90 hover:-translate-y-0.5 shadow-lg shadow-black/20"
+            >
+              <div className="mx-auto w-10 h-10 rounded-xl bg-orange-600/10 border border-orange-500/20 flex items-center justify-center text-orange-400 group-hover:bg-orange-600/20 group-hover:border-orange-500/35 transition-colors">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-white group-hover:text-orange-400 transition-colors uppercase tracking-wider">Alquiler de Equipos</h3>
+                <p className="text-[10px] text-slate-500 mt-1 leading-normal">Servicio de renta de maquinaria para obras en todo el país.</p>
+              </div>
+            </div>
+
+            {/* Accion 3: Servicios */}
+            <div
+              onClick={() => { window.location.href = '/servicios'; }}
+              className="group p-4 bg-slate-900/60 border border-slate-800/80 hover:border-orange-500/40 rounded-2xl text-center space-y-3 cursor-pointer transition-all hover:bg-slate-900/90 hover:-translate-y-0.5 shadow-lg shadow-black/20"
+            >
+              <div className="mx-auto w-10 h-10 rounded-xl bg-orange-600/10 border border-orange-500/20 flex items-center justify-center text-orange-400 group-hover:bg-orange-600/20 group-hover:border-orange-500/35 transition-colors">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-white group-hover:text-orange-400 transition-colors uppercase tracking-wider">Servicios Técnicos</h3>
+                <p className="text-[10px] text-slate-500 mt-1 leading-normal">Mecánicos certificados, grúas de servicio y repuestos directos.</p>
+              </div>
+            </div>
+
+            {/* Accion 4: Subastas */}
+            <div
+              onClick={handleSeeAuctions}
+              className="group p-4 bg-slate-900/60 border border-slate-800/80 hover:border-orange-500/40 rounded-2xl text-center space-y-3 cursor-pointer transition-all hover:bg-slate-900/90 hover:-translate-y-0.5 shadow-lg shadow-black/20"
+            >
+              <div className="mx-auto w-10 h-10 rounded-xl bg-orange-600/10 border border-orange-500/20 flex items-center justify-center text-orange-400 group-hover:bg-orange-600/20 group-hover:border-orange-500/35 transition-colors">
+                <Gavel className="w-5 h-5 animate-pulse animate-duration-[3000ms]" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-white group-hover:text-orange-400 transition-colors uppercase tracking-wider">Subastas e Importación</h3>
+                <p className="text-[10px] text-slate-500 mt-1 leading-normal">Adjudica y trae directo desde EE.UU. o China con total aduana.</p>
+              </div>
+            </div>
           </div>
         </div>
 
