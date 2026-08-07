@@ -360,95 +360,122 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden mt-3 pt-4 pb-24 border-t border-slate-800 bg-slate-900/95 rounded-xl p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
-            <div className="flex flex-col space-y-3 font-medium text-slate-200 text-sm">
+          <div className="lg:hidden mt-2 pt-3 pb-[100px] border-t border-slate-800 bg-slate-900/98 rounded-xl p-3 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-2 duration-200 max-h-[calc(100vh-100px)] overflow-y-auto">
+            <div className="flex flex-col space-y-2.5 font-medium text-slate-200 text-sm">
               
-              {/* Mobile: show user info if logged in */}
+              {/* 1. User Header (Avatar + Name + Role) */}
               {isLoggedIn && (
-                <div className="flex items-center gap-3 py-2 px-3 bg-slate-950 rounded-lg border border-slate-800">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${
+                <div className="flex items-center gap-2.5 py-1.5 px-2.5 bg-slate-950 rounded-lg border border-slate-850">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                     isAdmin ? 'bg-amber-600 text-white' : 'bg-orange-700 text-white'
                   }`}>
                     {displayName.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-bold text-xs truncate">{isAdmin ? '👑 ' : ''}{displayName}</p>
-                    <p className={`text-[10px] font-semibold uppercase tracking-wider ${isAdmin ? 'text-amber-400' : 'text-sky-400'}`}>
+                    <p className="text-white font-bold text-xs truncate leading-tight">{isAdmin ? '👑 ' : ''}{displayName}</p>
+                    <p className={`text-[9px] font-bold uppercase tracking-wider ${isAdmin ? 'text-amber-400' : 'text-sky-400'}`}>
                       {isAdmin ? 'Administrador' : 'Cliente'}
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Admin: Publish button */}
+              {/* 2. Admin: Publish button */}
               {isLoggedIn && isAdmin && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenAdminPublish(); }}
-                  className="w-full py-2.5 bg-orange-600 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-md"
+                  className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white font-black rounded-lg text-[11px] flex items-center justify-center gap-1 shadow-md transition-colors"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   <span>Publicar Nueva Maquinaria</span>
                 </button>
               )}
 
-              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 border-b border-slate-800/50">
-                Inicio
-              </Link>
-              <Link href="/catalogo" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 border-b border-slate-800/50">
-                Catálogo Completo
-              </Link>
-              <Link href="/alquiler" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 border-b border-slate-800/50">
-                Alquiler de Equipos
-              </Link>
-              <Link href="/postular-equipo" onClick={() => setMobileMenuOpen(false)} className="hover:text-emerald-400 py-1.5 border-b border-slate-800/50 flex items-center gap-2">
-                <span className="text-[10px] bg-emerald-600/80 text-white px-1.5 py-0.5 rounded font-bold">NUEVO</span>
-                Postular mi Equipo
-              </Link>
+              {/* 3. General Links (Inicio / Catálogo) */}
+              <div className="flex flex-col">
+                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 px-1 border-b border-slate-800/40 text-xs">
+                  Inicio
+                </Link>
+                <Link href="/catalogo" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 px-1 border-b border-slate-800/40 text-xs">
+                  Catálogo Completo
+                </Link>
+              </div>
 
-              {/* Servicios & Proyectos — mobile */}
-              <div className="border-b border-slate-800/50 py-2.5 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1 flex items-center gap-1">
-                  <span className="text-[9px] bg-orange-600/80 text-white px-1.5 py-0.5 rounded font-bold">NUEVO</span>
+              {/* 4. Mi Perfil / Oficina Virtual (High priority) */}
+              {isLoggedIn && (
+                <Link
+                  href="/perfil"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 py-1.5 px-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-orange-500/30 text-slate-200 hover:text-white rounded-lg font-bold text-xs transition-all"
+                >
+                  <div className="w-5 h-5 rounded-full bg-orange-700/80 flex items-center justify-center text-[10px] font-black text-white shrink-0">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block font-bold text-white text-[11px]">Mi Perfil / Oficina Virtual</span>
+                  </div>
+                  <span className="text-orange-500 text-xs font-bold">›</span>
+                </Link>
+              )}
+
+              {/* 5. Panel Admin (only admin) */}
+              {isLoggedIn && isAdmin && (
+                <Link 
+                  href="/admin" 
+                  onClick={() => setMobileMenuOpen(false)} 
+                  className="hover:text-amber-400 py-1.5 px-1 border-b border-slate-800/40 font-bold text-amber-400 text-xs flex items-center gap-1.5"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Panel Admin</span>
+                </Link>
+              )}
+
+              {/* 6. Alquiler de Equipos / Postular Equipo */}
+              <div className="flex flex-col">
+                <Link href="/alquiler" onClick={() => setMobileMenuOpen(false)} className="hover:text-orange-400 py-1.5 px-1 border-b border-slate-800/40 text-xs">
+                  Alquiler de Equipos (Renta)
+                </Link>
+                <Link href="/postular-equipo" onClick={() => setMobileMenuOpen(false)} className="hover:text-emerald-400 py-1.5 px-1 border-b border-slate-800/40 text-xs flex items-center gap-1.5">
+                  <span className="text-[8px] bg-emerald-600/80 text-white px-1 py-0.5 rounded font-black">NUEVO</span>
+                  Postular mi Equipo
+                </Link>
+              </div>
+
+              {/* 7. Servicios & Proyectos */}
+              <div className="border-b border-slate-800/40 pb-2 space-y-1.5">
+                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black block mt-1">
                   Servicios y Proyectos
                 </span>
-                <div className="grid grid-cols-1 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-1.5">
                   <Link
                     href="/servicios"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2.5 py-2.5 px-3 bg-orange-950/20 hover:bg-orange-950/40 border border-orange-900/30 text-orange-300 text-xs font-bold rounded-xl transition-all"
+                    className="flex flex-col justify-center p-2 bg-orange-950/15 hover:bg-orange-950/25 border border-orange-900/20 text-orange-400 text-[10px] font-bold rounded-lg transition-all"
                   >
-                    <Wrench className="w-4 h-4 text-orange-400 shrink-0" />
-                    <div>
-                      <span className="block">Postular como Proveedor</span>
-                      <span className="text-[10px] text-slate-500 font-normal">Mecánico, transporte, repuestos...</span>
-                    </div>
+                    <span className="block">Postular Proveedor</span>
                   </Link>
                   <Link
                     href="/cotizacion-obra"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2.5 py-2.5 px-3 bg-amber-950/20 hover:bg-amber-950/40 border border-amber-900/30 text-amber-300 text-xs font-bold rounded-xl transition-all"
+                    className="flex flex-col justify-center p-2 bg-amber-950/15 hover:bg-amber-950/25 border border-amber-900/20 text-amber-400 text-[10px] font-bold rounded-lg transition-all"
                   >
-                    <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div>
-                      <span className="block">Cotizar Obra o Proyecto</span>
-                      <span className="text-[10px] text-slate-500 font-normal">Movimiento de tierras, demolición...</span>
-                    </div>
+                    <span className="block">Cotizar Obra</span>
                   </Link>
                 </div>
               </div>
 
-              {/* Mobile: Atención Personalizada Section */}
-              <div className="border-b border-slate-800/50 py-2.5 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Atención Personalizada</span>
-                <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* 8. Contacto / Redes en una sola fila compacta */}
+              <div className="pb-1.5">
+                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black block mb-1.5">Contacto Rápido</span>
+                <div className="grid grid-cols-3 gap-1">
                   <a
                     href="https://t.me/makimportvzla"
                     target="_blank"
                     rel="noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 bg-sky-950/40 hover:bg-sky-900/60 border border-sky-850 text-sky-400 text-xs font-bold rounded-lg transition-all"
+                    className="flex items-center justify-center gap-1 py-1.5 px-1 bg-sky-950/30 hover:bg-sky-900/40 border border-sky-900/25 text-sky-400 text-[10px] font-bold rounded-md transition-all"
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    <Send className="w-3 h-3" />
                     <span>Telegram</span>
                   </a>
                   <a
@@ -456,64 +483,49 @@ export const Navbar: React.FC<NavbarProps> = ({
                     target="_blank"
                     rel="noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-850 text-emerald-400 text-xs font-bold rounded-lg transition-all"
+                    className="flex items-center justify-center gap-1 py-1.5 px-1 bg-emerald-950/30 hover:bg-emerald-900/40 border border-emerald-900/25 text-emerald-400 text-[10px] font-bold rounded-md transition-all"
                   >
-                    <MessageCircle className="w-3.5 h-3.5" />
+                    <MessageCircle className="w-3 h-3" />
                     <span>WhatsApp</span>
+                  </a>
+                  <a
+                    href="https://instagram.com/makimport.vzla"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-1 py-1.5 px-1 bg-pink-950/30 hover:bg-pink-900/40 border border-pink-900/20 text-pink-400 text-[10px] font-bold rounded-md transition-all"
+                  >
+                    <Instagram className="w-3 h-3" />
+                    <span>Instagram</span>
                   </a>
                 </div>
               </div>
 
-              {/* Admin panel link — only for admin */}
-              {isLoggedIn && isAdmin && (
-                <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="hover:text-amber-400 py-1.5 border-b border-slate-800/50 font-bold text-amber-400 flex items-center gap-1.5">
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  Panel Admin
-                </Link>
-              )}
-
-              {/* Mi Perfil / Oficina Virtual — all logged-in users */}
-              {isLoggedIn && (
-                <Link
-                  href="/perfil"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2.5 py-2.5 px-3 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-orange-500/40 text-slate-200 hover:text-white rounded-xl font-bold text-xs transition-all"
-                >
-                  <div className="w-7 h-7 rounded-full bg-orange-700/80 flex items-center justify-center text-[11px] font-black text-white shrink-0">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="block font-bold text-white text-xs">Mi Perfil / Oficina Virtual</span>
-                    <span className="block text-[10px] text-orange-400 font-medium">Subastas · Compras · Configuración</span>
-                  </div>
-                  <span className="text-orange-500 text-xs">›</span>
-                </Link>
-              )}
-
-              <div className="pt-2 flex flex-col space-y-2">
+              {/* 9. Auth Actions / Cerrar Sesión */}
+              <div className="pt-1.5 flex flex-col space-y-1.5">
                 {isLoggedIn ? (
                   <button
                     onClick={handleLogout}
-                    className="w-full text-center py-2.5 rounded-lg border border-red-800/60 bg-red-950/40 text-red-400 font-semibold flex items-center justify-center gap-2"
+                    className="w-full text-center py-2 rounded-lg border border-red-900/45 bg-red-950/20 hover:bg-red-950/35 text-red-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <LogOut className="w-4 h-4" />
-                    Cerrar Sesión
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Cerrar Sesión</span>
                   </button>
                 ) : (
-                  <>
+                  <div className="flex flex-col space-y-1.5">
                     <button
                       onClick={() => { setMobileMenuOpen(false); onOpenAuth('login'); }}
-                      className="w-full text-center py-2.5 rounded-lg border border-slate-700 bg-slate-800 text-white font-medium"
+                      className="w-full text-center py-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-750 text-white font-semibold text-xs transition-colors"
                     >
                       Iniciar Sesión
                     </button>
                     <button
                       onClick={() => { setMobileMenuOpen(false); onOpenAuth('register'); }}
-                      className="w-full text-center py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold shadow-lg shadow-orange-950"
+                      className="w-full text-center py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md transition-colors"
                     >
                       Registrar Empresa / RIF
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
