@@ -649,19 +649,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     if (!deleteConfirm) return;
     setDeleteLoading(true);
     try {
-      await supabase.from(deleteConfirm.table as any).delete().eq('id', deleteConfirm.id);
-      if (deleteConfirm.table === 'rental_requests') {
-        setRentalRequests((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
-      } else if (deleteConfirm.table === 'owner_machinery') {
-        setOwnerMachinery((prev) => prev.filter((o) => o.id !== deleteConfirm.id));
-      } else if (deleteConfirm.table === 'project_quotes') {
-        setProjectQuotes((prev) => prev.filter((q) => q.id !== deleteConfirm.id));
-      } else if (deleteConfirm.table === 'services_applications') {
-        setServiceApplications((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
+      const { error } = await supabase.from(deleteConfirm.table as any).delete().eq('id', deleteConfirm.id);
+      if (error) {
+        alert(`No se pudo eliminar el registro en la base de datos: ${error.message || error.details}`);
+      } else {
+        if (deleteConfirm.table === 'rental_requests') {
+          setRentalRequests((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
+        } else if (deleteConfirm.table === 'owner_machinery') {
+          setOwnerMachinery((prev) => prev.filter((o) => o.id !== deleteConfirm.id));
+        } else if (deleteConfirm.table === 'project_quotes') {
+          setProjectQuotes((prev) => prev.filter((q) => q.id !== deleteConfirm.id));
+        } else if (deleteConfirm.table === 'services_applications') {
+          setServiceApplications((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
+        }
+        setDeleteConfirm(null);
       }
-      setDeleteConfirm(null);
     } catch (err) {
       console.warn('Delete error:', err);
+      alert('Ocurrió un error inesperado al intentar eliminar.');
     } finally {
       setDeleteLoading(false);
     }

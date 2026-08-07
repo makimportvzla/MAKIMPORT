@@ -282,7 +282,7 @@ export default function PerfilPage() {
       if (!error) {
         setProjectQuotes(prev => prev.filter(q => q.id !== id));
       } else {
-        alert('Error al eliminar el registro');
+        alert('Error al eliminar el registro: ' + (error.message || error.details || ''));
       }
     } catch (err) {
       console.warn('Error deleting project quote:', err);
@@ -296,7 +296,7 @@ export default function PerfilPage() {
       if (!error) {
         setServiceApplications(prev => prev.filter(s => s.id !== id));
       } else {
-        alert('Error al eliminar el registro');
+        alert('Error al eliminar el registro: ' + (error.message || error.details || ''));
       }
     } catch (err) {
       console.warn('Error deleting service application:', err);
