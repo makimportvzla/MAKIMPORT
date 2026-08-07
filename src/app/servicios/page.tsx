@@ -28,6 +28,7 @@ import {
   Image as ImageIcon,
   FileText,
   Star,
+  Phone,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -126,6 +127,7 @@ export default function ServiciosPage() {
   const [applicantType, setApplicantType] = useState<'personal' | 'company'>('personal');
   const [fullName, setFullName] = useState('');
   const [idDocNumber, setIdDocNumber] = useState('');
+  const [phone, setPhone] = useState('');
   const [idDocFile, setIdDocFile] = useState<File | null>(null);
   const [idDocUrl, setIdDocUrl] = useState('');
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -214,6 +216,7 @@ export default function ServiciosPage() {
     if (!categoryId) return 'Selecciona una categoría de servicio.';
     if (!fullName.trim()) return 'Ingresa tu nombre completo o razón social.';
     if (!idDocNumber.trim()) return 'Ingresa tu cédula o RIF.';
+    if (!phone.trim()) return 'Ingresa tu número de teléfono / WhatsApp.';
     return '';
   };
 
@@ -259,6 +262,7 @@ export default function ServiciosPage() {
         specialization_details: specialization.trim(),
         work_schedule: schedule,
         portfolio_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
+        phone_contact: phone.trim(),
         user_id: user?.id || null,
       };
       const { data, error: dbErr } = await supabase
@@ -452,6 +456,20 @@ export default function ServiciosPage() {
                   placeholder={applicantType === 'company' ? 'J-12345678-9' : 'V-12345678'}
                   value={idDocNumber}
                   onChange={e => setIdDocNumber(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5 text-slate-500" />
+                  Teléfono / WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  placeholder="Ej: +58 414-1234567"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none transition-colors"
                 />
               </div>

@@ -228,6 +228,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   // Lightbox for owner photos
   const [lightbox, setLightbox] = useState<{ photos: string[]; idx: number } | null>(null);
 
+  // Project Quotes — search, filter, selected detail
+  const [projectQuotesSearch, setProjectQuotesSearch] = useState('');
+  const [projectQuotesFilter, setProjectQuotesFilter] = useState('all');
+  const [selectedProjectQuote, setSelectedProjectQuote] = useState<any>(null);
+
+  // Service Applications — search, filter, selected detail
+  const [servicesSearch, setServicesSearch] = useState('');
+  const [servicesFilter, setServicesFilter] = useState('all');
+  const [selectedServiceApp, setSelectedServiceApp] = useState<any>(null);
+
   // Inline quick-edit for rental status / owner status
   const [editingRentalId, setEditingRentalId]     = useState<string | null>(null);
   const [editingOwnerStatus, setEditingOwnerStatus] = useState<{ id: string; estado: string } | null>(null);
@@ -2443,42 +2453,187 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         })()}
 
         {/* TAB 8: COTIZACIONES DE OBRA */}
-        {activeTab === 'projectQuotes' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-              <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
-                <span>Cotizaciones de Obra y Proyectos</span>
-                <span>Total: {projectQuotes.length} solicitudes</span>
-              </div>
-              
-              {loadingProjectQuotes ? (
-                <div className="p-12 text-center text-slate-400">
-                  <RefreshCw className="w-8 h-8 animate-spin mx-auto text-orange-500 mb-2" />
-                  <span>Cargando cotizaciones...</span>
-                </div>
-              ) : projectQuotes.length === 0 ? (
-                <div className="p-12 text-center text-slate-500">
-                  <span>No hay solicitudes de cotización de obra registradas.</span>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-800/85">
-                  {projectQuotes.map((q) => (
-                    <div key={q.id} className="p-5 space-y-4 hover:bg-slate-950/20 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-sm font-extrabold text-white">{q.client_name_or_company}</h4>
-                            <span className="text-[10px] text-slate-500 font-mono">RIF/Cédula: {q.id_document}</span>
-                          </div>
-                          <p className="text-xs text-orange-400 font-bold">{q.project_type}</p>
-                        </div>
+        {activeTab === 'projectQuotes' && (() => {
+          const sq = projectQuotesSearch.toLowerCase();
+          const filtered = projectQuotes.filter(q => {
+            const matchText = !sq || [
+              q.client_name_or_company, q.id_document, q.phone_contact, q.project_location
+            ].some(f => (f || '').toLowerCase().includes(sq));
+            const matchStatus = projectQuotesFilter === 'all' || q.status === projectQuotesFilter;
+            return matchText && matchStatus;
+          });
 
-                        {/* Status Select */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold">Estatus:</span>
+          const statusBadge = (s: string) => {
+            const map: Record<string, string> = {
+              received: 'bg-sky-950/70 text-sky-400 border-sky-800/40',
+              in_review: 'bg-amber-950/70 text-amber-400 border-amber-800/40',
+              quoted: 'bg-emerald-950/70 text-emerald-400 border-emerald-800/40',
+              archived: 'bg-slate-800/70 text-slate-500 border-slate-700/40',
+            };
+            const labels: Record<string, string> = { received: 'Recibido', in_review: 'En Revisión', quoted: 'Cotizado', archived: 'Archivado' };
+            return <span className={`inline-flex items-center text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${map[s] || map.received}`}>{labels[s] || s}</span>;
+          };
+
+          return (
+            <div className="space-y-4">
+              {/* Header + Search + Filter */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <HardHat className="w-4 h-4 text-orange-400" />
+                    <span className="text-xs font-bold text-slate-300">Cotizaciones de Obra y Proyectos</span>
+                    <span className="px-2 py-0.5 bg-orange-600/20 border border-orange-600/30 text-orange-400 text-[9px] font-black rounded-full">{filtered.length} registros</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Search */}
+                    <div className="relative flex-1 max-w-[240px]">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={projectQuotesSearch}
+                        onChange={e => setProjectQuotesSearch(e.target.value)}
+                        placeholder="Nombre, RIF, ubicación..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-colors"
+                      />
+                      {projectQuotesSearch && (
+                        <button onClick={() => setProjectQuotesSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs">✕</button>
+                      )}
+                    </div>
+                    {/* Filter */}
+                    <select
+                      value={projectQuotesFilter}
+                      onChange={e => setProjectQuotesFilter(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 focus:outline-none focus:border-orange-500 transition-colors"
+                    >
+                      <option value="all">Todos los estatus</option>
+                      <option value="received">Recibido</option>
+                      <option value="in_review">En Revisión</option>
+                      <option value="quoted">Cotizado</option>
+                      <option value="archived">Archivado</option>
+                    </select>
+                  </div>
+                </div>
+
+                {loadingProjectQuotes ? (
+                  <div className="p-12 text-center text-slate-400">
+                    <RefreshCw className="w-8 h-8 animate-spin mx-auto text-orange-500 mb-2" />
+                    <span>Cargando cotizaciones...</span>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="p-12 text-center text-slate-500">
+                    <Search className="w-10 h-10 mx-auto text-slate-700 mb-2" />
+                    <span>{projectQuotesSearch || projectQuotesFilter !== 'all' ? 'Sin resultados para esa búsqueda.' : 'No hay solicitudes de cotización registradas.'}</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 divide-y md:divide-y-0 divide-slate-800/80">
+                    {filtered.map((q) => {
+                      const waPhone = (q.phone_contact || '').replace(/\D/g, '');
+                      return (
+                        <div
+                          key={q.id}
+                          className="group p-4 border-r border-b border-slate-800/50 hover:bg-slate-950/30 transition-colors cursor-pointer flex flex-col gap-3"
+                          onClick={() => setSelectedProjectQuote(q)}
+                        >
+                          {/* Top row */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-extrabold text-white truncate group-hover:text-orange-400 transition-colors">{q.client_name_or_company}</h4>
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">{q.id_document}</p>
+                            </div>
+                            {statusBadge(q.status)}
+                          </div>
+
+                          {/* Info row */}
+                          <div className="space-y-1 text-xs">
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                              <MapPin className="w-3 h-3 text-slate-600 shrink-0" />
+                              <span className="truncate">{q.project_location}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-orange-400 font-bold">
+                              <HardHat className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{q.project_type}</span>
+                            </div>
+                            {q.estimated_budget && q.estimated_budget !== 'Prefiero no indicar' && (
+                              <div className="flex items-center gap-1.5 text-amber-400 font-semibold">
+                                <DollarSign className="w-3 h-3 shrink-0" />
+                                <span>{q.estimated_budget}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Bottom row */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
+                            <span className="text-[9px] text-slate-600">{new Date(q.created_at).toLocaleDateString('es-VE')}</span>
+                            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                              {waPhone && (
+                                <a
+                                  href={`https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${q.client_name_or_company}, somos del equipo de MAKIMPORT. Estamos revisando tu solicitud de cotización de obra (${q.project_type}).`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-1 px-2 py-1 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-emerald-400 text-[10px] font-bold rounded-lg transition-colors"
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  <span>WhatsApp</span>
+                                </a>
+                              )}
+                              <select
+                                value={q.status}
+                                onChange={(e) => { e.stopPropagation(); handleUpdateProjectQuoteStatus(q.id, e.target.value); }}
+                                className="bg-slate-950 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-200 px-2 py-1 focus:outline-none focus:border-orange-500 transition-colors"
+                              >
+                                <option value="received">Recibido</option>
+                                <option value="in_review">En Revisión</option>
+                                <option value="quoted">Cotizado</option>
+                                <option value="archived">Archivado</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Detail Modal */}
+              {selectedProjectQuote && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedProjectQuote(null)}>
+                  <div className="max-w-2xl w-full bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                    {/* Modal Header */}
+                    <div className="p-5 bg-slate-950 border-b border-slate-800 flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-black text-white">{selectedProjectQuote.client_name_or_company}</h3>
+                        <p className="text-xs text-orange-400 font-bold mt-0.5">{selectedProjectQuote.project_type}</p>
+                        <p className="text-[10px] text-slate-500 font-mono">{selectedProjectQuote.id_document}</p>
+                      </div>
+                      <button onClick={() => setSelectedProjectQuote(null)} className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors shrink-0">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Scrollable body */}
+                    <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+                      {/* Contact + Status */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {selectedProjectQuote.phone_contact && (
+                          <a
+                            href={`https://wa.me/${selectedProjectQuote.phone_contact.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${selectedProjectQuote.client_name_or_company}, somos MAKIMPORT. Revisamos tu cotización de obra (${selectedProjectQuote.project_type}).`)}`}
+                            target="_blank" rel="noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-700/40 text-emerald-400 font-bold text-xs rounded-xl transition-colors"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>{selectedProjectQuote.phone_contact}</span>
+                          </a>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500 font-bold uppercase">Estatus:</span>
                           <select
-                            value={q.status}
-                            onChange={(e) => handleUpdateProjectQuoteStatus(q.id, e.target.value)}
+                            value={selectedProjectQuote.status}
+                            onChange={(e) => {
+                              handleUpdateProjectQuoteStatus(selectedProjectQuote.id, e.target.value);
+                              setSelectedProjectQuote((prev: any) => ({ ...prev, status: e.target.value }));
+                            }}
                             className="bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 px-3 py-1.5 focus:outline-none focus:border-orange-500 transition-colors"
                           >
                             <option value="received">Recibido</option>
@@ -2489,113 +2644,264 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs bg-slate-950/40 p-4 rounded-xl border border-slate-850/60">
-                        <div>
-                          <p className="text-slate-500 font-bold uppercase text-[9px]">Ubicación</p>
-                          <p className="text-slate-200 mt-0.5">{q.project_location}</p>
+                      {/* Grid info */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Ubicación</p>
+                          <p className="text-slate-200 mt-1">{selectedProjectQuote.project_location}</p>
                         </div>
-                        <div>
-                          <p className="text-slate-500 font-bold uppercase text-[9px]">Duración / Inicio</p>
-                          <p className="text-slate-200 mt-0.5">{q.duration_and_start_date}</p>
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Duración / Inicio</p>
+                          <p className="text-slate-200 mt-1">{selectedProjectQuote.duration_and_start_date}</p>
                         </div>
-                        <div>
-                          <p className="text-slate-500 font-bold uppercase text-[9px]">Presupuesto</p>
-                          <p className="text-amber-400 font-semibold mt-0.5">{q.estimated_budget || 'No indicado'}</p>
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Presupuesto</p>
+                          <p className="text-amber-400 font-semibold mt-1">{selectedProjectQuote.estimated_budget || 'No indicado'}</p>
                         </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <p className="text-[10px] text-slate-500 font-bold uppercase">Alcance requerido</p>
-                        <div className="flex flex-wrap gap-1.5 pt-0.5">
-                          {Array.isArray(q.scope) && q.scope.map((s: string, idx: number) => (
-                            <span key={idx} className="px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-300 text-[10px] font-semibold rounded-md">
-                              {s}
-                            </span>
-                          ))}
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Visita Técnica</p>
+                          <p className="mt-1">{selectedProjectQuote.requires_site_visit ? <span className="text-amber-400 font-bold">⚠️ Sí requiere</span> : <span className="text-slate-400">No</span>}</p>
                         </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <p className="text-[10px] text-slate-500 font-bold uppercase">Descripción de la Obra</p>
-                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/30 p-3 rounded-lg border border-slate-850">
-                          {q.project_description}
-                        </p>
-                      </div>
-
-                      {/* File Attachments */}
-                      {Array.isArray(q.attachments_urls) && q.attachments_urls.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Planos / Documentos Adjuntos</p>
-                          <div className="flex flex-wrap gap-2">
-                            {q.attachments_urls.map((url: string, idx: number) => (
-                              <a
-                                key={idx}
-                                href={url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white rounded-lg transition-colors"
-                              >
-                                <FileText className="w-3.5 h-3.5 text-orange-400" />
-                                <span>Ver Adjunto {idx + 1}</span>
-                              </a>
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 col-span-2">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Alcance requerido</p>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {Array.isArray(selectedProjectQuote.scope) && selectedProjectQuote.scope.map((s: string, i: number) => (
+                              <span key={i} className="px-2 py-0.5 bg-orange-950/30 border border-orange-800/40 text-orange-300 text-[10px] font-semibold rounded">{s}</span>
                             ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Descripción de la Obra</p>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/50 p-3 rounded-xl border border-slate-800">{selectedProjectQuote.project_description}</p>
+                      </div>
+
+                      {/* Attachments */}
+                      {Array.isArray(selectedProjectQuote.attachments_urls) && selectedProjectQuote.attachments_urls.length > 0 && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-black uppercase mb-2">Planos / Documentos Adjuntos</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {selectedProjectQuote.attachments_urls.map((url: string, idx: number) => {
+                              const isImage = /\.(jpe?g|png|gif|webp)$/i.test(url);
+                              return isImage ? (
+                                <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer group" onClick={() => setLightbox({ photos: selectedProjectQuote.attachments_urls.filter((u: string) => /\.(jpe?g|png|gif|webp)$/i.test(u)), idx })}>
+                                  <img src={url} alt={`Plano ${idx+1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                </div>
+                              ) : (
+                                <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center gap-1 aspect-video rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800 transition-colors text-slate-400 hover:text-white">
+                                  <FileText className="w-5 h-5 text-orange-400" />
+                                  <span className="text-[9px] font-bold">Ver Adjunto {idx+1}</span>
+                                </a>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-900/60">
-                        <span>Visita Técnica: {q.requires_site_visit ? '⚠️ Sí' : 'No'}</span>
-                        <span>Registrado el: {new Date(q.created_at).toLocaleDateString('es-VE')}</span>
-                      </div>
+                      <p className="text-[10px] text-slate-600 text-right">Registrado el {new Date(selectedProjectQuote.created_at).toLocaleDateString('es-VE')}</p>
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* TAB 9: POSTULACIONES / SERVICIOS */}
-        {activeTab === 'serviceApplications' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-              <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs font-bold text-slate-300">
-                <span>Postulaciones de Proveedores de Servicios</span>
-                <span>Total: {serviceApplications.length} postulaciones</span>
+        {activeTab === 'serviceApplications' && (() => {
+          const sq = servicesSearch.toLowerCase();
+          const filtered = serviceApplications.filter(app => {
+            const matchText = !sq || [
+              app.full_name_or_company, app.id_document_number, app.phone_contact,
+              app.state_city, app.category_id
+            ].some(f => (f || '').toLowerCase().includes(sq));
+            const matchStatus = servicesFilter === 'all' || app.status === servicesFilter;
+            return matchText && matchStatus;
+          });
+
+          const statusBadge = (s: string) => {
+            const map: Record<string, string> = {
+              pending: 'bg-amber-950/70 text-amber-400 border-amber-800/40',
+              approved: 'bg-emerald-950/70 text-emerald-400 border-emerald-800/40',
+              rejected: 'bg-red-950/70 text-red-400 border-red-800/40',
+            };
+            const labels: Record<string, string> = { pending: 'Pendiente', approved: 'Aprobado', rejected: 'Rechazado' };
+            return <span className={`inline-flex items-center text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${map[s] || map.pending}`}>{labels[s] || s}</span>;
+          };
+
+          return (
+            <div className="space-y-4">
+              {/* Header + Search + Filter */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Wrench className="w-4 h-4 text-orange-400" />
+                    <span className="text-xs font-bold text-slate-300">Postulaciones de Proveedores de Servicios</span>
+                    <span className="px-2 py-0.5 bg-orange-600/20 border border-orange-600/30 text-orange-400 text-[9px] font-black rounded-full">{filtered.length} registros</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative flex-1 max-w-[240px]">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={servicesSearch}
+                        onChange={e => setServicesSearch(e.target.value)}
+                        placeholder="Nombre, RIF, categoría..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-colors"
+                      />
+                      {servicesSearch && (
+                        <button onClick={() => setServicesSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs">✕</button>
+                      )}
+                    </div>
+                    <select
+                      value={servicesFilter}
+                      onChange={e => setServicesFilter(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 focus:outline-none focus:border-orange-500 transition-colors"
+                    >
+                      <option value="all">Todos los estatus</option>
+                      <option value="pending">Pendiente</option>
+                      <option value="approved">Aprobado</option>
+                      <option value="rejected">Rechazado</option>
+                    </select>
+                  </div>
+                </div>
+
+                {loadingServiceApplications ? (
+                  <div className="p-12 text-center text-slate-400">
+                    <RefreshCw className="w-8 h-8 animate-spin mx-auto text-orange-500 mb-2" />
+                    <span>Cargando postulaciones...</span>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="p-12 text-center text-slate-500">
+                    <Search className="w-10 h-10 mx-auto text-slate-700 mb-2" />
+                    <span>{servicesSearch || servicesFilter !== 'all' ? 'Sin resultados para esa búsqueda.' : 'No hay postulaciones registradas aún.'}</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 divide-y md:divide-y-0 divide-slate-800/80">
+                    {filtered.map((app) => {
+                      const waPhone = (app.phone_contact || '').replace(/\D/g, '');
+                      return (
+                        <div
+                          key={app.id}
+                          className="group p-4 border-r border-b border-slate-800/50 hover:bg-slate-950/30 transition-colors cursor-pointer flex flex-col gap-3"
+                          onClick={() => setSelectedServiceApp(app)}
+                        >
+                          {/* Top row */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-extrabold text-white truncate group-hover:text-orange-400 transition-colors">{app.full_name_or_company}</h4>
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">{app.id_document_number}</p>
+                            </div>
+                            {statusBadge(app.status)}
+                          </div>
+
+                          {/* Info row */}
+                          <div className="space-y-1 text-xs">
+                            <div className="flex items-center gap-1.5 text-orange-400 font-bold capitalize">
+                              <Wrench className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{app.category_id}</span>
+                              <span className="px-1.5 py-0.5 bg-slate-800 text-slate-400 text-[9px] font-bold rounded uppercase shrink-0">
+                                {app.applicant_type === 'company' ? 'Empresa' : 'Natural'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                              <MapPin className="w-3 h-3 shrink-0 text-slate-600" />
+                              <span className="truncate">{app.state_city}</span>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-[10px] text-slate-500 shrink-0">{app.coverage_radius?.split(' ')[0]}</span>
+                            </div>
+                            {Array.isArray(app.portfolio_urls) && app.portfolio_urls.length > 0 && (
+                              <div className="flex gap-1">
+                                {app.portfolio_urls.slice(0, 4).map((url: string, i: number) => (
+                                  <div key={i} className="w-8 h-8 rounded-md overflow-hidden border border-slate-800">
+                                    <img src={url} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                ))}
+                                {app.portfolio_urls.length > 4 && <span className="w-8 h-8 rounded-md bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">+{app.portfolio_urls.length - 4}</span>}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Bottom row */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
+                            <span className="text-[9px] text-slate-600">{new Date(app.created_at).toLocaleDateString('es-VE')}</span>
+                            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                              {waPhone && (
+                                <a
+                                  href={`https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${app.full_name_or_company}, somos del equipo MAKIMPORT. Revisamos tu postulación como proveedor de ${app.category_id}.`)}`}
+                                  target="_blank" rel="noreferrer"
+                                  className="flex items-center gap-1 px-2 py-1 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-emerald-400 text-[10px] font-bold rounded-lg transition-colors"
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  <span>WhatsApp</span>
+                                </a>
+                              )}
+                              <select
+                                value={app.status}
+                                onChange={(e) => { e.stopPropagation(); handleUpdateServiceApplicationStatus(app.id, e.target.value); }}
+                                className="bg-slate-950 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-200 px-2 py-1 focus:outline-none focus:border-orange-500 transition-colors"
+                              >
+                                <option value="pending">Pendiente</option>
+                                <option value="approved">Aprobado</option>
+                                <option value="rejected">Rechazado</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {loadingServiceApplications ? (
-                <div className="p-12 text-center text-slate-400">
-                  <RefreshCw className="w-8 h-8 animate-spin mx-auto text-orange-500 mb-2" />
-                  <span>Cargando postulaciones...</span>
-                </div>
-              ) : serviceApplications.length === 0 ? (
-                <div className="p-12 text-center text-slate-500">
-                  <span>No hay postulaciones registradas aún.</span>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-800/85">
-                  {serviceApplications.map((app) => (
-                    <div key={app.id} className="p-5 space-y-4 hover:bg-slate-950/20 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-sm font-extrabold text-white">{app.full_name_or_company}</h4>
-                            <span className="px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-400 text-[9px] font-bold rounded uppercase">
-                              {app.applicant_type === 'company' ? 'Empresa' : 'Persona Natural'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-orange-400 font-bold capitalize">
-                            Categoría: {app.category_id}
-                          </p>
-                        </div>
+              {/* Detail Modal */}
+              {selectedServiceApp && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedServiceApp(null)}>
+                  <div className="max-w-2xl w-full bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                    {/* Modal Header */}
+                    <div className="p-5 bg-slate-950 border-b border-slate-800 flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-black text-white">{selectedServiceApp.full_name_or_company}</h3>
+                        <p className="text-xs text-orange-400 font-bold capitalize mt-0.5">{selectedServiceApp.category_id} • {selectedServiceApp.applicant_type === 'company' ? 'Empresa' : 'Persona Natural'}</p>
+                        <p className="text-[10px] text-slate-500 font-mono">{selectedServiceApp.id_document_number}</p>
+                      </div>
+                      <button onClick={() => setSelectedServiceApp(null)} className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors shrink-0">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                        {/* Status Select */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold">Estatus:</span>
+                    {/* Scrollable body */}
+                    <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+                      {/* Contact + Status */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {selectedServiceApp.phone_contact && (
+                          <a
+                            href={`https://wa.me/${selectedServiceApp.phone_contact.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${selectedServiceApp.full_name_or_company}, somos MAKIMPORT. Revisamos tu postulación como proveedor de ${selectedServiceApp.category_id}.`)}`}
+                            target="_blank" rel="noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-700/40 text-emerald-400 font-bold text-xs rounded-xl transition-colors"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>{selectedServiceApp.phone_contact}</span>
+                          </a>
+                        )}
+                        {selectedServiceApp.id_document_url && (
+                          <a href={selectedServiceApp.id_document_url} target="_blank" rel="noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-colors">
+                            <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
+                            <span>Ver Cédula / RIF</span>
+                          </a>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500 font-bold uppercase">Estatus:</span>
                           <select
-                            value={app.status}
-                            onChange={(e) => handleUpdateServiceApplicationStatus(app.id, e.target.value)}
+                            value={selectedServiceApp.status}
+                            onChange={(e) => {
+                              handleUpdateServiceApplicationStatus(selectedServiceApp.id, e.target.value);
+                              setSelectedServiceApp((prev: any) => ({ ...prev, status: e.target.value }));
+                            }}
                             className="bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 px-3 py-1.5 focus:outline-none focus:border-orange-500 transition-colors"
                           >
                             <option value="pending">Pendiente</option>
@@ -2605,69 +2911,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs bg-slate-950/40 p-4 rounded-xl border border-slate-850/60">
-                        <div>
-                          <p className="text-slate-500 font-bold uppercase text-[9px]">Documento / RIF</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-slate-200 font-mono">{app.id_document_number}</span>
-                            {app.id_document_url && (
-                              <a
-                                href={app.id_document_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-orange-400 hover:text-orange-300 font-bold flex items-center gap-0.5"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                                <span>Ver foto</span>
-                              </a>
-                            )}
-                          </div>
+                      {/* Grid info */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Ubicación</p>
+                          <p className="text-slate-200 mt-1">{selectedServiceApp.state_city}</p>
                         </div>
-                        <div>
-                          <p className="text-slate-500 font-bold uppercase text-[9px]">Ubicación & Cobertura</p>
-                          <p className="text-slate-200 mt-0.5">{app.state_city} ({app.coverage_radius})</p>
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Cobertura</p>
+                          <p className="text-slate-200 mt-1">{selectedServiceApp.coverage_radius}</p>
                         </div>
-                        <div>
-                          <p className="text-slate-500 font-bold uppercase text-[9px]">Horario de Trabajo</p>
-                          <p className="text-slate-200 mt-0.5">{app.work_schedule}</p>
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <p className="text-slate-500 uppercase text-[9px] font-black">Horario</p>
+                          <p className="text-slate-200 mt-1">{selectedServiceApp.work_schedule}</p>
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <p className="text-[10px] text-slate-500 font-bold uppercase">Detalles / Experiencia</p>
-                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/30 p-3 rounded-lg border border-slate-850">
-                          {app.specialization_details}
-                        </p>
+                      {/* Specialization */}
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Detalles de Experiencia</p>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/50 p-3 rounded-xl border border-slate-800">{selectedServiceApp.specialization_details}</p>
                       </div>
 
-                      {/* Portfolio Gallery */}
-                      {Array.isArray(app.portfolio_urls) && app.portfolio_urls.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Fotos del Portafolio</p>
-                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                            {app.portfolio_urls.map((url: string, idx: number) => (
+                      {/* Portfolio */}
+                      {Array.isArray(selectedServiceApp.portfolio_urls) && selectedServiceApp.portfolio_urls.length > 0 && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-black uppercase mb-2">Fotos del Portafolio ({selectedServiceApp.portfolio_urls.length} fotos)</p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {selectedServiceApp.portfolio_urls.map((url: string, idx: number) => (
                               <div
                                 key={idx}
-                                className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer group"
-                                onClick={() => setLightbox({ photos: app.portfolio_urls, idx })}
+                                className="relative aspect-square rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer group"
+                                onClick={() => setLightbox({ photos: selectedServiceApp.portfolio_urls, idx })}
                               >
-                                <img src={url} alt={`Trabajo ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <img src={url} alt={`Trabajo ${idx+1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                  <ExternalLink className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      <div className="text-[10px] text-slate-500 pt-1 text-right">
-                        Registrado el: {new Date(app.created_at).toLocaleDateString('es-VE')}
-                      </div>
+                      <p className="text-[10px] text-slate-600 text-right">Registrado el {new Date(selectedServiceApp.created_at).toLocaleDateString('es-VE')}</p>
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Delete Confirmation Modal ── */}
         {deleteConfirm?.open && (

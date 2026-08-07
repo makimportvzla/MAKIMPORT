@@ -19,5 +19,5 @@
 - [x] Modificar `Navbar.tsx` para incluir enlaces al módulo de Alquiler de Equipos
 - [x] Modificar `AdminDashboard.tsx` para incluir pestaña "7. Alquileres" con listado, filtros de estado y difusión automatizada
 - [x] Crear ruta de administración de alquileres `/admin/alquileres` (`src/app/admin/alquileres/page.tsx`)
-- [x] Modificar `ProveedoresTab.tsx` para aceptar pre-rellenado de mensajes en la difusión
-- [x] Verificar compilación de Next.js y TypeScript
+- [x] Modificar `/servicios` para capturar el teléfono de contacto de forma obligatoria y vincular el `user_id` de la sesión.
+- [x] Verificar que `/cotizacion-obra` capture el teléfono de forma obligatoria y vincule el `user_id`.
