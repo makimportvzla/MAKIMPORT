@@ -104,3 +104,38 @@ export interface OwnerMachineryDbRow {
   notas: string | null;
   estado: 'disponible' | 'ocupado' | 'mantenimiento';
 }
+
+export interface ServicesApplicationDbRow {
+  id: string;
+  created_at: string;
+  category_id: string;
+  applicant_type: 'personal' | 'company';
+  full_name_or_company: string;
+  id_document_number: string;
+  id_document_url: string | null;
+  state_city: string;
+  coverage_radius: string;
+  specialization_details: string;
+  work_schedule: string;
+  portfolio_urls: string[] | null;
+  status: 'pending' | 'approved' | 'rejected';
+  user_id: string | null;
+}
+
+export interface ProjectQuoteDbRow {
+  id: string;
+  created_at: string;
+  client_name_or_company: string;
+  id_document: string;
+  phone_contact: string;
+  project_location: string;
+  project_type: string;
+  scope: string[];
+  requires_site_visit: boolean;
+  duration_and_start_date: string;
+  estimated_budget: string | null;
+  project_description: string;
+  attachments_urls: string[] | null;
+  status: 'received' | 'in_review' | 'quoted' | 'archived';
+  user_id: string | null;
+}

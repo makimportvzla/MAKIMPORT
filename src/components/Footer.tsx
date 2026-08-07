@@ -51,6 +51,21 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAuth }) => {
                 <a href="#importacion" className="hover:text-orange-400 transition-colors">Calculadora de Flete Marítimo</a>
               </li>
               <li>
+                <a href="/alquiler" className="hover:text-orange-400 transition-colors">Alquiler de Equipos</a>
+              </li>
+              <li>
+                <a href="/servicios" className="hover:text-orange-400 transition-colors flex items-center gap-1">
+                  <span>Postular como Proveedor</span>
+                  <span className="text-[9px] bg-orange-600/80 text-white px-1 py-0.5 rounded font-bold leading-none">NUEVO</span>
+                </a>
+              </li>
+              <li>
+                <a href="/cotizacion-obra" className="hover:text-orange-400 transition-colors flex items-center gap-1">
+                  <span>Cotizar Obra o Proyecto</span>
+                  <span className="text-[9px] bg-orange-600/80 text-white px-1 py-0.5 rounded font-bold leading-none">NUEVO</span>
+                </a>
+              </li>
+              <li>
                 <button onClick={() => onOpenAuth('register')} className="hover:text-orange-400 transition-colors text-left">
                   Registro de Empresa / RIF
                 </button>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Logo } from './Logo';
-import { User, Menu, X, Ship, Send, Instagram, Mail, Plus, LayoutDashboard, LogOut, ChevronDown, MessageCircle } from 'lucide-react';
+import { User, Menu, X, Ship, Send, Instagram, Mail, Plus, LayoutDashboard, LogOut, ChevronDown, MessageCircle, Wrench, HardHat } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
@@ -20,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [contactDropdownOpen, setContactDropdownOpen] = useState(false);
+  const [serviciosDropdownOpen, setServiciosDropdownOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,12 +35,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     const handleClickOutside = () => {
       setUserDropdownOpen(false);
       setContactDropdownOpen(false);
+      setServiciosDropdownOpen(false);
     };
-    if (userDropdownOpen || contactDropdownOpen) {
+    if (userDropdownOpen || contactDropdownOpen || serviciosDropdownOpen) {
       document.addEventListener('click', handleClickOutside);
     }
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [userDropdownOpen, contactDropdownOpen]);
+  }, [userDropdownOpen, contactDropdownOpen, serviciosDropdownOpen]);
 
   const displayName = profile?.nombre_completo || user?.email?.split('@')[0] || 'Usuario';
   const isAdmin = userRole === 'admin';
@@ -142,6 +144,48 @@ export const Navbar: React.FC<NavbarProps> = ({
             <a href="#importacion" className="hover:text-orange-400 transition-colors py-1 border-b-2 border-transparent hover:border-orange-500/50">
               Calculadora Logística
             </a>
+
+            {/* Servicios & Proyectos Dropdown */}
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setServiciosDropdownOpen(!serviciosDropdownOpen); }}
+                className="hover:text-orange-400 transition-colors py-1 border-b-2 border-transparent hover:border-orange-500/50 flex items-center gap-1.5 focus:outline-none"
+              >
+                <span>Servicios y Proyectos</span>
+                <span className="text-[10px] bg-orange-600/80 text-white px-1.5 py-0.5 rounded font-bold">NUEVO</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${serviciosDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {serviciosDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-60 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="p-2 border-b border-slate-800 bg-slate-950/40 text-[10px] uppercase font-bold text-slate-500 tracking-wider px-3 py-1.5">
+                    Para Proveedores y Clientes
+                  </div>
+                  <Link
+                    href="/servicios"
+                    onClick={() => setServiciosDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-3 text-xs text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
+                  >
+                    <Wrench className="w-4 h-4 text-orange-400" />
+                    <div className="flex flex-col">
+                      <span className="font-bold">Postular como Proveedor</span>
+                      <span className="text-[10px] text-slate-500">Mecánico, transporte, repuestos...</span>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/cotizacion-obra"
+                    onClick={() => setServiciosDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-3 text-xs text-slate-200 hover:bg-slate-800 hover:text-white transition-colors border-t border-slate-800/80"
+                  >
+                    <HardHat className="w-4 h-4 text-amber-400" />
+                    <div className="flex flex-col">
+                      <span className="font-bold">Cotizar Obra o Proyecto</span>
+                      <span className="text-[10px] text-slate-500">Movimiento de tierras, demolición...</span>
+                    </div>
+                  </Link>
+                </div>
+              )}
+            </div>
 
             {/* Atención Personalizada Dropdown */}
             <div className="relative">
@@ -360,6 +404,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] bg-emerald-600/80 text-white px-1.5 py-0.5 rounded font-bold">NUEVO</span>
                 Postular mi Equipo
               </Link>
+
+              {/* Servicios & Proyectos — mobile */}
+              <div className="border-b border-slate-800/50 py-2.5 space-y-1">
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1 flex items-center gap-1">
+                  <span className="text-[9px] bg-orange-600/80 text-white px-1.5 py-0.5 rounded font-bold">NUEVO</span>
+                  Servicios y Proyectos
+                </span>
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  <Link
+                    href="/servicios"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 py-2.5 px-3 bg-orange-950/20 hover:bg-orange-950/40 border border-orange-900/30 text-orange-300 text-xs font-bold rounded-xl transition-all"
+                  >
+                    <Wrench className="w-4 h-4 text-orange-400 shrink-0" />
+                    <div>
+                      <span className="block">Postular como Proveedor</span>
+                      <span className="text-[10px] text-slate-500 font-normal">Mecánico, transporte, repuestos...</span>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/cotizacion-obra"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 py-2.5 px-3 bg-amber-950/20 hover:bg-amber-950/40 border border-amber-900/30 text-amber-300 text-xs font-bold rounded-xl transition-all"
+                  >
+                    <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <span className="block">Cotizar Obra o Proyecto</span>
+                      <span className="text-[10px] text-slate-500 font-normal">Movimiento de tierras, demolición...</span>
+                    </div>
+                  </Link>
+                </div>
+              </div>
 
               {/* Mobile: Atención Personalizada Section */}
               <div className="border-b border-slate-800/50 py-2.5 space-y-1">
