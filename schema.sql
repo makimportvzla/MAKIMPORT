@@ -210,3 +210,67 @@ ALTER TABLE public.machinery
 
 COMMENT ON COLUMN public.machinery.inspeccion_cauchos IS
   'Puntuación técnica de neumáticos/cauchos del equipo (0-100). NULL indica que no aplica (ej. maquinaria de orugas).';
+
+-- ============================================================
+-- 6. TABLA DE POSTULACIONES DE EQUIPOS (MARKETPLACE / VENTA)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.postulaciones_equipos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Datos del Cliente
+  nombre_cliente TEXT NOT NULL,
+  apellido_cliente TEXT NOT NULL,
+  cedula_rif_cliente TEXT NOT NULL,
+  telefono_cliente TEXT NOT NULL,
+  
+  -- Datos del Equipo
+  marca TEXT NOT NULL,
+  modelo TEXT NOT NULL,
+  ano INTEGER NOT NULL,
+  condicion TEXT NOT NULL, -- 'Operativa' | 'Detalles'
+  
+  -- Especificaciones
+  uso_valor INTEGER NOT NULL DEFAULT 0,
+  uso_unidad TEXT NOT NULL DEFAULT 'Horas', -- 'Horas' | 'Kilómetros' | 'Millas'
+  
+  -- Logística y Precio
+  ciudad_venezuela TEXT NOT NULL,
+  precio_estimado NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  
+  -- Archivos (urls de fotos en supabase storage)
+  fotos_urls TEXT[] NOT NULL DEFAULT '{}',
+  
+  -- Admin / Control
+  estado TEXT NOT NULL DEFAULT 'Pendiente de Revisión', -- 'Pendiente de Revisión' | 'Aprobado' | 'Rechazado'
+  
+  creado_por UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- HABILITAR RLS
+ALTER TABLE public.postulaciones_equipos ENABLE ROW LEVEL SECURITY;
+
+-- POLÍTICAS
+CREATE POLICY "Cualquiera puede insertar postulaciones de equipos" ON public.postulaciones_equipos
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Visibilidad de postulaciones de equipos" ON public.postulaciones_equipos
+  FOR SELECT USING (
+    creado_por = auth.uid() OR
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+CREATE POLICY "Admin puede actualizar postulaciones de equipos" ON public.postulaciones_equipos
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- HABILITAR REALTIME
+ALTER PUBLICATION supabase_realtime ADD TABLE public.postulaciones_equipos;
+

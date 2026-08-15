@@ -1,12 +1,13 @@
 import React from 'react';
-import { ShieldCheck, Ship, Gavel, CreditCard, Award, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Ship, Gavel, CreditCard, Award, CheckCircle2, ArrowRight, Tag } from 'lucide-react';
 
 interface BenefitsProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
   onOpenCustomRequest?: () => void;
+  onOpenPostularEquipo?: () => void;
 }
 
-export const Benefits: React.FC<BenefitsProps> = ({ onOpenAuth, onOpenCustomRequest }) => {
+export const Benefits: React.FC<BenefitsProps> = ({ onOpenAuth, onOpenCustomRequest, onOpenPostularEquipo }) => {
   const benefitsList = [
     {
       icon: ShieldCheck,
@@ -102,7 +103,7 @@ export const Benefits: React.FC<BenefitsProps> = ({ onOpenAuth, onOpenCustomRequ
           })}
         </div>
 
-        {/* Trust Banner Callout */}
+        {/* Trust Banner 1: Corporativo / Importación */}
         <div className="mt-14 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-orange-600/20 border border-orange-500/40 flex items-center justify-center shrink-0">
@@ -122,6 +123,29 @@ export const Benefits: React.FC<BenefitsProps> = ({ onOpenAuth, onOpenCustomRequ
           >
             <span>Solicitar Cotización Corporativa</span>
             <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Trust Banner 2: Publica tu equipo */}
+        <div className="mt-5 bg-gradient-to-r from-amber-950/30 via-slate-900 to-amber-950/30 border border-amber-700/30 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-amber-600/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+              <Tag className="w-8 h-8 text-amber-400" />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-white">¿Tienes maquinaria pesada que deseas vender?</h4>
+              <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
+                Publica tu equipo en nuestro catálogo y conéctate con miles de compradores industriales en Venezuela. Sin comisiones al postular.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onOpenPostularEquipo?.()}
+            className="shrink-0 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-sm rounded-xl flex items-center gap-2 shadow-lg shadow-amber-950 transition-all"
+          >
+            <Tag className="w-4 h-4" />
+            <span>Publica tu Equipo con Nosotros</span>
           </button>
         </div>
 

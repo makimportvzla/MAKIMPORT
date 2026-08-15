@@ -139,3 +139,24 @@ export interface ProjectQuoteDbRow {
   status: 'received' | 'in_review' | 'quoted' | 'archived';
   user_id: string | null;
 }
+
+export interface PostulacionEquipoDbRow {
+  id: string;
+  created_at: string;
+  nombre_cliente: string;
+  apellido_cliente: string;
+  cedula_rif_cliente: string;
+  telefono_cliente: string;
+  marca: string;
+  modelo: string;
+  ano: number;
+  condicion: string;
+  uso_valor: number;
+  uso_unidad: string;
+  ciudad_venezuela: string;
+  precio_estimado: number;
+  fotos_urls: string[];
+  estado: string;
+  creado_por: string | null;
+}
+

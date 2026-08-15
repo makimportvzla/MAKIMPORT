@@ -11,6 +11,7 @@ import { AuthModal } from '@/components/AuthModal';
 import { AdminPublishModal } from '@/components/AdminPublishModal';
 import { FloatingContactButtons } from '@/components/FloatingContactButtons';
 import { CustomRequestModal } from '@/components/CustomRequestModal';
+import { PostularEquipoModal } from '@/components/PostularEquipoModal';
 import { useAuth } from '@/context/AuthContext';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { OnboardingModal } from '@/components/OnboardingModal';
@@ -21,6 +22,7 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [adminPublishOpen, setAdminPublishOpen] = useState(false);
   const [customRequestOpen, setCustomRequestOpen] = useState(false);
+  const [postularEquipoOpen, setPostularEquipoOpen] = useState(false);
 
   const [activeFilters, setActiveFilters] = useState<{ brand: string; type: string; origin: string; transaction: string } | undefined>(undefined);
 
@@ -61,6 +63,7 @@ export default function Home() {
       <Benefits
         onOpenAuth={handleOpenAuth}
         onOpenCustomRequest={() => setCustomRequestOpen(true)}
+        onOpenPostularEquipo={() => setPostularEquipoOpen(true)}
       />
 
       {/* Complete Marketplace Catalog Section & Live Bidding with Supabase */}
@@ -98,6 +101,12 @@ export default function Home() {
       <CustomRequestModal
         isOpen={customRequestOpen}
         onClose={() => setCustomRequestOpen(false)}
+      />
+
+      {/* Postular Equipo Modal — Para propietarios que quieren vender */}
+      <PostularEquipoModal
+        isOpen={postularEquipoOpen}
+        onClose={() => setPostularEquipoOpen(false)}
       />
 
       {/* Floating Telegram & WhatsApp Contact Buttons */}

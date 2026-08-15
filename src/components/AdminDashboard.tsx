@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
-import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle, Copy, X, ChevronLeft, ChevronRight, HardHat } from 'lucide-react';
+import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle, Copy, X, ChevronLeft, ChevronRight, HardHat, Tag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
@@ -196,11 +196,11 @@ interface OwnerMachinery {
 }
 
 interface AdminDashboardProps {
-  initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications';
+  initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications' | 'machineryPostulations';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'inventory' }) => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications' | 'machineryPostulations'>(initialTab);
   const [machines, setMachines] = useState<MachineryItem[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
@@ -209,6 +209,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [loadingCustom, setLoadingCustom] = useState(false);
   const [projectQuotes, setProjectQuotes] = useState<any[]>([]);
   const [serviceApplications, setServiceApplications] = useState<any[]>([]);
+  const [machineryPostulations, setMachineryPostulations] = useState<any[]>([]);
+  const [loadingPostulations, setLoadingPostulations] = useState(false);
   
   // Rental requests state
   const [rentalRequests, setRentalRequests] = useState<RentalRequest[]>([]);
@@ -531,6 +533,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     }
   };
 
+  const fetchMachineryPostulations = async () => {
+    setLoadingPostulations(true);
+    try {
+      const { data, error } = await supabase
+        .from('postulaciones_equipos')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setMachineryPostulations(data);
+      }
+    } catch (err) {
+      console.warn('[AdminDashboard] Could not fetch postulaciones_equipos:', err);
+    } finally {
+      setLoadingPostulations(false);
+    }
+  };
+
   const handleUpdateProjectQuoteStatus = async (id: string, status: string) => {
     try {
       const { error } = await supabase.from('project_quotes').update({ status }).eq('id', id);
@@ -580,6 +599,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     fetchOwnerMachinery();
     fetchProjectQuotes();
     fetchServiceApplications();
+    fetchMachineryPostulations();
   }, []);
 
   useEffect(() => {
@@ -588,6 +608,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     if (activeTab === 'alquileres')  { fetchRentalRequests(); fetchOwnerMachinery(); }
     if (activeTab === 'projectQuotes') fetchProjectQuotes();
     if (activeTab === 'serviceApplications') fetchServiceApplications();
+    if (activeTab === 'machineryPostulations') fetchMachineryPostulations();
   }, [activeTab]);
 
   // Realtime: auto-refresh when new requests are inserted
@@ -634,6 +655,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
       })
       .subscribe();
 
+    const postulacionesCh = supabase
+      .channel('admin-postulaciones-equipos')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'postulaciones_equipos' }, () => {
+        fetchMachineryPostulations();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(purchaseCh);
       supabase.removeChannel(customCh);
@@ -641,6 +669,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
       supabase.removeChannel(ownerCh);
       supabase.removeChannel(quotesCh);
       supabase.removeChannel(servicesCh);
+      supabase.removeChannel(postulacionesCh);
     };
   }, []);
 
@@ -852,7 +881,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         </div>
 
         {/* Tab Controls — responsive grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-9 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-10 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold">
           <button
             onClick={() => setActiveTab('inventory')}
             className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
@@ -982,6 +1011,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               Postulaciones
               {serviceApplications.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 bg-orange-700 rounded-full text-[10px]">{serviceApplications.length}</span>
+              )}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('machineryPostulations')}
+            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'machineryPostulations'
+                ? 'bg-amber-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Tag className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              Equipos a Vender
+              {machineryPostulations.filter(p => p.estado === 'Pendiente de Revisión').length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-amber-700 rounded-full text-[10px]">{machineryPostulations.filter(p => p.estado === 'Pendiente de Revisión').length}</span>
               )}
             </span>
           </button>
@@ -3014,6 +3060,149 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       <p className="text-[10px] text-slate-600 text-right">Registrado el {new Date(selectedServiceApp.created_at).toLocaleDateString('es-VE')}</p>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── TAB 10: REVISIÓN DE EQUIPOS PARA VENTA ── */}
+        {activeTab === 'machineryPostulations' && (() => {
+          const pendingCount = machineryPostulations.filter(p => p.estado === 'Pendiente de Revisión').length;
+          return (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center">
+                      <Tag className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-extrabold text-white">Revisión de Equipos para Publicar en Catálogo</h2>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Vista de solo lectura · {machineryPostulations.length} total · <span className="text-amber-400 font-bold">{pendingCount} pendientes</span></p>
+                    </div>
+                  </div>
+                  <button onClick={fetchMachineryPostulations} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition-colors">
+                    <RefreshCw className="w-3.5 h-3.5" /> Actualizar
+                  </button>
+                </div>
+              </div>
+
+              {loadingPostulations ? (
+                <div className="text-center py-16 text-slate-500 text-xs">Cargando postulaciones...</div>
+              ) : machineryPostulations.length === 0 ? (
+                <div className="text-center py-16 text-slate-500 text-xs">
+                  <Tag className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <p>Aún no hay postulaciones de equipos para venta.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {machineryPostulations.map((p) => (
+                    <div key={p.id} className="bg-slate-900 border border-slate-800 hover:border-amber-500/30 rounded-2xl p-5 transition-all">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        {/* Left: Info */}
+                        <div className="flex-1 min-w-0">
+                          {/* Status Badge */}
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
+                            <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                              p.estado === 'Pendiente de Revisión'
+                                ? 'bg-amber-950/60 border border-amber-600/50 text-amber-300'
+                                : p.estado === 'Aprobado'
+                                ? 'bg-emerald-950/60 border border-emerald-600/50 text-emerald-300'
+                                : 'bg-red-950/60 border border-red-600/50 text-red-300'
+                            }`}>
+                              {p.estado}
+                            </span>
+                            <span className="text-[10px] text-slate-500">
+                              Recibida el {new Date(p.created_at).toLocaleDateString('es-VE')}
+                            </span>
+                          </div>
+
+                          {/* Equipment Title */}
+                          <h3 className="text-sm font-extrabold text-white mb-1">
+                            {p.marca} {p.modelo} — Año {p.ano}
+                          </h3>
+
+                          {/* Specs Grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-3 text-xs">
+                            <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Condición</p>
+                              <p className="text-slate-200 font-semibold">{p.condicion}</p>
+                            </div>
+                            <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Uso</p>
+                              <p className="text-slate-200 font-semibold font-mono">{(p.uso_valor || 0).toLocaleString()} {p.uso_unidad}</p>
+                            </div>
+                            <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Ciudad / Estado</p>
+                              <p className="text-slate-200 font-semibold">{p.ciudad_venezuela}</p>
+                            </div>
+                            <div className="bg-slate-950 border border-emerald-800/40 rounded-lg p-2.5">
+                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Precio Estimado</p>
+                              <p className="text-emerald-300 font-extrabold font-mono">${Number(p.precio_estimado || 0).toLocaleString()} USD</p>
+                            </div>
+                          </div>
+
+                          {/* Client Data */}
+                          <div className="mt-3 bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="text-slate-300 font-bold">{p.nombre_cliente} {p.apellido_cliente}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="text-slate-400">Cédula/RIF: <span className="text-slate-200 font-mono">{p.cedula_rif_cliente}</span></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <a
+                                href={`https://wa.me/${p.telefono_cliente.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-emerald-400 hover:text-emerald-300 font-mono font-bold transition-colors"
+                              >
+                                {p.telefono_cliente}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Photo Gallery */}
+                        {Array.isArray(p.fotos_urls) && p.fotos_urls.length > 0 && (
+                          <div className="shrink-0">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1.5">Fotos ({p.fotos_urls.length})</p>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {p.fotos_urls.slice(0, 6).map((url: string, idx: number) => (
+                                <div
+                                  key={idx}
+                                  className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer group"
+                                  onClick={() => setLightbox({ photos: p.fotos_urls, idx })}
+                                >
+                                  <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                    <ExternalLink className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                  {idx === 0 && (
+                                    <span className="absolute bottom-0.5 left-0.5 bg-orange-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">Principal</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            {p.fotos_urls.length > 6 && (
+                              <p className="text-[10px] text-slate-500 mt-1">+{p.fotos_urls.length - 6} más</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action note */}
+                      <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center gap-2 text-[11px] text-slate-500">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                        <span>Si apruebas este equipo, cópialo manualmente usando &quot;Agregar Nueva Maquinaria&quot; en la pestaña de Inventario.</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
