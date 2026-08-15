@@ -863,7 +863,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                   }`}
                   title="Vista 3 Columnas (Compacta)"
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <Grid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
@@ -874,7 +874,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                   }`}
                   title="Vista Cuadrícula 2 Columnas"
                 >
-                  <Grid className="w-4 h-4" />
+                  <LayoutGrid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
@@ -1031,7 +1031,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
             ) : viewMode === 'grid' ? (
               
               /* GRID VIEW CARDS */
-              <div className="grid grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 gap-4 items-start">
                 {filteredAndSortedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
@@ -1056,7 +1056,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                     >
                       <div>
                         {/* Image Container with Hover thumbnail switch */}
-                        <div className="relative h-56 w-full overflow-hidden bg-slate-950">
+                        <div className="relative h-32 sm:h-40 w-full overflow-hidden bg-slate-950">
                           <img
                             src={item.images[0]}
                             alt={item.name}
