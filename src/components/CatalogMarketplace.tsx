@@ -679,52 +679,6 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
           </span>
         </div>
 
-        {/* ── CATEGORY HORIZONTAL SCROLL TABS ────────────────────────────── */}
-        <div className="relative mb-6">
-          {/* Fade gradient on the right edge to hint more tabs */}
-          <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-slate-950 to-transparent z-10" />
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {/* "Todos" tab */}
-            <button
-              onClick={() => setCategoryFilter('all')}
-              className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 border ${
-                categoryFilter === 'all'
-                  ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-950/40'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
-              }`}
-            >
-              Todos
-            </button>
-
-            {/* Dynamic category tabs from CATEGORIES constant */}
-            {CATEGORIES.filter((c) => c.value !== 'otros').map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() => setCategoryFilter(cat.value)}
-                className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 border whitespace-nowrap ${
-                  categoryFilter === cat.value
-                    ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-950/40'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-
-            {/* "Otros" at the end */}
-            <button
-              onClick={() => setCategoryFilter('otros')}
-              className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 border whitespace-nowrap ${
-                categoryFilter === 'otros'
-                  ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-950/40'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
-              }`}
-            >
-              Otros
-            </button>
-          </div>
-        </div>
-
         {/* Custom Request Banner */}
         <button
           onClick={() => onOpenCustomRequest ? onOpenCustomRequest() : setCustomRequestOpen(true)}
@@ -898,8 +852,19 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 </select>
               </div>
 
-              {/* Grid vs List View Toggle */}
+              {/* View Toggle: 3-col | 2-col | list */}
               <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-xl">
+                <button
+                  onClick={() => setViewMode('grid3')}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === 'grid3'
+                      ? 'bg-orange-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Vista 3 Columnas (Compacta)"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 rounded-lg transition-all ${
@@ -912,30 +877,59 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                   <Grid className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setViewMode('grid3')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'grid3'
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Vista Cuadrícula 3 Columnas"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button
                   onClick={() => setViewMode('list')}
                   className={`p-2 rounded-lg transition-all ${
                     viewMode === 'list'
                       ? 'bg-orange-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-white'
                   }`}
-                  title="Vista Lista / Horizontal"
+                  title="Vista Lista (Tarjeta Completa)"
                 >
                   <List className="w-4 h-4" />
                 </button>
               </div>
               </div>
 
+            </div>
+
+            {/* ── CATEGORY HORIZONTAL SCROLL TABS (above results) ─────────── */}
+            <div className="relative">
+              <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-slate-950 to-transparent z-10" />
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <button
+                  onClick={() => setCategoryFilter('all')}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all duration-200 border ${
+                    categoryFilter === 'all'
+                      ? 'bg-orange-600 border-orange-500 text-white shadow-md shadow-orange-950/40'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
+                  }`}
+                >
+                  Todos
+                </button>
+                {CATEGORIES.filter((c) => c.value !== 'otros').map((cat) => (
+                  <button
+                    key={cat.value}
+                    onClick={() => setCategoryFilter(cat.value)}
+                    className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all duration-200 border whitespace-nowrap ${
+                      categoryFilter === cat.value
+                        ? 'bg-orange-600 border-orange-500 text-white shadow-md shadow-orange-950/40'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCategoryFilter('otros')}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all duration-200 border whitespace-nowrap ${
+                    categoryFilter === 'otros'
+                      ? 'bg-orange-600 border-orange-500 text-white shadow-md shadow-orange-950/40'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
+                  }`}
+                >
+                  Otros
+                </button>
+              </div>
             </div>
 
             {/* MACHINERY ITEMS RESULTS GRID OR LIST */}
@@ -957,8 +951,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               </div>
             ) : viewMode === 'grid3' ? (
 
-              /* ─── 3-COLUMN COMPACT GRID VIEW ─── */
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              /* ─── 3-COLUMN COMPACT GRID (forced 3 cols on ALL screen sizes) ─── */
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
                 {filteredAndSortedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
@@ -980,61 +974,54 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                     <button
                       key={item.id}
                       onClick={() => setSelectedItem(item)}
-                      className={`group relative bg-slate-900/90 border rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl text-left flex flex-col ${
+                      className={`group relative bg-slate-900/90 border rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg text-left flex flex-col ${
                         g3Closed
                           ? 'border-red-900/40 hover:border-red-700/40 opacity-80'
                           : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
                       }`}
                     >
-                      {/* Image */}
-                      <div className="relative w-full h-32 sm:h-40 overflow-hidden bg-slate-950 shrink-0">
+                      {/* Image — fixed compact height, no breakpoint overrides */}
+                      <div className="relative w-full overflow-hidden bg-slate-950 shrink-0" style={{ height: '90px' }}>
                         <img
                           src={item.images[0]}
                           alt={item.name}
                           className={`w-full h-full object-cover transition-transform duration-500 ${g3Closed ? 'grayscale-[30%]' : 'group-hover:scale-110'}`}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-70" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
 
-                        {/* Status chip */}
-                        <div className="absolute top-2 left-2">
+                        {/* Status chip — ultra compact */}
+                        <div className="absolute top-1 left-1">
                           {g3Closed ? (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-red-900/95 border border-red-700/60 text-red-200 text-[9px] font-extrabold uppercase tracking-wide">
-                              <X className="w-2.5 h-2.5" />
+                            <span className="inline-flex items-center px-1 py-0.5 rounded bg-red-900/95 text-red-200 text-[8px] font-extrabold uppercase">
                               Cerrada
                             </span>
                           ) : isAuction ? (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-orange-600/95 text-white text-[9px] font-extrabold uppercase tracking-wide">
-                              <Gavel className="w-2.5 h-2.5 animate-pulse" />
+                            <span className="inline-flex items-center px-1 py-0.5 rounded bg-orange-600/95 text-white text-[8px] font-extrabold uppercase">
                               Subasta
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-600/95 text-white text-[9px] font-extrabold uppercase tracking-wide">
-                              <CheckCircle2 className="w-2.5 h-2.5" />
+                            <span className="inline-flex items-center px-1 py-0.5 rounded bg-emerald-600/95 text-white text-[8px] font-extrabold uppercase">
                               Compra
                             </span>
                           )}
                         </div>
 
-                        {/* Star/fav button */}
+                        {/* Fav star */}
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all z-10"
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-950/80 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all z-10"
                         >
-                          <Star className={`w-3 h-3 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          <Star className={`w-2.5 h-2.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
                         </button>
                       </div>
 
-                      {/* Content */}
-                      <div className="p-2.5 flex flex-col flex-1 gap-1">
-                        <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide truncate">{item.brand}</p>
-                        <h3 className="text-xs font-extrabold text-white group-hover:text-orange-400 transition-colors leading-tight line-clamp-2">{item.name}</h3>
-                        <div className="mt-auto pt-1.5 flex items-center justify-between gap-1">
-                          <span className={`text-sm font-black font-mono ${ g3Closed ? 'text-red-400' : 'text-amber-400' }`}>
-                            ${displayPrice.toLocaleString()}
-                          </span>
-                          <span className="text-[9px] text-slate-500 font-medium">USD</span>
-                        </div>
+                      {/* Content — ultra compact */}
+                      <div className="p-1.5 flex flex-col flex-1 gap-0.5">
+                        <h3 className="text-[10px] font-extrabold text-white group-hover:text-orange-400 transition-colors leading-tight line-clamp-2">{item.name}</h3>
+                        <span className={`text-[11px] font-black font-mono ${ g3Closed ? 'text-red-400' : 'text-amber-400' }`}>
+                          ${displayPrice.toLocaleString()}
+                        </span>
                       </div>
                     </button>
                   );
