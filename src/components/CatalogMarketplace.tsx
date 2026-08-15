@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { MachineryDetailModal } from './MachineryDetailModal';
-import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench, Star } from 'lucide-react';
+import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, LayoutGrid, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench, Star } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CustomRequestModal } from './CustomRequestModal';
 import { CATEGORIES, BRANDS, PREDEFINED_CATEGORY_VALUES as PREDEFINED_CATEGORIES, PREDEFINED_BRAND_VALUES as PREDEFINED_BRANDS } from '@/constants/machineryOptions';
@@ -232,7 +232,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   const [selectedItem, setSelectedItem] = useState<MachineryItem | null>(null);
   
   // UI Display Mode: 'grid' vs 'list'
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'grid3' | 'list'>('grid');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Filter States (Simplified to Category, Brand, Model, Year)
@@ -670,13 +670,59 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         </div>
 
         {/* Catalog Header Information */}
-        <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-800/50">
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800/50">
           <span className="text-xs text-slate-400 font-medium">
             Explore nuestro inventario completo de maquinaria disponible para compra inmediata y subastas.
           </span>
           <span className="text-xs text-slate-500 font-medium">
             Total: <strong className="text-slate-300 font-extrabold">{filteredAndSortedItems.length}</strong> equipos
           </span>
+        </div>
+
+        {/* ── CATEGORY HORIZONTAL SCROLL TABS ────────────────────────────── */}
+        <div className="relative mb-6">
+          {/* Fade gradient on the right edge to hint more tabs */}
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-slate-950 to-transparent z-10" />
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* "Todos" tab */}
+            <button
+              onClick={() => setCategoryFilter('all')}
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 border ${
+                categoryFilter === 'all'
+                  ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-950/40'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
+              }`}
+            >
+              Todos
+            </button>
+
+            {/* Dynamic category tabs from CATEGORIES constant */}
+            {CATEGORIES.filter((c) => c.value !== 'otros').map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setCategoryFilter(cat.value)}
+                className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 border whitespace-nowrap ${
+                  categoryFilter === cat.value
+                    ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-950/40'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+
+            {/* "Otros" at the end */}
+            <button
+              onClick={() => setCategoryFilter('otros')}
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 border whitespace-nowrap ${
+                categoryFilter === 'otros'
+                  ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-950/40'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
+              }`}
+            >
+              Otros
+            </button>
+          </div>
         </div>
 
         {/* Custom Request Banner */}
@@ -861,9 +907,20 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                       ? 'bg-orange-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-white'
                   }`}
-                  title="Vista Cuadrícula / Grid"
+                  title="Vista Cuadrícula 2 Columnas"
                 >
                   <Grid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('grid3')}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === 'grid3'
+                      ? 'bg-orange-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Vista Cuadrícula 3 Columnas"
+                >
+                  <LayoutGrid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
@@ -898,6 +955,92 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                   Restablecer Filtros
                 </button>
               </div>
+            ) : viewMode === 'grid3' ? (
+
+              /* ─── 3-COLUMN COMPACT GRID VIEW ─── */
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {filteredAndSortedItems.map((item) => {
+                  const isAuction = item.status === 'auction';
+                  const timerStr = timeLeftMap[item.id] || 'Cargando...';
+                  let g3EndDate: Date | null = null;
+                  if (item.auctionEndsAt) {
+                    try { g3EndDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt); } catch { g3EndDate = null; }
+                  }
+                  const g3WasAuction = !!item.auctionEndsAt;
+                  const g3Expired = g3WasAuction && g3EndDate && !isNaN(g3EndDate.getTime()) && g3EndDate.getTime() <= Date.now();
+                  const g3TimerFin = timerStr === 'Finalizada';
+                  const g3Closed = g3WasAuction && (g3Expired || g3TimerFin);
+                  const displayPrice = g3Closed
+                    ? (item.currentBid || 0)
+                    : isAuction
+                    ? (item.currentBid || item.price)
+                    : item.price;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className={`group relative bg-slate-900/90 border rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl text-left flex flex-col ${
+                        g3Closed
+                          ? 'border-red-900/40 hover:border-red-700/40 opacity-80'
+                          : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
+                      }`}
+                    >
+                      {/* Image */}
+                      <div className="relative w-full h-32 sm:h-40 overflow-hidden bg-slate-950 shrink-0">
+                        <img
+                          src={item.images[0]}
+                          alt={item.name}
+                          className={`w-full h-full object-cover transition-transform duration-500 ${g3Closed ? 'grayscale-[30%]' : 'group-hover:scale-110'}`}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-70" />
+
+                        {/* Status chip */}
+                        <div className="absolute top-2 left-2">
+                          {g3Closed ? (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-red-900/95 border border-red-700/60 text-red-200 text-[9px] font-extrabold uppercase tracking-wide">
+                              <X className="w-2.5 h-2.5" />
+                              Cerrada
+                            </span>
+                          ) : isAuction ? (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-orange-600/95 text-white text-[9px] font-extrabold uppercase tracking-wide">
+                              <Gavel className="w-2.5 h-2.5 animate-pulse" />
+                              Subasta
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-600/95 text-white text-[9px] font-extrabold uppercase tracking-wide">
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              Compra
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Star/fav button */}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all z-10"
+                        >
+                          <Star className={`w-3 h-3 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                        </button>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-2.5 flex flex-col flex-1 gap-1">
+                        <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide truncate">{item.brand}</p>
+                        <h3 className="text-xs font-extrabold text-white group-hover:text-orange-400 transition-colors leading-tight line-clamp-2">{item.name}</h3>
+                        <div className="mt-auto pt-1.5 flex items-center justify-between gap-1">
+                          <span className={`text-sm font-black font-mono ${ g3Closed ? 'text-red-400' : 'text-amber-400' }`}>
+                            ${displayPrice.toLocaleString()}
+                          </span>
+                          <span className="text-[9px] text-slate-500 font-medium">USD</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
             ) : viewMode === 'grid' ? (
               
               /* GRID VIEW CARDS */

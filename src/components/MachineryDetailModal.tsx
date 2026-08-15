@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Download, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, CreditCard, MessageCircle } from 'lucide-react';
+import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Download, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, CreditCard, MessageCircle, ZoomIn, Minimize2 } from 'lucide-react';
 import { MachineryItem, BidRecord } from '@/types/machinery';
 import { supabase } from '@/lib/supabase';
 import { PurchaseRequestModal } from './PurchaseRequestModal';
@@ -29,6 +29,14 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showContactDataModal, setShowContactDataModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'bid' | 'purchase' | null>(null);
+
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [lightboxPos, setLightboxPos] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   // Bidding states
   const [bidAmount, setBidAmount] = useState<number>(0);
@@ -439,10 +447,24 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
               <img
                 src={item.images[selectedImageIndex] || item.images[0]}
                 alt={item.name}
-                className="w-full h-full object-cover transition-all duration-300"
+                onClick={() => {
+                  setLightboxIndex(selectedImageIndex);
+                  setLightboxZoom(1);
+                  setLightboxPos({ x: 0, y: 0 });
+                  setLightboxOpen(true);
+                }}
+                className="w-full h-full object-cover transition-all duration-300 cursor-zoom-in"
               />
               
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none"></div>
+
+              {/* Zoom hint overlay */}
+              <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-slate-300 text-[10px] font-bold">
+                  <ZoomIn className="w-3 h-3 text-orange-400" />
+                  Clic para ampliar
+                </span>
+              </div>
 
               {/* Status Badges */}
               <div className="absolute top-4 left-4 flex flex-wrap gap-2">
@@ -501,10 +523,20 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 {item.images.map((imgUrl, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setSelectedImageIndex(idx)}
+                    onClick={() => {
+                      setSelectedImageIndex(idx);
+                      setLightboxIndex(idx);
+                    }}
+                    onDoubleClick={() => {
+                      setLightboxIndex(idx);
+                      setLightboxZoom(1);
+                      setLightboxPos({ x: 0, y: 0 });
+                      setLightboxOpen(true);
+                    }}
                     className={`relative w-20 h-16 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
                       selectedImageIndex === idx ? 'border-orange-500 scale-105' : 'border-slate-800 opacity-60 hover:opacity-100'
                     }`}
+                    title="Clic para seleccionar • Doble clic para ampliar"
                   >
                     <img src={imgUrl} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
                   </button>
@@ -933,6 +965,168 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
         </div>
 
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          FULLSCREEN IMAGE LIGHTBOX
+      ═══════════════════════════════════════════════════════════════════ */}
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={(e) => {
+            // Close when clicking the dark background (not the image)
+            if (e.target === e.currentTarget) {
+              setLightboxOpen(false);
+              setLightboxZoom(1);
+              setLightboxPos({ x: 0, y: 0 });
+            }
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => {
+              setLightboxOpen(false);
+              setLightboxZoom(1);
+              setLightboxPos({ x: 0, y: 0 });
+            }}
+            className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-slate-900/90 border border-slate-700 text-white hover:bg-orange-600 hover:border-orange-500 transition-all shadow-xl"
+            title="Cerrar (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Zoom controls */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+            <button
+              onClick={() => { setLightboxZoom(1); setLightboxPos({ x: 0, y: 0 }); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                lightboxZoom === 1
+                  ? 'bg-slate-800 border-slate-700 text-slate-400'
+                  : 'bg-orange-600 border-orange-500 text-white shadow-lg cursor-pointer hover:bg-orange-500'
+              }`}
+              title="Restablecer zoom"
+            >
+              <Minimize2 className="w-3.5 h-3.5 inline mr-1" />
+              {lightboxZoom === 1 ? '1x' : `${lightboxZoom.toFixed(1)}x — Clic para resetear`}
+            </button>
+            <span className="text-[10px] text-slate-500 hidden sm:block">
+              Doble clic • Rueda del mouse para zoom
+            </span>
+          </div>
+
+          {/* Image counter */}
+          {item.images.length > 1 && (
+            <div className="absolute top-4 right-16 z-10 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-700 text-xs font-bold text-slate-300">
+              {lightboxIndex + 1} / {item.images.length}
+            </div>
+          )}
+
+          {/* Left arrow */}
+          {item.images.length > 1 && (
+            <button
+              onClick={() => {
+                const prev = lightboxIndex > 0 ? lightboxIndex - 1 : item.images.length - 1;
+                setLightboxIndex(prev);
+                setSelectedImageIndex(prev);
+                setLightboxZoom(1);
+                setLightboxPos({ x: 0, y: 0 });
+              }}
+              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-slate-900/80 border border-slate-700 text-white hover:bg-orange-600 hover:border-orange-500 transition-all shadow-xl"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          )}
+
+          {/* Right arrow */}
+          {item.images.length > 1 && (
+            <button
+              onClick={() => {
+                const next = lightboxIndex < item.images.length - 1 ? lightboxIndex + 1 : 0;
+                setLightboxIndex(next);
+                setSelectedImageIndex(next);
+                setLightboxZoom(1);
+                setLightboxPos({ x: 0, y: 0 });
+              }}
+              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-slate-900/80 border border-slate-700 text-white hover:bg-orange-600 hover:border-orange-500 transition-all shadow-xl"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          )}
+
+          {/* Main zoomable image */}
+          <div
+            className="relative flex items-center justify-center w-full h-full px-14 sm:px-20"
+            style={{ cursor: lightboxZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in' }}
+            onWheel={(e) => {
+              e.preventDefault();
+              setLightboxZoom((prev) => {
+                const next = e.deltaY < 0 ? Math.min(prev + 0.3, 5) : Math.max(prev - 0.3, 1);
+                if (next === 1) setLightboxPos({ x: 0, y: 0 });
+                return next;
+              });
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (lightboxZoom > 1) {
+                setLightboxZoom(1);
+                setLightboxPos({ x: 0, y: 0 });
+              } else {
+                setLightboxZoom(2.5);
+              }
+            }}
+            onMouseDown={(e) => {
+              if (lightboxZoom > 1) {
+                setIsDragging(true);
+                setDragStart({ x: e.clientX - lightboxPos.x, y: e.clientY - lightboxPos.y });
+              }
+            }}
+            onMouseMove={(e) => {
+              if (isDragging && lightboxZoom > 1) {
+                setLightboxPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+              }
+            }}
+            onMouseUp={() => setIsDragging(false)}
+            onMouseLeave={() => setIsDragging(false)}
+          >
+            <img
+              src={item.images[lightboxIndex]}
+              alt={`${item.name} — imagen ${lightboxIndex + 1}`}
+              draggable={false}
+              style={{
+                transform: `scale(${lightboxZoom}) translate(${lightboxPos.x / lightboxZoom}px, ${lightboxPos.y / lightboxZoom}px)`,
+                transition: isDragging ? 'none' : 'transform 0.2s ease',
+                maxWidth: '100%',
+                maxHeight: '85vh',
+                objectFit: 'contain',
+                userSelect: 'none',
+              }}
+              className="rounded-xl shadow-2xl"
+            />
+          </div>
+
+          {/* Thumbnail strip at bottom */}
+          {item.images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl">
+              {item.images.map((imgUrl, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex(idx);
+                    setSelectedImageIndex(idx);
+                    setLightboxZoom(1);
+                    setLightboxPos({ x: 0, y: 0 });
+                  }}
+                  className={`w-10 h-8 rounded-md overflow-hidden border-2 shrink-0 transition-all ${
+                    lightboxIndex === idx ? 'border-orange-500 opacity-100' : 'border-transparent opacity-50 hover:opacity-80'
+                  }`}
+                >
+                  <img src={imgUrl} alt={`Miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* PDF Inspection Preview Modal */}
       {showPdfPreview && (
