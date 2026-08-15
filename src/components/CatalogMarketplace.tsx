@@ -952,7 +952,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
             ) : viewMode === 'grid3' ? (
 
               /* ─── 3-COLUMN COMPACT GRID (forced 3 cols on ALL screen sizes) ─── */
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
+              <div className="grid grid-cols-3 gap-2">
                 {filteredAndSortedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
@@ -1031,7 +1031,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
             ) : viewMode === 'grid' ? (
               
               /* GRID VIEW CARDS */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 gap-4 sm:gap-6">
                 {filteredAndSortedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
