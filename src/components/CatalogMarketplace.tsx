@@ -1044,19 +1044,25 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                   const isAuctionExpired = wasAuctionItem && cardEndDate && !isNaN(cardEndDate.getTime()) && cardEndDate.getTime() <= Date.now();
                   const isTimerFinalizada = timerStr === 'Finalizada';
                   const isClosed = wasAuctionItem && (isAuctionExpired || isTimerFinalizada);
+                  const displayPrice = isClosed
+                    ? (item.currentBid || 0)
+                    : isAuction
+                    ? (item.currentBid || item.price)
+                    : item.price;
 
                   return (
                     <div
                       key={item.id}
-                      className={`group bg-slate-900/90 border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl flex flex-col justify-between ${
+                      onClick={() => setSelectedItem(item)}
+                      className={`group bg-slate-900/90 border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between cursor-pointer ${
                         isClosed
                           ? 'border-red-900/40 hover:border-red-700/40 hover:shadow-red-950/20 opacity-80'
                           : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
                       }`}
                     >
                       <div>
-                        {/* Image Container with Hover thumbnail switch */}
-                        <div className="relative h-32 sm:h-40 w-full overflow-hidden bg-slate-950">
+                        {/* Image Container with square aspect ratio */}
+                        <div className="relative aspect-square w-full overflow-hidden bg-slate-950">
                           <img
                             src={item.images[0]}
                             alt={item.name}
@@ -1065,27 +1071,27 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
 
                           {/* Status Badge */}
-                          <div className="absolute top-3 left-3">
+                          <div className="absolute top-2 left-2">
                             {isClosed ? (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-900/95 border border-red-700/60 text-red-200 text-[11px] font-extrabold uppercase tracking-wider shadow-lg">
-                                <X className="w-3 h-3" />
-                                Subasta Finalizada
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-900/95 border border-red-700/60 text-red-200 text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                <X className="w-2.5 h-2.5" />
+                                Cerrada
                               </span>
                             ) : isAuction ? (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-600/95 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-lg">
-                                <Gavel className="w-3 h-3 animate-pulse" />
-                                Subasta Activa
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                <Gavel className="w-2.5 h-2.5 animate-pulse" />
+                                Subasta
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-600/95 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-lg">
-                                <CheckCircle2 className="w-3 h-3" />
-                                Compra Inmediata
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
+                                Compra
                               </span>
                             )}
                           </div>
 
                           {/* Origin Tag */}
-                          <div className="absolute top-3 right-14 px-2.5 py-1 rounded-md bg-slate-900/90 border border-slate-700 text-white text-xs font-bold z-10">
+                          <div className="absolute top-2 right-10 px-2 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-white text-[10px] font-bold z-10">
                             {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
                           </div>
 
@@ -1096,112 +1102,28 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                               e.stopPropagation();
                               toggleFavorite(item.id);
                             }}
-                            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95 z-10"
+                            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95 z-10"
                             title={isFavorite(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}
                           >
-                            <Star className={`w-4 h-4 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                            <Star className={`w-3.5 h-3.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
                           </button>
-
-                          {/* Timer bar: active auction shows countdown, closed shows ADJUDICADO */}
-                          {isAuction && (
-                            <div className={`absolute bottom-3 left-3 right-3 backdrop-blur-md border rounded-xl px-3 py-1.5 flex items-center justify-between text-xs ${
-                              isClosed
-                                ? 'bg-red-950/80 border-red-700/40'
-                                : 'bg-slate-950/90 border-orange-500/40'
-                            }`}>
-                              <span className={`font-medium flex items-center gap-1 ${isClosed ? 'text-red-300' : 'text-slate-300'}`}>
-                                <Clock className={`w-3.5 h-3.5 ${isClosed ? 'text-red-400' : 'text-orange-400 animate-spin'}`} style={isClosed ? {} : { animationDuration: '4s' }} />
-                                {isClosed ? 'Subasta cerrada' : 'Cierra en:'}
-                              </span>
-                              <span className={`font-mono font-extrabold tracking-wider ${isClosed ? 'text-red-400' : 'text-amber-400'}`}>
-                                {isClosed ? 'ADJUDICADA' : timerStr}
-                              </span>
-                            </div>
-                          )}
                         </div>
 
                         {/* Content */}
-                        <div className="p-5 space-y-4">
-                          <div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">
-                                {item.brand} • {item.category}
-                              </span>
-                              {item.ciudadVenezuela && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
-                                  <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                                  {item.ciudadVenezuela}
-                                </span>
-                              )}
-                            </div>
-                            <h3 className="text-xl font-extrabold text-white group-hover:text-orange-400 transition-colors mt-0.5">
-                              {item.name}
-                            </h3>
-                            <p className="text-xs text-slate-400 mt-1">
-                              {item.model}
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex items-center gap-2">
-                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                              <div>
-                                <span className="text-[10px] text-slate-500 block">Año</span>
-                                <span className="font-bold text-white">{item.year}</span>
-                              </div>
-                            </div>
-
-                            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex items-center gap-2">
-                              <Gauge className="w-3.5 h-3.5 text-slate-400" />
-                              <div>
-                                <span className="text-[10px] text-slate-500 block">Uso / Recorrido</span>
-                                <span className="font-bold text-white">{item.hours.toLocaleString()} {item.unidadUso || 'Horas'}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Footer Actions */}
-                      <div className="p-5 pt-0">
-                        <div className={`border rounded-xl p-3.5 flex items-center justify-between mb-4 ${
-                          isClosed ? 'bg-red-950/20 border-red-900/30' : 'bg-slate-950 border-slate-800/80'
-                        }`}>
-                          <div>
-                            <span className="text-[10px] text-slate-400 uppercase font-medium block">
-                              {isClosed ? `Monto Final Alcanzado (${item.bidsCount || 0} pujas):` : isAuction ? `Puja Actual (${item.bidsCount || 0} pujas):` : 'Precio Fijo:'}
-                            </span>
-                            <span className={`text-xl font-black font-mono ${ isClosed ? 'text-red-400' : 'text-amber-400' }`}>
-                              ${(
-                                isClosed
-                                  ? (item.currentBid || 0)                           // puja ganadora final
-                                  : isAuction
-                                  ? (item.currentBid || item.price)                  // puja actual
-                                  : item.price                                       // precio fijo
-                              ).toLocaleString()} USD
-                            </span>
-                          </div>
-
-                          <div className="text-right">
-                            <span className="text-[10px] text-emerald-400 font-bold block bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
-                              ✓ {item.inspectionScore}/100 PTS
+                        <div className="p-3 space-y-1">
+                          <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">
+                            {item.brand} • {item.category}
+                          </p>
+                          <h3 className="text-sm font-extrabold text-white group-hover:text-orange-400 transition-colors line-clamp-2">
+                            {item.name}
+                          </h3>
+                          <div className="pt-1">
+                            <span className={`text-base font-black font-mono ${ isClosed ? 'text-red-400' : 'text-amber-400' }`}>
+                              ${displayPrice.toLocaleString()} USD
                             </span>
                           </div>
                         </div>
-
-                        <button
-                          onClick={() => setSelectedItem(item)}
-                          className={`w-full py-3 px-4 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-colors ${
-                            isClosed
-                              ? 'bg-slate-700 hover:bg-slate-600 shadow-slate-950'
-                              : 'bg-orange-600 hover:bg-orange-500 shadow-orange-950'
-                          }`}
-                        >
-                          <span>{isClosed ? 'Ver Ficha / Historial' : isAuction ? 'Pujar en Vivo / Ver Ficha' : 'Ver Detalles & Comprar'}</span>
-                          <ArrowUpRight className="w-4 h-4" />
-                        </button>
                       </div>
-
                     </div>
                   );
                 })}
