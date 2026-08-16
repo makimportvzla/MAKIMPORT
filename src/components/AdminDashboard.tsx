@@ -257,6 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [appInspCabin, setAppInspCabin] = useState(85);
   const [appInspTires, setAppInspTires] = useState(85);
   const [appBadgePromocion, setAppBadgePromocion] = useState('');
+  const [appFinancingAvailable, setAppFinancingAvailable] = useState(false);
   const [approvingLoading, setApprovingLoading] = useState(false);
   const [expandedPostulationId, setExpandedPostulationId] = useState<string | null>(null);
 
@@ -3108,6 +3109,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             setAppInspCabin(85);
             setAppInspTires(85);
             setAppBadgePromocion('');
+            setAppFinancingAvailable(false);
           };
 
           const handleRejectPostulation = async (p: any) => {
@@ -3683,6 +3685,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                     />
                   </div>
                 </div>
+                {/* Checkbox financing */}
+                <div className="pt-2 border-t border-slate-800/40">
+                  <label className="flex items-center gap-2.5 cursor-pointer text-slate-300 font-bold">
+                    <input
+                      type="checkbox"
+                      checked={appFinancingAvailable}
+                      onChange={(e) => setAppFinancingAvailable(e.target.checked)}
+                      className="rounded border-slate-700 text-orange-600 focus:ring-orange-500 bg-slate-900 w-4 h-4"
+                    />
+                    <span className="text-[11px] text-white">¿Habilitar Opción de Financiamiento?</span>
+                  </label>
+                </div>
               </div>
 
             </div>
@@ -3731,6 +3745,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       inspeccion_cabina: appInspCabin,
                       inspeccion_cauchos: appInspTires,
                       badge_promocion: appBadgePromocion.trim() || null,
+                      financiamiento_disponible: appFinancingAvailable,
                     }).select();
 
                     if (insertErr) throw insertErr;

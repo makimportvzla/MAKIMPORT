@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { MachineryDetailModal } from './MachineryDetailModal';
-import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, LayoutGrid, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench, Star, Megaphone, ChevronLeft, Flame, AlertTriangle, Tag, Building2, Package, TrendingUp } from 'lucide-react';
+import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, LayoutGrid, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench, Star, Megaphone, ChevronLeft, Flame, AlertTriangle, Tag, Building2, Package, TrendingUp, Share2, Copy, MessageCircle, Send } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CustomRequestModal } from './CustomRequestModal';
 import { CATEGORIES, BRANDS, PREDEFINED_CATEGORY_VALUES as PREDEFINED_CATEGORIES, PREDEFINED_BRAND_VALUES as PREDEFINED_BRANDS } from '@/constants/machineryOptions';
@@ -299,6 +299,30 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
   const [favorites, setFavorites] = useState<string[]>([]);
 
+  // Share Modal States & logic
+  const [shareItem, setShareItem] = useState<MachineryItem | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleShare = async (item: MachineryItem) => {
+    const text = `*MAKIMPORT - Oportunidad de Maquinaria Pesada*\n\n${item.name} (${item.brand} ${item.model})\nAño: ${item.year}\nPrecio: $${item.price.toLocaleString()} USD\nUbicación: ${item.location}`;
+    const url = `${window.location.origin}/?id=${item.id}#catalogo-marketplace`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `MAKIMPORT - ${item.name}`,
+          text: `${item.brand} ${item.model} (${item.year})`,
+          url: url,
+        });
+      } catch (err) {
+        console.warn('Web Share API cancelled or failed:', err);
+      }
+    } else {
+      setShareItem(item);
+      setCopiedLink(false);
+    }
+  };
+
   // Dynamic announcements ticker state
   const [anuncios, setAnuncios] = useState<AnuncioDinamico[]>(STATIC_ANUNCIOS);
   const [anuncioIndex, setAnuncioIndex] = useState(0);
@@ -384,7 +408,6 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       engineSpecs: 'Motor diésel de alta eficiencia industrial',
       inspectionScore: Number(row.inspeccion_general) || 94,
       description: row.condicion_detalles || 'Maquinaria pesada inspeccionada y lista para embarque directo a Venezuela.',
-      financingAvailable: true,
       
       pdfReportUrl: row.pdf_reporte_url || undefined,
       inspeccionGeneral: Number(row.inspeccion_general) || 94,
@@ -398,6 +421,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       unidadUso: row.unidad_uso || 'Horas',
       badgePromocion: row.badge_promocion || undefined,
       esUltimaUnidad: row.es_ultima_unidad === true,
+      financingAvailable: row.financiamiento_disponible === true,
     };
   };
 
@@ -1201,48 +1225,53 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
 
-                        {/* Status chip — ultra compact */}
-                        <div className="absolute top-1 left-1">
-                          {g3Closed ? (
-                            <span className="inline-flex items-center px-1 py-0.5 rounded bg-red-900/95 text-red-200 text-[8px] font-extrabold uppercase">
-                              Cerrada
-                            </span>
-                          ) : isAuction ? (
-                            <span className="inline-flex items-center px-1 py-0.5 rounded bg-orange-600/95 text-white text-[8px] font-extrabold uppercase">
-                              Subasta
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-1 py-0.5 rounded bg-emerald-600/95 text-white text-[8px] font-extrabold uppercase">
-                              Compra
-                            </span>
-                          )}
+                        {/* Flex overlay for top elements inside 3-column card */}
+                        <div className="absolute top-1 left-1 right-1 flex items-start justify-between gap-1 z-10 pointer-events-none">
+                          {/* Badges on left */}
+                          <div className="flex flex-col gap-0.5 items-start">
+                            {g3Closed ? (
+                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-red-900/95 text-red-200 text-[8px] font-extrabold uppercase">
+                                Cerrada
+                              </span>
+                            ) : isAuction ? (
+                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-orange-600/95 text-white text-[8px] font-extrabold uppercase animate-pulse">
+                                Subasta
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-emerald-600/95 text-white text-[8px] font-extrabold uppercase">
+                                Compra
+                              </span>
+                            )}
+                            
+                            {item.badgePromocion && !g3Closed && (
+                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-gradient-to-r from-red-600 to-orange-500 text-white text-[7.5px] font-black uppercase tracking-wider shadow-sm max-w-[65px] truncate">
+                                {item.badgePromocion}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Actions on right */}
+                          <div className="flex items-center gap-0.5 pointer-events-auto">
+                            {/* Share button */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleShare(item); }}
+                              className="w-4 h-4 rounded-full bg-slate-950/80 flex items-center justify-center text-slate-400 hover:text-orange-400 transition-all"
+                              title="Compartir"
+                            >
+                              <Share2 className="w-2.5 h-2.5" />
+                            </button>
+                            {/* Fav star */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                              className="w-4 h-4 rounded-full bg-slate-950/80 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all"
+                              title="Favorito"
+                            >
+                              <Star className={`w-2 h-2 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                            </button>
+                          </div>
                         </div>
-
-                        {/* Fav star */}
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
-                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-950/80 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all z-10"
-                        >
-                          <Star className={`w-2.5 h-2.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
-                        </button>
-
-                        {/* Urgency micro-badges */}
-                        {item.esUltimaUnidad && !g3Closed && (
-                          <span className="absolute bottom-1 left-1 right-1 text-center text-[7px] font-extrabold bg-red-600/90 text-white px-1 py-0.5 rounded uppercase tracking-wider truncate">
-                            ¡Última!
-                          </span>
-                        )}
-                        {item.badgePromocion && !g3Closed && (
-                          <span className="absolute bottom-1 left-1 text-[7.5px] font-black bg-gradient-to-r from-red-600 to-orange-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider shadow-md truncate max-w-[85%]">
-                            {item.badgePromocion}
-                          </span>
-                        )}
-                        {(item.bidsCount || 0) >= 8 && isAuction && !g3Closed && (
-                          <span className="absolute bottom-1 right-1 text-[7px] font-extrabold bg-orange-700/90 text-white px-1 py-0.5 rounded uppercase">
-                            🔥
-                          </span>
-                        )}
                       </div>
 
                       {/* Content — ultra compact */}
@@ -1409,26 +1438,11 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                         : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
                     }`}
                   >
-                    {/* ── URGENCY BADGES (outside img, z-20 so never clipped) ── */}
-                    {item.esUltimaUnidad && !isClosed && (
-                        <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-1 pointer-events-none">
-                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-600 border border-red-400/40 text-white text-[9px] font-extrabold uppercase tracking-widest rounded-b-xl shadow-lg shadow-red-950/60 animate-pulse">
-                            <AlertTriangle className="w-2.5 h-2.5" /> ¡Última unidad!
-                          </span>
-                        </div>
-                      )}
                     {item.badgePromocion && !isClosed && (
                       <div className="absolute top-2 left-0 z-20 pointer-events-none">
                         <span className="inline-flex items-center gap-1.5 pl-3 pr-4 py-1.5 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider rounded-r-full shadow-lg shadow-black/70 border-y border-r border-red-400/30">
                           <Flame className="w-3 h-3 text-white" />
                           {item.badgePromocion}
-                        </span>
-                      </div>
-                    )}
-                    {isHighDemand && isAuction && !isClosed && (
-                      <div className="absolute bottom-[70px] right-2 z-20 pointer-events-none">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-600/95 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg">
-                          <Flame className="w-2.5 h-2.5" /> Alta demanda
                         </span>
                       </div>
                     )}
@@ -1443,43 +1457,75 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
 
-                          {/* Status Badge */}
-                          <div className="absolute top-2 left-2">
-                            {isClosed ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-900/95 border border-red-700/60 text-red-200 text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
-                                <X className="w-2.5 h-2.5" />
-                                Cerrada
-                              </span>
-                            ) : isAuction ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
-                                <Gavel className="w-2.5 h-2.5 animate-pulse" />
-                                Subasta
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
-                                <CheckCircle2 className="w-2.5 h-2.5" />
-                                Compra
-                              </span>
-                            )}
-                          </div>
+                          {/* Flex overlay for top elements in 2-column card */}
+                          <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                            {/* Badges on left */}
+                            <div className="flex flex-col gap-1.5 items-start">
+                              {/* Status Badge */}
+                              <div>
+                                {isClosed ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-900/95 border border-red-700/60 text-red-200 text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                    <X className="w-2.5 h-2.5" />
+                                    Cerrada
+                                  </span>
+                                ) : isAuction ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                    <Gavel className="w-2.5 h-2.5 animate-pulse" />
+                                    Subasta
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                    Compra
+                                  </span>
+                                )}
+                              </div>
 
-                          {/* Origin Tag */}
-                          <div className="absolute top-2 right-10 px-2 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-white text-[10px] font-bold z-10">
-                            {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
-                          </div>
+                              {/* Manual urgency marketing badge */}
+                              {item.badgePromocion && !isClosed && (
+                                <div>
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider rounded-r-xl rounded-bl-xl shadow-lg border border-red-500/20">
+                                    <Flame className="w-3 h-3 text-white animate-bounce" style={{ animationDuration: '3s' }} />
+                                    {item.badgePromocion}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
 
-                          {/* Star Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(item.id);
-                            }}
-                            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95 z-10"
-                            title={isFavorite(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}
-                          >
-                            <Star className={`w-3.5 h-3.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
-                          </button>
+                            {/* Actions & Origin on right */}
+                            <div className="flex items-center gap-1.5 pointer-events-auto">
+                              {/* Origin Tag */}
+                              <div className="px-2 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-white text-[10px] font-bold">
+                                {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
+                              </div>
+
+                              {/* Share Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShare(item);
+                                }}
+                                className="w-6 h-6 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-orange-400 transition-all active:scale-95"
+                                title="Compartir"
+                              >
+                                <Share2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Star Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(item.id);
+                                }}
+                                className="w-6 h-6 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95"
+                                title={isFavorite(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}
+                              >
+                                <Star className={`w-3.5 h-3.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Content */}
@@ -1531,22 +1577,67 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             alt={item.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
-                          <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-slate-950/80 text-white text-[10px] font-bold z-10">
-                            {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
+
+                          {/* Flex overlay for top elements inside list view image */}
+                          <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                            {/* Badges on left */}
+                            <div className="flex flex-col gap-1.5 items-start">
+                              <div className="px-2.5 py-0.5 rounded bg-slate-955 border border-slate-700 text-white text-[9px] font-extrabold uppercase tracking-wide">
+                                {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
+                              </div>
+
+                              {isListClosed ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-900/95 text-red-200 text-[8px] font-extrabold uppercase">
+                                  Cerrada
+                                </span>
+                              ) : isAuction ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-600/95 text-white text-[8px] font-extrabold uppercase animate-pulse">
+                                  Subasta
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-600/95 text-white text-[8px] font-extrabold uppercase">
+                                  Compra
+                                </span>
+                              )}
+
+                              {item.badgePromocion && !isListClosed && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[9px] font-black uppercase tracking-wider rounded-r-xl rounded-bl-xl shadow-lg border border-red-500/10">
+                                  <Flame className="w-2.5 h-2.5 text-white" />
+                                  {item.badgePromocion}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Actions on right */}
+                            <div className="flex items-center gap-1 pointer-events-auto">
+                              {/* Share Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShare(item);
+                                }}
+                                className="w-7 h-7 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-orange-400 transition-all active:scale-95"
+                                title="Compartir"
+                              >
+                                <Share2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Star Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(item.id);
+                                }}
+                                className="w-7 h-7 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95"
+                                title={isFavorite(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}
+                              >
+                                <Star className={`w-3.5 h-3.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                              </button>
+                            </div>
                           </div>
-                          
-                          {/* Star Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(item.id);
-                            }}
-                            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all active:scale-95 z-10"
-                            title={isFavorite(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}
-                          >
-                            <Star className={`w-4 h-4 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
-                          </button>
                         </div>
 
                         <div className="space-y-2 w-full">
@@ -1739,6 +1830,80 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         isOpen={customRequestOpen}
         onClose={() => setCustomRequestOpen(false)}
       />
+
+      {/* Fallback Share Modal */}
+      {shareItem && (() => {
+        const text = `MAKIMPORT - Oportunidad de Maquinaria Pesada\n\n${shareItem.name} (${shareItem.brand} ${shareItem.model})\nAño: ${shareItem.year}\nPrecio: $${shareItem.price.toLocaleString()} USD\nUbicación: ${shareItem.location}`;
+        const url = `${window.location.origin}/?id=${shareItem.id}#catalogo-marketplace`;
+        
+        const handleCopyLink = () => {
+          navigator.clipboard.writeText(url).then(() => {
+            setCopiedLink(true);
+            setTimeout(() => setCopiedLink(false), 2000);
+          });
+        };
+
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + '\n' + url)}`;
+        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
+              <button
+                onClick={() => setShareItem(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center pb-2">
+                <Share2 className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                <h3 className="text-base font-extrabold text-white text-center">Compartir Equipo</h3>
+                <p className="text-[11px] text-slate-400 mt-1">Comparte la información de {shareItem.name} por redes sociales</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 bg-emerald-950/40 border border-emerald-500/20 hover:border-emerald-500/60 rounded-xl text-emerald-400 hover:text-white transition-all font-bold text-xs"
+                >
+                  <MessageCircle className="w-6 h-6" />
+                  <span>WhatsApp</span>
+                </a>
+
+                <a
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 bg-sky-950/40 border border-sky-500/20 hover:border-sky-500/60 rounded-xl text-sky-400 hover:text-white transition-all font-bold text-xs"
+                >
+                  <Send className="w-6 h-6" />
+                  <span>Telegram</span>
+                </a>
+              </div>
+
+              <button
+                onClick={handleCopyLink}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-750"
+              >
+                {copiedLink ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-400">¡Enlace Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copiar Enlace Ficha</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 };

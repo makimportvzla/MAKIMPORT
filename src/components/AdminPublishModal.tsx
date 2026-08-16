@@ -43,6 +43,9 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   // Marketing Badge (Etiqueta de Urgencia)
   const [badgePromocion, setBadgePromocion] = useState('');
 
+  // Financing available checkbox booleano
+  const [financingAvailable, setFinancingAvailable] = useState(true);
+
   // Section 2: Carga de Medios & PDF
   const [photoUrls, setPhotoUrls] = useState<string[]>([
     'https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800'
@@ -109,6 +112,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
     setDuenoInstagram('');
     setDuenoTelefono('');
     setBadgePromocion('');
+    setFinancingAvailable(true);
   };
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,7 +204,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
         duenoNombre: duenoNombre.trim() || undefined,
         duenoInstagram: duenoInstagram.trim() || undefined,
         duenoTelefono: duenoTelefono.trim() || undefined,
-        badgePromocion: badgePromocion.trim() || undefined
+        badgePromocion: badgePromocion.trim() || undefined,
+        financingAvailable: financingAvailable
       };
 
       const { data: dbData, error: dbError } = await supabase
@@ -238,7 +243,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
           dueno_nombre: duenoNombre.trim() || null,
           dueno_instagram: duenoInstagram.trim() || null,
           dueno_telefono: duenoTelefono.trim() || null,
-          badge_promocion: badgePromocion.trim() || null
+          badge_promocion: badgePromocion.trim() || null,
+          financiamiento_disponible: financingAvailable
         })
         .select();
 
@@ -740,6 +746,22 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   </div>
                 </>
               )}
+            </div>
+            
+            {/* Financing option checkbox */}
+            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl">
+              <label className="flex items-center gap-3 cursor-pointer text-slate-300 font-bold">
+                <input
+                  type="checkbox"
+                  checked={financingAvailable}
+                  onChange={(e) => setFinancingAvailable(e.target.checked)}
+                  className="rounded border-slate-700 text-orange-600 focus:ring-orange-500 bg-slate-900 w-4.5 h-4.5"
+                />
+                <div className="flex flex-col">
+                  <span className="text-xs text-white">¿Tiene Financiamiento Disponible?</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Habilita el distintivo de financiamiento en la ficha del equipo en el catálogo.</span>
+                </div>
+              </label>
             </div>
           </div>
 
