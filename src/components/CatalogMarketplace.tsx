@@ -3,10 +3,55 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { MachineryDetailModal } from './MachineryDetailModal';
-import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, LayoutGrid, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench, Star } from 'lucide-react';
+import { Gavel, CheckCircle2, Clock, MapPin, Gauge, Calendar, ShieldCheck, ArrowUpRight, Search, Ship, Filter, Grid, List, LayoutGrid, SlidersHorizontal, ChevronRight, X, CreditCard, RotateCcw, Wrench, Star, Megaphone, ChevronLeft, Flame, AlertTriangle, Tag, Building2, Package, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CustomRequestModal } from './CustomRequestModal';
 import { CATEGORIES, BRANDS, PREDEFINED_CATEGORY_VALUES as PREDEFINED_CATEGORIES, PREDEFINED_BRAND_VALUES as PREDEFINED_BRANDS } from '@/constants/machineryOptions';
+
+interface AnuncioDinamico {
+  id: string;
+  tipo: string;
+  titulo: string;
+  descripcion: string;
+  etiqueta_badge?: string;
+  link_accion?: string;
+  activo: boolean;
+  orden: number;
+}
+
+// Fallback announcements shown when Supabase table is empty
+const STATIC_ANUNCIOS: AnuncioDinamico[] = [
+  {
+    id: 'fallback-1',
+    tipo: 'requerimiento_obra',
+    titulo: '📢 Se necesita con urgencia: Retroexcavadora CAT 420F',
+    descripcion: 'Makimport busca operadores y propietarios de retroexcavadoras disponibles en alquiler para proyecto activo en el estado Zulia.',
+    etiqueta_badge: '¡Urgente!',
+    link_accion: '#alquiler',
+    activo: true,
+    orden: 0,
+  },
+  {
+    id: 'fallback-2',
+    tipo: 'match_servicio',
+    titulo: '👷 Se busca Ingeniero Civil y Operador de Maquinaria',
+    descripcion: 'Proyecto de construcción en expansión. Postúlate como proveedor de servicios y trabaja con nosotros en importantes obras.',
+    etiqueta_badge: 'Reclutando',
+    link_accion: '#postular',
+    activo: true,
+    orden: 1,
+  },
+  {
+    id: 'fallback-3',
+    tipo: 'promocion_tiempo',
+    titulo: '🏗️ ¿Tienes un proyecto de construcción? ¡Cotízalo con nosotros!',
+    descripcion: 'Makimport ejecuta proyectos de obra civil de principio a fin. Equipos propios, mano de obra certificada y tiempos garantizados.',
+    etiqueta_badge: 'Nuevo servicio',
+    link_accion: '#cotizar',
+    activo: true,
+    orden: 2,
+  },
+];
 
 interface CatalogMarketplaceProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
@@ -14,6 +59,7 @@ interface CatalogMarketplaceProps {
   onOpenAdminPublish?: () => void;
   initialFilters?: { brand?: string; type?: string; origin?: string; transaction?: string };
   onOpenCustomRequest?: () => void;
+  onScrollToSection?: (sectionId: string) => void;
 }
 
 // Full Dataset for Machinery Marketplace
@@ -226,7 +272,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   userRole = 'client',
   onOpenAdminPublish,
   initialFilters,
-  onOpenCustomRequest
+  onOpenCustomRequest,
+  onScrollToSection,
 }) => {
   const [items, setItems] = useState<MachineryItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<MachineryItem | null>(null);
@@ -249,6 +296,11 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'direct' | 'auction'>(initialFilters?.transaction === 'direct' ? 'direct' : initialFilters?.transaction === 'auction' ? 'auction' : 'all');
 
   const [favorites, setFavorites] = useState<string[]>([]);
+
+  // Dynamic announcements ticker state
+  const [anuncios, setAnuncios] = useState<AnuncioDinamico[]>(STATIC_ANUNCIOS);
+  const [anuncioIndex, setAnuncioIndex] = useState(0);
+  const [anunciosLoaded, setAnunciosLoaded] = useState(false);
 
   // Load favorites
   useEffect(() => {
@@ -341,7 +393,9 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       inspeccionCauchos: row.inspeccion_cauchos !== undefined && row.inspeccion_cauchos !== null ? Number(row.inspeccion_cauchos) : undefined,
       transitTime: row.tiempo_transito || '25-35 días',
       ciudadVenezuela: row.ciudad_venezuela || undefined,
-      unidadUso: row.unidad_uso || 'Horas'
+      unidadUso: row.unidad_uso || 'Horas',
+      badgePromocion: row.badge_promocion || undefined,
+      esUltimaUnidad: row.es_ultima_unidad === true,
     };
   };
 
@@ -491,6 +545,37 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       window.removeEventListener('machinery_updated', handleLocalCreate);
     };
   }, []);
+
+  // Fetch dynamic announcements from Supabase
+  useEffect(() => {
+    const fetchAnuncios = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('anuncios_catalogo_dinamico')
+          .select('*')
+          .eq('activo', true)
+          .order('orden', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setAnuncios(data as AnuncioDinamico[]);
+        }
+        // if error or empty, keep static fallback
+      } catch (err) {
+        console.warn('Error fetching anuncios:', err);
+      } finally {
+        setAnunciosLoaded(true);
+      }
+    };
+    fetchAnuncios();
+  }, []);
+
+  // Auto-rotate ticker
+  useEffect(() => {
+    if (anuncios.length <= 1) return;
+    const ticker = setInterval(() => {
+      setAnuncioIndex((prev) => (prev + 1) % anuncios.length);
+    }, 5000);
+    return () => clearInterval(ticker);
+  }, [anuncios]);
 
   // Sync selectedItem with live updates from items state
   useEffect(() => {
@@ -642,7 +727,91 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   return (
     <section id="catalogo-marketplace" className="py-16 bg-slate-950 text-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
+        {/* ── DYNAMIC ANNOUNCEMENTS TICKER ─────────────────────────── */}
+        {anuncios.length > 0 && (() => {
+          const anuncio = anuncios[anuncioIndex];
+          const iconColor =
+            anuncio.tipo === 'urgencia_stock' ? 'text-red-400' :
+            anuncio.tipo === 'promocion_tiempo' ? 'text-amber-400' :
+            anuncio.tipo === 'requerimiento_obra' ? 'text-orange-400' :
+            'text-emerald-400';
+          const badgeBg =
+            anuncio.tipo === 'urgencia_stock' ? 'bg-red-600' :
+            anuncio.tipo === 'promocion_tiempo' ? 'bg-amber-600' :
+            anuncio.tipo === 'requerimiento_obra' ? 'bg-orange-600' :
+            'bg-emerald-600';
+          return (
+            <div className="mb-6 relative overflow-hidden rounded-2xl border border-orange-500/20 bg-gradient-to-r from-orange-950/40 via-slate-900/90 to-slate-900/90 shadow-lg shadow-orange-950/20">
+              {/* Subtle decorative glow */}
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-600/5 to-transparent pointer-events-none" />
+
+              <div className="flex items-center gap-4 p-4 sm:p-5">
+                {/* Icon */}
+                <div className={`shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center ${iconColor}`}>
+                  <Megaphone className="w-5 h-5" />
+                </div>
+
+                {/* Text Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    {anuncio.etiqueta_badge && (
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full text-white uppercase tracking-wider ${badgeBg}`}>
+                        {anuncio.etiqueta_badge}
+                      </span>
+                    )}
+                    <span className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">
+                      {anuncioIndex + 1} / {anuncios.length}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-extrabold text-white truncate">{anuncio.titulo}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1 hidden sm:block">{anuncio.descripcion}</p>
+                </div>
+
+                {/* CTA Button */}
+                {anuncio.link_accion && (
+                  <a
+                    href={anuncio.link_accion}
+                    onClick={(e) => {
+                      if (anuncio.link_accion?.startsWith('#') && onScrollToSection) {
+                        e.preventDefault();
+                        onScrollToSection(anuncio.link_accion.slice(1));
+                      }
+                    }}
+                    className="shrink-0 hidden sm:flex items-center gap-1.5 px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-[11px] rounded-xl transition-colors"
+                  >
+                    Ver más <ArrowUpRight className="w-3.5 h-3.5" />
+                  </a>
+                )}
+
+                {/* Navigation Arrows */}
+                <div className="shrink-0 flex items-center gap-1">
+                  <button
+                    onClick={() => setAnuncioIndex((prev) => (prev - 1 + anuncios.length) % anuncios.length)}
+                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setAnuncioIndex((prev) => (prev + 1) % anuncios.length)}
+                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-0.5 bg-slate-800">
+                <div
+                  className="h-full bg-orange-500/60 transition-all duration-300"
+                  style={{ width: `${((anuncioIndex + 1) / anuncios.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Header Title Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
@@ -1014,6 +1183,23 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                         >
                           <Star className={`w-2.5 h-2.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
                         </button>
+
+                        {/* Urgency micro-badges */}
+                        {item.esUltimaUnidad && !g3Closed && (
+                          <span className="absolute bottom-1 left-1 right-1 text-center text-[7px] font-extrabold bg-red-600/90 text-white px-1 py-0.5 rounded uppercase tracking-wider truncate">
+                            ¡Última!
+                          </span>
+                        )}
+                        {item.badgePromocion && !g3Closed && !item.esUltimaUnidad && (
+                          <span className="absolute bottom-1 left-1 text-[7px] font-extrabold bg-amber-600/90 text-white px-1 py-0.5 rounded uppercase tracking-wider truncate max-w-[70%]">
+                            {item.badgePromocion}
+                          </span>
+                        )}
+                        {(item.bidsCount || 0) >= 8 && isAuction && !g3Closed && (
+                          <span className="absolute bottom-1 right-1 text-[7px] font-extrabold bg-orange-700/90 text-white px-1 py-0.5 rounded uppercase">
+                            🔥
+                          </span>
+                        )}
                       </div>
 
                       {/* Content — ultra compact */}
@@ -1030,17 +1216,89 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
             ) : viewMode === 'grid' ? (
               
-              /* GRID VIEW CARDS */
-              <div className="grid grid-cols-2 gap-4 items-start">
-                {filteredAndSortedItems.map((item) => {
+              /* GRID VIEW CARDS — with PromoCards injected every 6 items */
+              (() => {
+                // 3 rotating promo card templates
+                const PROMO_CARDS = [
+                  {
+                    key: 'promo-postular',
+                    gradient: 'from-orange-950/60 via-slate-900 to-slate-900',
+                    border: 'border-orange-500/30 hover:border-orange-400/60',
+                    icon: <Package className="w-7 h-7 text-orange-400" />,
+                    badge: '¡Gana dinero!',
+                    badgeBg: 'bg-orange-600',
+                    title: 'Publica tu equipo con nosotros',
+                    desc: '¿Tienes maquinaria parada? La promovemos, conseguimos comprador y gestionamos la venta.',
+                    cta: 'Postular Equipo',
+                    ctaBg: 'bg-orange-600 hover:bg-orange-500',
+                    action: () => { const btn = document.querySelector('[data-postular-trigger]') as HTMLElement; btn?.click(); },
+                  },
+                  {
+                    key: 'promo-importar',
+                    gradient: 'from-blue-950/40 via-slate-900 to-slate-900',
+                    border: 'border-blue-500/30 hover:border-blue-400/60',
+                    icon: <Ship className="w-7 h-7 text-blue-400" />,
+                    badge: 'Importación directa',
+                    badgeBg: 'bg-blue-600',
+                    title: '¿No encuentras el equipo?',
+                    desc: 'Lo importamos desde EE.UU. o China con inspección técnica, logística y entrega en Venezuela.',
+                    cta: 'Solicitar Cotización',
+                    ctaBg: 'bg-blue-600 hover:bg-blue-500',
+                    action: () => onOpenCustomRequest ? onOpenCustomRequest() : setCustomRequestOpen(true),
+                  },
+                  {
+                    key: 'promo-obra',
+                    gradient: 'from-emerald-950/40 via-slate-900 to-slate-900',
+                    border: 'border-emerald-500/30 hover:border-emerald-400/60',
+                    icon: <Building2 className="w-7 h-7 text-emerald-400" />,
+                    badge: 'Obra a llave en mano',
+                    badgeBg: 'bg-emerald-600',
+                    title: '¿Tienes un proyecto de construcción?',
+                    desc: 'Makimport ejecuta obras civiles de principio a fin. Equipos propios, mano de obra certificada.',
+                    cta: 'Cotizar mi Obra',
+                    ctaBg: 'bg-emerald-600 hover:bg-emerald-500',
+                    action: () => { const el = document.getElementById('cotizar-obra'); el?.scrollIntoView({ behavior: 'smooth' }); },
+                  },
+                ];
+
+                const elements: React.ReactNode[] = [];
+                filteredAndSortedItems.forEach((item, index) => {
+                  // Inject promo card before every 6th item (positions 6, 12, 18…)
+                  if (index > 0 && index % 6 === 0) {
+                    const promo = PROMO_CARDS[(index / 6 - 1) % PROMO_CARDS.length];
+                    elements.push(
+                      <div
+                        key={promo.key + '-' + index}
+                        onClick={promo.action}
+                        className={`col-span-2 cursor-pointer group bg-gradient-to-r ${promo.gradient} border ${promo.border} rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-5 transition-all hover:shadow-xl hover:-translate-y-0.5`}
+                      >
+                        <div className="shrink-0 w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          {promo.icon}
+                        </div>
+                        <div className="flex-1 min-w-0 text-center sm:text-left">
+                          <span className={`inline-block text-[9px] font-extrabold px-2 py-0.5 rounded-full text-white uppercase tracking-wider mb-1.5 ${promo.badgeBg}`}>
+                            {promo.badge}
+                          </span>
+                          <p className="text-sm font-extrabold text-white group-hover:text-orange-300 transition-colors">{promo.title}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{promo.desc}</p>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); promo.action(); }}
+                          className={`shrink-0 px-4 py-2.5 ${promo.ctaBg} text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md transition-all`}
+                        >
+                          {promo.cta} <ArrowUpRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  }
+
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
-                  // Detect if this auction has expired — also covers items whose status flipped to 'direct' after closure
                   let cardEndDate: Date | null = null;
                   if (item.auctionEndsAt) {
                     try { cardEndDate = item.auctionEndsAt instanceof Date ? item.auctionEndsAt : new Date(item.auctionEndsAt); } catch { cardEndDate = null; }
                   }
-                  const wasAuctionItem = !!item.auctionEndsAt; // had a scheduled auction
+                  const wasAuctionItem = !!item.auctionEndsAt;
                   const isAuctionExpired = wasAuctionItem && cardEndDate && !isNaN(cardEndDate.getTime()) && cardEndDate.getTime() <= Date.now();
                   const isTimerFinalizada = timerStr === 'Finalizada';
                   const isClosed = wasAuctionItem && (isAuctionExpired || isTimerFinalizada);
@@ -1049,8 +1307,9 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                     : isAuction
                     ? (item.currentBid || item.price)
                     : item.price;
+                  const isHighDemand = (item.bidsCount || 0) >= 8;
 
-                  return (
+                  elements.push(
                     <div
                       key={item.id}
                       onClick={() => setSelectedItem(item)}
@@ -1107,6 +1366,32 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           >
                             <Star className={`w-3.5 h-3.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
                           </button>
+
+                          {/* ── URGENCY BADGES ── */}
+                          {/* Última unidad ribbon */}
+                          {item.esUltimaUnidad && !isClosed && (
+                            <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-600/95 border border-red-400/30 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg animate-pulse">
+                                <AlertTriangle className="w-2.5 h-2.5" /> ¡Última unidad!
+                              </span>
+                            </div>
+                          )}
+                          {/* Promo badge from DB */}
+                          {item.badgePromocion && !isClosed && !item.esUltimaUnidad && (
+                            <div className="absolute bottom-2 left-2">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-600/95 border border-amber-400/20 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg">
+                                <Tag className="w-2.5 h-2.5" /> {item.badgePromocion}
+                              </span>
+                            </div>
+                          )}
+                          {/* High demand badge */}
+                          {isHighDemand && isAuction && !isClosed && (
+                            <div className="absolute bottom-2 right-2">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-700/90 border border-orange-400/20 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg">
+                                <Flame className="w-2.5 h-2.5" /> Alta demanda
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Content */}
@@ -1126,8 +1411,9 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                       </div>
                     </div>
                   );
-                })}
-              </div>
+                });
+                return <div className="grid grid-cols-2 gap-4 items-start">{elements}</div>;
+              })()
 
             ) : (
 

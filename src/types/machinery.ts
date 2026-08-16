@@ -51,4 +51,7 @@ export interface MachineryItem {
   duenoNombre?: string;
   duenoInstagram?: string;
   duenoTelefono?: string;
+  // Marketing / urgency badges (from DB columns badge_promocion, es_ultima_unidad)
+  badgePromocion?: string;
+  esUltimaUnidad?: boolean;
 }
