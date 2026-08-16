@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Download, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, CreditCard, MessageCircle, ZoomIn, Minimize2 } from 'lucide-react';
+import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Download, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, CreditCard, MessageCircle, ZoomIn, Minimize2, Share2, Copy } from 'lucide-react';
 import { MachineryItem, BidRecord } from '@/types/machinery';
 import { supabase } from '@/lib/supabase';
 import { PurchaseRequestModal } from './PurchaseRequestModal';
@@ -47,6 +47,10 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
 
   // Timer state
   const [timerString, setTimerString] = useState<string>('00d : 00h : 00m : 00s');
+
+  // Share state
+  const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
 
   const [prevItemId, setPrevItemId] = useState<string | null>(null);
   const [isProcessingEnd, setIsProcessingEnd] = useState(false);
@@ -413,6 +417,33 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
     setPendingAction(null);
   };
 
+  const handleShareItem = async () => {
+    if (!item) return;
+    const url = `${window.location.origin}/?id=${item.id}#catalogo-marketplace`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `MAKIMPORT – ${item.name}`,
+          text: `${item.brand} ${item.model} (${item.year}) – $${item.price.toLocaleString()} USD`,
+          url,
+        });
+      } catch { /* cancelled */ }
+    } else {
+      setShareFallbackOpen(true);
+      setCopiedShareLink(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!item) return;
+    const url = `${window.location.origin}/?id=${item.id}#catalogo-marketplace`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedShareLink(true);
+      setTimeout(() => setCopiedShareLink(false), 2500);
+    } catch { /* ignore */ }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       
@@ -459,12 +490,22 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none"></div>
 
               {/* Zoom hint overlay */}
-              <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="absolute bottom-3 right-14 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-slate-300 text-[10px] font-bold">
                   <ZoomIn className="w-3 h-3 text-orange-400" />
                   Clic para ampliar
                 </span>
               </div>
+
+              {/* Share button — bottom right corner of gallery photo */}
+              <button
+                type="button"
+                onClick={handleShareItem}
+                className="absolute bottom-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-950/85 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-orange-400 hover:border-orange-500/60 transition-all active:scale-95"
+                title="Compartir equipo"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
 
               {/* Status Badges */}
               <div className="absolute top-4 left-4 flex flex-wrap gap-2">
@@ -1283,6 +1324,70 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
           onComplete={handleContactDataComplete}
         />
       )}
+
+      {/* Share Fallback Modal */}
+      {shareFallbackOpen && item && (() => {
+        const url = `${window.location.origin}/?id=${item.id}#catalogo-marketplace`;
+        const text = encodeURIComponent(`*MAKIMPORT*\n${item.name} (${item.brand} ${item.model} ${item.year})\nPrecio: $${item.price.toLocaleString()} USD\n${url}`);
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${text}`;
+        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`${item.name} – MAKIMPORT`)}`;
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
+              <button
+                onClick={() => setShareFallbackOpen(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center pb-2">
+                <Share2 className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                <h3 className="text-base font-extrabold text-white">Compartir Equipo</h3>
+                <p className="text-[11px] text-slate-400 mt-1">Comparte {item.name} por redes sociales</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 bg-emerald-950/40 border border-emerald-500/20 hover:border-emerald-500/60 rounded-xl text-emerald-400 hover:text-white transition-all font-bold text-xs"
+                >
+                  <MessageCircle className="w-6 h-6" />
+                  <span>WhatsApp</span>
+                </a>
+                <a
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 bg-sky-950/40 border border-sky-500/20 hover:border-sky-500/60 rounded-xl text-sky-400 hover:text-white transition-all font-bold text-xs"
+                >
+                  <Send className="w-6 h-6" />
+                  <span>Telegram</span>
+                </a>
+              </div>
+
+              <button
+                onClick={handleCopyShareLink}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-700"
+              >
+                {copiedShareLink ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-400">¡Enlace Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copiar Enlace Ficha</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

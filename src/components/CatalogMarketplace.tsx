@@ -1250,17 +1250,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             )}
                           </div>
 
-                          {/* Actions on right */}
+                          {/* Actions on right — only star, no share here to avoid badge collision */}
                           <div className="flex items-center gap-0.5 pointer-events-auto">
-                            {/* Share button */}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleShare(item); }}
-                              className="w-4 h-4 rounded-full bg-slate-950/80 flex items-center justify-center text-slate-400 hover:text-orange-400 transition-all"
-                              title="Compartir"
-                            >
-                              <Share2 className="w-2.5 h-2.5" />
-                            </button>
                             {/* Fav star */}
                             <button
                               type="button"
@@ -1272,6 +1263,16 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             </button>
                           </div>
                         </div>
+
+                        {/* Share button — bottom right, always accessible */}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleShare(item); }}
+                          className="absolute bottom-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-slate-950/85 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-orange-400 transition-all pointer-events-auto"
+                          title="Compartir"
+                        >
+                          <Share2 className="w-2.5 h-2.5" />
+                        </button>
                       </div>
 
                       {/* Content — ultra compact */}
@@ -1484,25 +1485,12 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                               )}
                             </div>
 
-                            {/* Actions & Origin on right */}
+                            {/* Actions on right — only star, no share here to avoid badge collision */}
                             <div className="flex items-center gap-1.5 pointer-events-auto">
                               {/* Origin Tag */}
                               <div className="px-2 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-white text-[10px] font-bold">
                                 {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
                               </div>
-
-                              {/* Share Button */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleShare(item);
-                                }}
-                                className="w-6 h-6 rounded-full bg-slate-950/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-orange-400 transition-all active:scale-95"
-                                title="Compartir"
-                              >
-                                <Share2 className="w-3.5 h-3.5" />
-                              </button>
 
                               {/* Star Button */}
                               <button
@@ -1518,6 +1506,19 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                               </button>
                             </div>
                           </div>
+
+                          {/* Share button — bottom right corner, always visible and unobstructed */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShare(item);
+                            }}
+                            className="absolute bottom-2 right-2 z-10 w-7 h-7 rounded-full bg-slate-950/85 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-orange-400 hover:border-orange-500/60 transition-all active:scale-95 pointer-events-auto"
+                            title="Compartir"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
 
                         {/* Content */}
