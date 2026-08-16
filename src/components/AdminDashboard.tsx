@@ -245,6 +245,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [editingRentalId, setEditingRentalId]     = useState<string | null>(null);
   const [editingOwnerStatus, setEditingOwnerStatus] = useState<{ id: string; estado: string } | null>(null);
 
+  // Postulation approval modal state
+  const [approvingPostulation, setApprovingPostulation] = useState<any | null>(null);
+  const [appPrice, setAppPrice] = useState(0);
+  const [appDestinationPort, setAppDestinationPort] = useState('Puerto Cabello, VZLA');
+  const [appTransitTime, setAppTransitTime] = useState('25-35 días');
+  const [appInspGeneral, setAppInspGeneral] = useState(85);
+  const [appInspMotor, setAppInspMotor] = useState(85);
+  const [appInspHydraulic, setAppInspHydraulic] = useState(85);
+  const [appInspTransmission, setAppInspTransmission] = useState(85);
+  const [appInspCabin, setAppInspCabin] = useState(85);
+  const [appInspTires, setAppInspTires] = useState(85);
+  const [approvingLoading, setApprovingLoading] = useState(false);
+
   const [auctionLeaders, setAuctionLeaders] = useState<{[machineryId: string]: { userName: string; email: string; phone: string; amount: number }}>( {});
 
   // Fetch auction leaders/winners in real-time
@@ -3074,44 +3087,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             navigator.clipboard.writeText(text).catch(() => {});
           };
 
-          const handleApproveAndPublish = async (p: any) => {
-            if (!window.confirm(`¿Publicar en el catálogo la maquinaria "${p.marca} ${p.modelo} (${p.ano})"? Se creará como equipo activo.`)) return;
-            try {
-              // 1. Insert into machinery
-              const titulo = `${p.marca} ${p.modelo} ${p.ano}`;
-              const { error: insertErr } = await supabase.from('machinery').insert({
-                titulo,
-                marca: p.marca,
-                modelo: p.modelo,
-                ano: p.ano,
-                horas_uso: p.uso_valor || 0,
-                condicion_detalles: p.descripcion_notas || `${p.condicion}. Propietario: ${p.nombre_cliente} ${p.apellido_cliente}. Tel: ${p.telefono_cliente}. Ubicación: ${p.ciudad_venezuela}.`,
-                precio_compra_inmediata: p.precio_estimado || 0,
-                es_subasta: false,
-                precio_inicial_subasta: 0,
-                puja_actual: 0,
-                fecha_fin_subasta: null,
-                fotos_urls: p.fotos_urls || [],
-                ubicacion_origen: p.ciudad_venezuela || 'Venezuela',
-                categoria: 'Maquinaria Pesada',
-                unidad_uso: p.uso_unidad || 'Horas',
-                dueno_nombre: `${p.nombre_cliente} ${p.apellido_cliente}`,
-                dueno_telefono: p.telefono_cliente,
-                ciudad_venezuela: p.ciudad_venezuela,
-                inspeccion_general: 80,
-                inspeccion_motor: 80,
-                inspeccion_hidraulico: 80,
-                inspeccion_transmision: 80,
-                inspeccion_cabina: 80,
-              });
-              if (insertErr) throw insertErr;
-              // 2. Update postulation state to 'Aprobado'
-              await supabase.from('postulaciones_equipos').update({ estado: 'Aprobado' }).eq('id', p.id);
-              setMachineryPostulations(prev => prev.map(x => x.id === p.id ? { ...x, estado: 'Aprobado' } : x));
-              alert(`✅ Equipo "${titulo}" publicado en el catálogo exitosamente.`);
-            } catch (err: any) {
-              alert(`Error al publicar: ${err.message}`);
-            }
+          const startApprovalFlow = (p: any) => {
+            setApprovingPostulation(p);
+            setAppPrice(p.precio_estimado || 0);
+            setAppDestinationPort('Puerto Cabello, VZLA');
+            setAppTransitTime('25-35 días');
+            setAppInspGeneral(85);
+            setAppInspMotor(85);
+            setAppInspHydraulic(85);
+            setAppInspTransmission(85);
+            setAppInspCabin(85);
+            setAppInspTires(85);
           };
 
           const handleRejectPostulation = async (p: any) => {
@@ -3245,7 +3231,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 </div>
                                 <button onClick={() => copyToClipboard(`${p.nombre_cliente} ${p.apellido_cliente}`, 'nombre')}
                                   className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar nombre">
-                                  <Copy className="w-3 h-3" />
+                                  <Copy className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                               {/* Cédula */}
@@ -3256,7 +3242,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 </div>
                                 <button onClick={() => copyToClipboard(p.cedula_rif_cliente, 'cédula')}
                                   className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar cédula/RIF">
-                                  <Copy className="w-3 h-3" />
+                                  <Copy className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                               {/* Modelo */}
@@ -3267,7 +3253,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 </div>
                                 <button onClick={() => copyToClipboard(`${p.marca} ${p.modelo}`, 'modelo')}
                                   className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar modelo">
-                                  <Copy className="w-3 h-3" />
+                                  <Copy className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                               {/* Teléfono / WA */}
@@ -3283,7 +3269,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                                 </a>
                                 <button onClick={() => copyToClipboard(p.telefono_cliente, 'teléfono')}
                                   className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar teléfono">
-                                  <Copy className="w-3 h-3" />
+                                  <Copy className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </div>
@@ -3337,7 +3323,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       {p.estado === 'Pendiente de Revisión' && (
                         <div className="mt-4 pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row gap-2">
                           <button
-                            onClick={() => handleApproveAndPublish(p)}
+                            onClick={() => startApprovalFlow(p)}
                             className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all"
                           >
                             <CheckCircle2 className="w-4 h-4" />
@@ -3478,6 +3464,228 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de Aprobación y Publicación de Equipo ── */}
+      {approvingPostulation && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800 shrink-0">
+              <div>
+                <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  Configurar Publicación del Equipo
+                </h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {approvingPostulation.marca} {approvingPostulation.modelo} ({approvingPostulation.ano})
+                </p>
+              </div>
+              <button
+                onClick={() => setApprovingPostulation(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg border border-slate-850 bg-slate-950/30"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Form */}
+            <div className="flex-1 overflow-y-auto my-4 space-y-4 pr-1 text-xs">
+              
+              {/* Logística */}
+              <div className="space-y-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">1. Logística y Puerto</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Puerto de Destino</label>
+                    <input
+                      type="text"
+                      value={appDestinationPort}
+                      onChange={(e) => setAppDestinationPort(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Tiempo de Tránsito</label>
+                    <input
+                      type="text"
+                      value={appTransitTime}
+                      onChange={(e) => setAppTransitTime(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Inspección Técnica */}
+              <div className="space-y-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">2. Inspección Técnica (%)</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Inspección General</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={appInspGeneral}
+                      onChange={(e) => setAppInspGeneral(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Motor</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={appInspMotor}
+                      onChange={(e) => setAppInspMotor(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Sistema Hidráulico</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={appInspHydraulic}
+                      onChange={(e) => setAppInspHydraulic(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Transmisión</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={appInspTransmission}
+                      onChange={(e) => setAppInspTransmission(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Cabina</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={appInspCabin}
+                      onChange={(e) => setAppInspCabin(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Cauchos / Chasis</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={appInspTires}
+                      onChange={(e) => setAppInspTires(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-[11px] font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Precio Final */}
+              <div className="space-y-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">3. Precio Final de Venta</p>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Precio (USD) *</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={appPrice}
+                    onChange={(e) => setAppPrice(Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono text-sm focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex gap-2.5 pt-3 border-t border-slate-800 shrink-0">
+              <button
+                onClick={() => setApprovingPostulation(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setApprovingLoading(true);
+                  try {
+                    const p = approvingPostulation;
+                    const titulo = `${p.marca} ${p.modelo} ${p.ano}`;
+                    
+                    // 1. Insert into machinery
+                    const { error: insertErr } = await supabase.from('machinery').insert({
+                      titulo,
+                      marca: p.marca,
+                      modelo: p.modelo,
+                      ano: p.ano,
+                      horas_uso: p.uso_valor || 0,
+                      condicion_detalles: p.descripcion_notas || `${p.condicion}. Propietario: ${p.nombre_cliente} ${p.apellido_cliente}. Tel: ${p.telefono_cliente}. Ubicación: ${p.ciudad_venezuela}.`,
+                      precio_compra_inmediata: appPrice,
+                      es_subasta: false,
+                      precio_inicial_subasta: 0,
+                      puja_actual: 0,
+                      fecha_fin_subasta: null,
+                      fotos_urls: p.fotos_urls || [],
+                      ubicacion_origen: p.ciudad_venezuela || 'Venezuela',
+                      categoria: p.categoria || 'Maquinaria Pesada',
+                      unidad_uso: p.uso_unidad || 'Horas',
+                      dueno_nombre: `${p.nombre_cliente} ${p.apellido_cliente}`,
+                      dueno_telefono: p.telefono_cliente,
+                      ciudad_venezuela: p.ciudad_venezuela,
+                      puerto_destino: appDestinationPort,
+                      tiempo_transito: appTransitTime,
+                      inspeccion_general: appInspGeneral,
+                      inspeccion_motor: appInspMotor,
+                      inspeccion_hidraulico: appInspHydraulic,
+                      inspeccion_transmision: appInspTransmission,
+                      inspeccion_cabina: appInspCabin,
+                      inspeccion_cauchos: appInspTires,
+                    });
+
+                    if (insertErr) throw insertErr;
+
+                    // 2. Update postulation state to 'Aprobado'
+                    const { error: updateErr } = await supabase
+                      .from('postulaciones_equipos')
+                      .update({ estado: 'Aprobado' })
+                      .eq('id', p.id);
+
+                    if (updateErr) throw updateErr;
+
+                    // Update local state
+                    setMachineryPostulations(prev => 
+                      prev.map(x => x.id === p.id ? { ...x, estado: 'Aprobado' } : x)
+                    );
+
+                    alert(`✅ Equipo "${titulo}" aprobado y publicado exitosamente.`);
+                    setApprovingPostulation(null);
+                  } catch (err: any) {
+                    alert(`Error al publicar: ${err.message}`);
+                  } finally {
+                    setApprovingLoading(false);
+                  }
+                }}
+                disabled={approvingLoading || !appPrice}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+              >
+                {approvingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                <span>{approvingLoading ? 'Publicando...' : 'Confirmar y Publicar'}</span>
+              </button>
+            </div>
+
           </div>
         </div>
       )}

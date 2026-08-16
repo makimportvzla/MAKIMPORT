@@ -265,7 +265,7 @@ export const PostularEquipoModal: React.FC<PostularEquipoModalProps> = ({ isOpen
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelCls}>Condición *</label>
                     <select value={condicion} onChange={(e) => setCondicion(e.target.value)}
@@ -277,20 +277,19 @@ export const PostularEquipoModal: React.FC<PostularEquipoModalProps> = ({ isOpen
                   </div>
                   <div>
                     <label className={labelCls}>Uso registrado *</label>
-                    {/* ─ Uso field: number + unit selector stacked cleanly ─ */}
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2">
                       <input
                         type="number"
                         min={0}
                         value={usoValor}
                         onChange={(e) => setUsoValor(e.target.value)}
                         placeholder="3200"
-                        className={`${inputCls} flex-1 font-mono`}
+                        className={`${inputCls} flex-1 min-w-0 font-mono`}
                       />
                       <select
                         value={usoUnidad}
                         onChange={(e) => setUsoUnidad(e.target.value)}
-                        className="shrink-0 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:outline-none focus:border-orange-500 transition-colors w-28"
+                        className="shrink-0 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:outline-none focus:border-orange-500 transition-colors w-24"
                       >
                         <option>Horas</option>
                         <option>Kilómetros</option>
