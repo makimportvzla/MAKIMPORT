@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Download, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, CreditCard, MessageCircle, ZoomIn, Minimize2, Share2, Copy } from 'lucide-react';
+import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Download, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, CreditCard, MessageCircle, ZoomIn, Minimize2, Share2, Copy, Flame } from 'lucide-react';
 import { MachineryItem, BidRecord } from '@/types/machinery';
 import { supabase } from '@/lib/supabase';
 import { PurchaseRequestModal } from './PurchaseRequestModal';
@@ -507,7 +507,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 <Share2 className="w-4 h-4" />
               </button>
 
-              {/* Status Badges */}
+              {/* Status Badges — top left */}
               <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                 {isExpired ? (
                   <span className="px-3 py-1 rounded-full bg-red-600/95 text-white text-xs font-extrabold uppercase tracking-wider shadow-lg flex items-center gap-1.5 animate-pulse">
@@ -533,6 +533,16 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   </span>
                 )}
               </div>
+
+              {/* Marketing badge — bottom-left of the main photo */}
+              {item.badgePromocion && !isExpired && (
+                <div className="absolute bottom-3 left-0 z-10 pointer-events-none">
+                  <span className="inline-flex items-center gap-1.5 pl-3 pr-4 py-1.5 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-xs font-black uppercase tracking-wider rounded-r-full shadow-lg shadow-black/70 border-y border-r border-red-400/30">
+                    <Flame className="w-3.5 h-3.5 text-white animate-bounce" style={{ animationDuration: '3s' }} />
+                    {item.badgePromocion}
+                  </span>
+                </div>
+              )}
 
               {/* Origin Tag */}
               <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-slate-900/90 backdrop-blur-md border border-slate-700 text-white text-xs font-bold">
