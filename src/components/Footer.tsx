@@ -47,9 +47,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAuth }) => {
               <li>
                 <a href="#subastas" className="hover:text-orange-400 transition-colors">Subastas en Vivo</a>
               </li>
-              <li>
-                <a href="#importacion" className="hover:text-orange-400 transition-colors">Calculadora de Flete Marítimo</a>
-              </li>
+
               <li>
                 <a href="/alquiler" className="hover:text-orange-400 transition-colors">Alquiler de Equipos</a>
               </li>

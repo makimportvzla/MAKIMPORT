@@ -328,6 +328,10 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   // Transaction type filter: 'all' | 'direct' | 'auction'
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'direct' | 'auction'>(initialFilters?.transaction === 'direct' ? 'direct' : initialFilters?.transaction === 'auction' ? 'auction' : 'all');
 
+  // Pagination state
+  const ITEMS_PER_PAGE = 15;
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [favorites, setFavorites] = useState<string[]>([]);
 
   // Share Modal States & logic
@@ -711,7 +715,11 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
     setMaxYear('');
     setSortBy('featured');
     setTransactionFilter('all');
+    setCurrentPage(1);
   };
+
+  // Reset page to 1 whenever filters or sort change
+  useEffect(() => { setCurrentPage(1); }, [categoryFilter, brandFilter, modelFilter, minYear, maxYear, sortBy, transactionFilter]);
 
   // Filter & Sorting Logic (Strictly only Category, Brand, Model, and Year)
   const filteredAndSortedItems = items
@@ -796,6 +804,12 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       if (sortBy === 'newest') return b.year - a.year;
       return 0;
     });
+
+  // Slice for current page
+  const pagedItems = filteredAndSortedItems.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <section id="catalogo-marketplace" className="py-16 bg-slate-950 text-slate-100 min-h-screen">
@@ -952,36 +966,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
           </div>
         </div>
 
-        {/* Catalog Header Information */}
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800/50">
-          <span className="text-xs text-slate-400 font-medium">
-            Explore nuestro inventario completo de maquinaria disponible para compra inmediata y subastas.
-          </span>
-          <span className="text-xs text-slate-500 font-medium">
-            Total: <strong className="text-slate-300 font-extrabold">{filteredAndSortedItems.length}</strong> equipos
-          </span>
-        </div>
 
-        {/* Custom Request Banner */}
-        <button
-          onClick={() => onOpenCustomRequest ? onOpenCustomRequest() : setCustomRequestOpen(true)}
-          className="w-full mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-900 to-orange-950/30 border border-orange-500/30 hover:border-orange-500/70 rounded-2xl shadow-lg shadow-orange-950/20 transition-all group text-left"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center shrink-0 group-hover:bg-orange-600/30 transition-colors">
-              <Search className="w-6 h-6 text-orange-400" />
-            </div>
-            <div>
-              <p className="text-sm font-extrabold text-white">¿No encuentras la máquina que buscas?</p>
-              <p className="text-xs text-slate-400 mt-0.5">¡Te la conseguimos y enviamos el presupuesto! Encarga cualquier equipo de EE.UU. o China.</p>
-            </div>
-          </div>
-          <span className="shrink-0 px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-orange-950 transition-all">
-            <Wrench className="w-4 h-4" />
-            Solicitar Cotización
-            <ChevronRight className="w-4 h-4" />
-          </span>
-        </button>
 
         {/* MAIN LAYOUT: Sidebar (3 cols) + Grid/List (9 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -1229,14 +1214,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                   onClick={handleResetFilters}
                   className="px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md"
                 >
-                  Restablecer Filtros
+                  Limpiar Filtros
                 </button>
               </div>
             ) : viewMode === 'grid3' ? (
-
-              /* ─── 3-COLUMN COMPACT GRID (forced 3 cols on ALL screen sizes) ─── */
+              /* COMPACT 3-COLUMN GRID */
               <div className="grid grid-cols-3 gap-2">
-                {filteredAndSortedItems.map((item) => {
+                {pagedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
                   let g3EndDate: Date | null = null;
@@ -1376,7 +1360,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 ];
 
                 const elements: React.ReactNode[] = [];
-                filteredAndSortedItems.forEach((item, index) => {
+                pagedItems.forEach((item, index) => {
                   // Inject promo card before every 6th item (positions 6, 12, 18…)
                   if (index > 0 && index % 6 === 0) {
                     const promoTypes = [
@@ -1417,10 +1401,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                         desc: 'Makimport ejecuta tu obra de principio a fin: equipos propios, mano de obra certificada y tiempos garantizados.',
                         cta: 'Cotizar mi Obra →',
                         ctaClass: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/50',
-                        action: () => {
-                          const el = document.getElementById('import-calculator');
-                          if (el) el.scrollIntoView({ behavior: 'smooth' });
-                        },
+                        action: () => onOpenCustomRequest ? onOpenCustomRequest() : setCustomRequestOpen(true),
                       },
                     ];
                     const promo = promoTypes[(index / 6 - 1) % promoTypes.length];
@@ -1574,7 +1555,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
               /* LIST VIEW CARDS */
               <div className="space-y-4">
-                {filteredAndSortedItems.map((item) => {
+                {pagedItems.map((item) => {
                   const isAuction = item.status === 'auction';
                   const timerStr = timeLeftMap[item.id] || 'Cargando...';
                   let listEndDate: Date | null = null;
@@ -1732,6 +1713,95 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
               </div>
 
             )}
+
+            {/* ── PAGINATION CONTROLS ──────────────────────────────────────── */}
+            {filteredAndSortedItems.length > ITEMS_PER_PAGE && (() => {
+              const totalPages = Math.ceil(filteredAndSortedItems.length / ITEMS_PER_PAGE);
+              const pageNumbers: number[] = [];
+              const delta = 2;
+              const left = Math.max(1, currentPage - delta);
+              const right = Math.min(totalPages, currentPage + delta);
+              for (let p = left; p <= right; p++) pageNumbers.push(p);
+
+              return (
+                <div className="flex flex-col items-center gap-3 mt-4 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    {/* Prev */}
+                    <button
+                      disabled={currentPage === 1}
+                      onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: document.getElementById('catalogo-marketplace')?.offsetTop ?? 0, behavior: 'smooth' }); }}
+                      className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1 transition-all"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" /> Anterior
+                    </button>
+
+                    {/* First page shortcut */}
+                    {left > 1 && (
+                      <>
+                        <button onClick={() => { setCurrentPage(1); window.scrollTo({ top: document.getElementById('catalogo-marketplace')?.offsetTop ?? 0, behavior: 'smooth' }); }} className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 text-xs font-bold transition-all">1</button>
+                        {left > 2 && <span className="text-slate-600 text-sm px-1">…</span>}
+                      </>
+                    )}
+
+                    {pageNumbers.map(p => (
+                      <button
+                        key={p}
+                        onClick={() => { setCurrentPage(p); window.scrollTo({ top: document.getElementById('catalogo-marketplace')?.offsetTop ?? 0, behavior: 'smooth' }); }}
+                        className={`w-9 h-9 rounded-xl text-xs font-bold transition-all border ${
+                          p === currentPage
+                            ? 'bg-orange-600 border-orange-500 text-white shadow-md shadow-orange-950/40'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+
+                    {/* Last page shortcut */}
+                    {right < totalPages && (
+                      <>
+                        {right < totalPages - 1 && <span className="text-slate-600 text-sm px-1">…</span>}
+                        <button onClick={() => { setCurrentPage(totalPages); window.scrollTo({ top: document.getElementById('catalogo-marketplace')?.offsetTop ?? 0, behavior: 'smooth' }); }} className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 text-xs font-bold transition-all">{totalPages}</button>
+                      </>
+                    )}
+
+                    {/* Next */}
+                    <button
+                      disabled={currentPage === totalPages}
+                      onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: document.getElementById('catalogo-marketplace')?.offsetTop ?? 0, behavior: 'smooth' }); }}
+                      className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1 transition-all"
+                    >
+                      Siguiente <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Página <strong className="text-slate-300">{currentPage}</strong> de <strong className="text-slate-300">{totalPages}</strong> — {filteredAndSortedItems.length} equipos en total
+                  </span>
+                </div>
+              );
+            })()}
+
+            {/* Custom Request Banner — moved below results */}
+            <button
+              onClick={() => onOpenCustomRequest ? onOpenCustomRequest() : setCustomRequestOpen(true)}
+              className="w-full mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-900 to-orange-950/30 border border-orange-500/30 hover:border-orange-500/70 rounded-2xl shadow-lg shadow-orange-950/20 transition-all group text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center shrink-0 group-hover:bg-orange-600/30 transition-colors">
+                  <Search className="w-6 h-6 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-white">¿No encuentras la máquina que buscas?</p>
+                  <p className="text-xs text-slate-400 mt-0.5">¡Te la conseguimos y enviamos el presupuesto! Encarga cualquier equipo de EE.UU. o China.</p>
+                </div>
+              </div>
+              <span className="shrink-0 px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-orange-950 transition-all">
+                <Wrench className="w-4 h-4" />
+                Solicitar Cotización
+                <ChevronRight className="w-4 h-4" />
+              </span>
+            </button>
 
           </main>
 

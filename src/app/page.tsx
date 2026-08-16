@@ -5,7 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { Benefits } from '@/components/Benefits';
 import { CatalogMarketplace } from '@/components/CatalogMarketplace';
-import { ImportCalculator } from '@/components/ImportCalculator';
+
 import { Footer } from '@/components/Footer';
 import { AuthModal } from '@/components/AuthModal';
 import { AdminPublishModal } from '@/components/AdminPublishModal';
@@ -88,8 +88,6 @@ export default function Home() {
         onOpenPostularEquipo={() => setPostularEquipoOpen(true)}
       />
 
-      {/* Freight & Customs Calculator for Venezuela */}
-      <ImportCalculator />
 
       {/* Footer & Official Contacts (Caracas, Venezuela, Telegram, Instagram) */}
       <Footer onOpenAuth={handleOpenAuth} />

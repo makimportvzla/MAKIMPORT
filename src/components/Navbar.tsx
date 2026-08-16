@@ -141,9 +141,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 En vivo
               </span>
             </a>
-            <a href="#importacion" className="hover:text-orange-400 transition-colors py-1 border-b-2 border-transparent hover:border-orange-500/50">
-              Calculadora Logística
-            </a>
 
             {/* Servicios & Proyectos Dropdown */}
             <div className="relative">
