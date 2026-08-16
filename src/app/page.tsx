@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { Benefits } from '@/components/Benefits';
@@ -25,6 +25,16 @@ export default function Home() {
   const [postularEquipoOpen, setPostularEquipoOpen] = useState(false);
 
   const [activeFilters, setActiveFilters] = useState<{ brand: string; type: string; origin: string; transaction: string } | undefined>(undefined);
+
+  // Deep-link: read ?id= from URL on mount to auto-open a specific machinery modal
+  const [initialItemId, setInitialItemId] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (id) setInitialItemId(id);
+    }
+  }, []);
 
   const handleOpenAuth = (mode: 'login' | 'register' = 'login') => {
     setAuthMode(mode);
@@ -73,6 +83,7 @@ export default function Home() {
         userRole={userRole ?? 'client'}
         onOpenAdminPublish={handleOpenAdminPublish}
         initialFilters={activeFilters}
+        initialItemId={initialItemId}
         onOpenCustomRequest={() => setCustomRequestOpen(true)}
         onOpenPostularEquipo={() => setPostularEquipoOpen(true)}
       />

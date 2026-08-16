@@ -58,6 +58,7 @@ interface CatalogMarketplaceProps {
   userRole?: 'admin' | 'client';
   onOpenAdminPublish?: () => void;
   initialFilters?: { brand?: string; type?: string; origin?: string; transaction?: string };
+  initialItemId?: string;
   onOpenCustomRequest?: () => void;
   onScrollToSection?: (sectionId: string) => void;
   onOpenPostularEquipo?: () => void;
@@ -273,6 +274,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   userRole = 'client',
   onOpenAdminPublish,
   initialFilters,
+  initialItemId,
   onOpenCustomRequest,
   onScrollToSection,
   onOpenPostularEquipo,
@@ -304,15 +306,15 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
 
   const handleShare = async (item: MachineryItem) => {
-    const text = `*MAKIMPORT - Oportunidad de Maquinaria Pesada*\n\n${item.name} (${item.brand} ${item.model})\nAño: ${item.year}\nPrecio: $${item.price.toLocaleString()} USD\nUbicación: ${item.location}`;
     const url = `${window.location.origin}/?id=${item.id}#catalogo-marketplace`;
+    const text = `${item.brand} ${item.model} (${item.year}) – $${item.price.toLocaleString()} USD`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `MAKIMPORT - ${item.name}`,
-          text: `${item.brand} ${item.model} (${item.year})`,
-          url: url,
+          title: `MAKIMPORT – ${item.name}`,
+          text,
+          url,
         });
       } catch (err) {
         console.warn('Web Share API cancelled or failed:', err);
@@ -375,6 +377,22 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
       else if (initialFilters.transaction === 'auction') setTransactionFilter('auction');
     }
   }, [initialFilters]);
+
+  // Deep-link: auto-open modal when items load and initialItemId is set
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+  useEffect(() => {
+    if (!initialItemId || deepLinkHandled || items.length === 0) return;
+    const target = items.find((i) => i.id === initialItemId);
+    if (target) {
+      setSelectedItem(target);
+      setDeepLinkHandled(true);
+      // Scroll catalog into view
+      setTimeout(() => {
+        const el = document.getElementById('catalogo-marketplace');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  }, [initialItemId, items, deepLinkHandled]);
 
   const mapDbRowToMachineryItem = (row: any, bidsCountMap: { [key: string]: number } = {}): MachineryItem => {
     const photos = Array.isArray(row.fotos_urls) && row.fotos_urls.length > 0
