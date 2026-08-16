@@ -257,6 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [appInspCabin, setAppInspCabin] = useState(85);
   const [appInspTires, setAppInspTires] = useState(85);
   const [approvingLoading, setApprovingLoading] = useState(false);
+  const [expandedPostulationId, setExpandedPostulationId] = useState<string | null>(null);
 
   const [auctionLeaders, setAuctionLeaders] = useState<{[machineryId: string]: { userName: string; email: string; phone: string; amount: number }}>( {});
 
@@ -821,11 +822,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     if (!confirm('¿Estás seguro de eliminar esta publicación de la plataforma?')) return;
 
     try {
+      // 1. Delete corresponding postulation if any
+      await supabase.from('postulaciones_equipos').delete().eq('machinery_id', id);
+
+      // 2. Delete the machinery itself
       const { error } = await supabase.from('machinery').delete().eq('id', id);
       if (error) {
         alert(`Error al eliminar en Supabase: ${error.message}`);
         return;
       }
+
+      // 3. Update local state for both postulations and machines
+      setMachineryPostulations((prev) => prev.filter((p) => p.machinery_id !== id));
     } catch (err: any) {
       alert(`Error de conexión al eliminar: ${err.message || err}`);
       return;
@@ -3145,207 +3153,262 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                   <p>Aún no hay postulaciones de equipos para venta.</p>
                 </div>
               ) : (
-                <div className="space-y-5">
-                  {machineryPostulations.map((p) => (
-                    <div key={p.id} className={`bg-slate-900 rounded-2xl p-5 transition-all border ${
-                      p.estado === 'Pendiente de Revisión'
-                        ? 'border-amber-600/30 hover:border-amber-500/50'
-                        : p.estado === 'Aprobado'
-                        ? 'border-emerald-600/30'
-                        : 'border-red-700/30 opacity-60'
-                    }`}>
+                <div className="space-y-3">
+                  {machineryPostulations.map((p) => {
+                    const isExpanded = expandedPostulationId === p.id;
+                    const mainPhoto = Array.isArray(p.fotos_urls) && p.fotos_urls.length > 0
+                      ? p.fotos_urls[0]
+                      : 'https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=200';
 
-                      {/* ─ Top Row: Status + Date ─ */}
-                      <div className="flex items-center gap-2 mb-4 flex-wrap">
-                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                          p.estado === 'Pendiente de Revisión'
-                            ? 'bg-amber-950/60 border border-amber-600/50 text-amber-300'
-                            : p.estado === 'Aprobado'
-                            ? 'bg-emerald-950/60 border border-emerald-600/50 text-emerald-300'
-                            : 'bg-red-950/60 border border-red-600/50 text-red-300'
-                        }`}>
-                          {p.estado}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          Recibida el {new Date(p.created_at).toLocaleDateString('es-VE')}
-                        </span>
-                        <span className="text-[10px] text-slate-600 font-mono">{p.id.substring(0, 8)}...</span>
-                      </div>
-
-                      <div className="flex items-start gap-4 flex-wrap">
-                        {/* ─ Left: Info ─ */}
-                        <div className="flex-1 min-w-0 space-y-3">
-
-                          {/* Equipment title */}
-                          <h3 className="text-base font-extrabold text-white">
-                            {p.marca} {p.modelo} — Año {p.ano}
-                          </h3>
-
-                          {/* Specs grid */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                            <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
-                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Condición</p>
-                              <p className="text-slate-200 font-semibold">{p.condicion}</p>
-                            </div>
-                            <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
-                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Uso</p>
-                              <p className="text-slate-200 font-semibold font-mono">{(p.uso_valor || 0).toLocaleString()} {p.uso_unidad}</p>
-                            </div>
-                            <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
-                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Ciudad / Estado</p>
-                              <p className="text-slate-200 font-semibold">{p.ciudad_venezuela}</p>
-                            </div>
-                            {/* Precio con copia */}
-                            <div className="bg-slate-950 border border-emerald-800/40 rounded-lg p-2.5 flex items-start justify-between gap-1">
-                              <div>
-                                <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Precio Estimado</p>
-                                <p className="text-emerald-300 font-extrabold font-mono">${Number(p.precio_estimado || 0).toLocaleString()} USD</p>
+                    return (
+                      <div key={p.id} className={`bg-slate-900 rounded-2xl border transition-all overflow-hidden ${
+                        p.estado === 'Pendiente de Revisión'
+                          ? 'border-amber-600/30 hover:border-amber-500/50'
+                          : p.estado === 'Aprobado'
+                          ? 'border-emerald-600/30'
+                          : 'border-red-700/30 opacity-60'
+                      }`}>
+                        
+                        {/* ─ Collapsed Header Row ─ */}
+                        <div 
+                          onClick={() => setExpandedPostulationId(isExpanded ? null : p.id)}
+                          className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer hover:bg-slate-950/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-4 w-full sm:w-auto min-w-0 flex-1">
+                            {/* Main photo thumbnail */}
+                            <img src={mainPhoto} alt={p.marca} className="w-16 h-12 rounded-xl object-cover border border-slate-800 shrink-0" />
+                            
+                            <div className="min-w-0 flex-1">
+                              {/* Title, Year */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-bold text-orange-400">{p.marca}</span>
+                                <span className="text-xs text-slate-500">•</span>
+                                <span className="text-xs text-white font-bold truncate">{p.modelo}</span>
+                                <span className="text-xs text-slate-500">•</span>
+                                <span className="text-xs text-slate-300 font-semibold">{p.ano}</span>
                               </div>
-                              <button
-                                onClick={() => copyToClipboard(String(p.precio_estimado), 'precio')}
-                                className="mt-0.5 p-1 rounded text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
-                                title="Copiar precio"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
+
+                              {/* Owner simple summary line */}
+                              <p className="text-[11px] text-slate-400 mt-1 truncate">
+                                Propietario: <span className="text-slate-300 font-semibold">{p.nombre_cliente} {p.apellido_cliente}</span> ({p.telefono_cliente})
+                              </p>
                             </div>
                           </div>
 
-                          {/* Notas adicionales */}
-                          {p.descripcion_notas && (
-                            <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3">
-                              <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Notas del propietario</p>
-                              <p className="text-xs text-slate-300 leading-relaxed">{p.descripcion_notas}</p>
+                          {/* Right side info: price, status badge, action toggle */}
+                          <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+                            {/* Price */}
+                            <div className="text-left sm:text-right">
+                              <p className="text-[9px] text-slate-500 uppercase font-black">Precio Estimado</p>
+                              <p className="text-emerald-400 font-extrabold font-mono text-xs sm:text-sm">
+                                ${Number(p.precio_estimado || 0).toLocaleString()} USD
+                              </p>
                             </div>
-                          )}
 
-                          {/* Client data with copy buttons */}
-                          <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 space-y-2 text-xs">
-                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Datos del propietario</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {/* Nombre */}
-                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <span className="text-slate-300 font-bold truncate">{p.nombre_cliente} {p.apellido_cliente}</span>
-                                </div>
-                                <button onClick={() => copyToClipboard(`${p.nombre_cliente} ${p.apellido_cliente}`, 'nombre')}
-                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar nombre">
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              {/* Cédula */}
-                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <span className="text-slate-200 font-mono truncate">{p.cedula_rif_cliente}</span>
-                                </div>
-                                <button onClick={() => copyToClipboard(p.cedula_rif_cliente, 'cédula')}
-                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar cédula/RIF">
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              {/* Modelo */}
-                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <span className="text-slate-200 font-mono truncate">{p.marca} {p.modelo}</span>
-                                </div>
-                                <button onClick={() => copyToClipboard(`${p.marca} ${p.modelo}`, 'modelo')}
-                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar modelo">
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              {/* Teléfono / WA */}
-                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
-                                <a
-                                  href={`https://wa.me/${p.telefono_cliente.replace(/[^0-9]/g, '')}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="flex items-center gap-2 min-w-0 flex-1"
-                                >
-                                  <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                                  <span className="text-emerald-400 hover:text-emerald-300 font-mono font-bold truncate transition-colors">{p.telefono_cliente}</span>
-                                </a>
-                                <button onClick={() => copyToClipboard(p.telefono_cliente, 'teléfono')}
-                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar teléfono">
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                            {/* Status */}
+                            <span className={`text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                              p.estado === 'Pendiente de Revisión'
+                                ? 'bg-amber-950/60 border border-amber-600/50 text-amber-300'
+                                : p.estado === 'Aprobado'
+                                ? 'bg-emerald-950/60 border border-emerald-600/50 text-emerald-300'
+                                : 'bg-red-950/60 border border-red-600/50 text-red-300'
+                            }`}>
+                              {p.estado}
+                            </span>
+
+                            {/* Action toggle label */}
+                            <div className="text-slate-400">
+                              {isExpanded ? (
+                                <span className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg font-bold text-white uppercase transition-colors">Colapsar</span>
+                              ) : (
+                                <span className="text-[10px] bg-orange-600 hover:bg-orange-500 px-2.5 py-1 rounded-lg font-bold text-white uppercase transition-colors">Detalles</span>
+                              )}
                             </div>
                           </div>
                         </div>
 
-                        {/* ─ Right: Photo Gallery with download ─ */}
-                        {Array.isArray(p.fotos_urls) && p.fotos_urls.length > 0 && (
-                          <div className="shrink-0 w-full sm:w-auto">
-                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1.5">
-                              Fotos ({p.fotos_urls.length})
-                            </p>
-                            <div className="grid grid-cols-3 gap-1.5">
-                              {p.fotos_urls.slice(0, 6).map((url: string, idx: number) => (
-                                <div key={idx} className="relative group">
-                                  <div
-                                    className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer"
-                                    onClick={() => setLightbox({ photos: p.fotos_urls, idx })}
-                                  >
-                                    <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                                      <ExternalLink className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </div>
-                                    {idx === 0 && (
-                                      <span className="absolute bottom-0.5 left-0.5 bg-orange-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">Principal</span>
-                                    )}
-                                  </div>
-                                  {/* Download button */}
-                                  <a
-                                    href={url}
-                                    download={`equipo-foto-${idx + 1}.jpg`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-slate-800 hover:bg-slate-600 border border-slate-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                    title="Descargar foto"
-                                  >
-                                    <ExternalLink className="w-2.5 h-2.5 text-slate-300" />
-                                  </a>
-                                </div>
-                              ))}
+                        {/* ─ Expanded details body ─ */}
+                        {isExpanded && (
+                          <div className="p-5 border-t border-slate-800/80 bg-slate-950/40 space-y-4 animate-in fade-in duration-200">
+                            {/* Top Row: Date & DB key */}
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+                              <span>Recibida el {new Date(p.created_at).toLocaleDateString('es-VE')}</span>
+                              <span>•</span>
+                              <span>ID: {p.id}</span>
                             </div>
-                            {p.fotos_urls.length > 6 && (
-                              <p className="text-[10px] text-slate-500 mt-1">+{p.fotos_urls.length - 6} más — clic en foto para ver todas</p>
+
+                            <div className="flex items-start gap-4 flex-wrap">
+                              {/* Left: Info */}
+                              <div className="flex-1 min-w-0 space-y-3">
+                                {/* Specs grid */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                  <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Condición</p>
+                                    <p className="text-slate-200 font-semibold">{p.condicion}</p>
+                                  </div>
+                                  <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Uso</p>
+                                    <p className="text-slate-200 font-semibold font-mono">{(p.uso_valor || 0).toLocaleString()} {p.uso_unidad}</p>
+                                  </div>
+                                  <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Ciudad / Estado</p>
+                                    <p className="text-slate-200 font-semibold">{p.ciudad_venezuela}</p>
+                                  </div>
+                                  {/* Precio con copia */}
+                                  <div className="bg-slate-950 border border-emerald-800/40 rounded-lg p-2.5 flex items-start justify-between gap-1">
+                                    <div>
+                                      <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Precio Estimado</p>
+                                      <p className="text-emerald-300 font-extrabold font-mono">${Number(p.precio_estimado || 0).toLocaleString()} USD</p>
+                                    </div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); copyToClipboard(String(p.precio_estimado), 'precio'); }}
+                                      className="mt-0.5 p-1 rounded text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+                                      title="Copiar precio"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Notas adicionales */}
+                                {p.descripcion_notas && (
+                                  <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3">
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Notas del propietario</p>
+                                    <p className="text-xs text-slate-300 leading-relaxed">{p.descripcion_notas}</p>
+                                  </div>
+                                )}
+
+                                {/* Client data with copy buttons */}
+                                <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 space-y-2 text-xs">
+                                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Datos del propietario</p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {/* Nombre */}
+                                    <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        <span className="text-slate-300 font-bold truncate">{p.nombre_cliente} {p.apellido_cliente}</span>
+                                      </div>
+                                      <button onClick={(e) => { e.stopPropagation(); copyToClipboard(`${p.nombre_cliente} ${p.apellido_cliente}`, 'nombre'); }}
+                                        className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar nombre">
+                                        <Copy className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    {/* Cédula */}
+                                    <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        <span className="text-slate-200 font-mono truncate">{p.cedula_rif_cliente}</span>
+                                      </div>
+                                      <button onClick={(e) => { e.stopPropagation(); copyToClipboard(p.cedula_rif_cliente, 'cédula'); }}
+                                        className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar cédula/RIF">
+                                        <Copy className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    {/* Modelo */}
+                                    <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        <span className="text-slate-200 font-mono truncate">{p.marca} {p.modelo}</span>
+                                      </div>
+                                      <button onClick={(e) => { e.stopPropagation(); copyToClipboard(`${p.marca} ${p.modelo}`, 'modelo'); }}
+                                        className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar modelo">
+                                        <Copy className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    {/* Teléfono / WA */}
+                                    <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                      <a
+                                        href={`https://wa.me/${p.telefono_cliente.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-2 min-w-0 flex-1"
+                                      >
+                                        <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                        <span className="text-emerald-400 hover:text-emerald-300 font-mono font-bold truncate transition-colors">{p.telefono_cliente}</span>
+                                      </a>
+                                      <button onClick={(e) => { e.stopPropagation(); copyToClipboard(p.telefono_cliente, 'teléfono'); }}
+                                        className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar teléfono">
+                                        <Copy className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Right: Photo Gallery with download */}
+                              {Array.isArray(p.fotos_urls) && p.fotos_urls.length > 0 && (
+                                <div className="shrink-0 w-full sm:w-auto">
+                                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-1.5">
+                                    Fotos ({p.fotos_urls.length})
+                                  </p>
+                                  <div className="grid grid-cols-3 gap-1.5 animate-in fade-in">
+                                    {p.fotos_urls.slice(0, 6).map((url: string, idx: number) => (
+                                      <div key={idx} className="relative group">
+                                        <div
+                                          className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer"
+                                          onClick={(e) => { e.stopPropagation(); setLightbox({ photos: p.fotos_urls, idx }); }}
+                                        >
+                                          <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                            <ExternalLink className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                          </div>
+                                          {idx === 0 && (
+                                            <span className="absolute bottom-0.5 left-0.5 bg-orange-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">Principal</span>
+                                          )}
+                                        </div>
+                                        {/* Download button */}
+                                        <a
+                                          href={url}
+                                          download={`equipo-foto-${idx + 1}.jpg`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-slate-800 hover:bg-slate-600 border border-slate-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                          title="Descargar foto"
+                                        >
+                                          <ExternalLink className="w-2.5 h-2.5 text-slate-300" />
+                                        </a>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {p.fotos_urls.length > 6 && (
+                                    <p className="text-[10px] text-slate-500 mt-1">+{p.fotos_urls.length - 6} más — clic en foto para ver todas</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            {p.estado === 'Pendiente de Revisión' && (
+                              <div className="pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row gap-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); startApprovalFlow(p); }}
+                                  className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  Aprobar y Publicar en Catálogo
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRejectPostulation(p); }}
+                                  className="sm:w-auto py-2.5 px-4 bg-slate-800 hover:bg-red-950/60 border border-slate-700 hover:border-red-700/50 text-slate-400 hover:text-red-300 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Rechazar / Eliminar
+                                </button>
+                              </div>
+                            )}
+                            {p.estado === 'Aprobado' && (
+                              <div className="pt-3 border-t border-emerald-800/30 flex items-center gap-2 text-[11px] text-emerald-500">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                <span>Equipo aprobado y publicado en el catálogo. Revisa el inventario para editarlo.</span>
+                              </div>
                             )}
                           </div>
                         )}
                       </div>
-
-                      {/* ─ Action Buttons ─ */}
-                      {p.estado === 'Pendiente de Revisión' && (
-                        <div className="mt-4 pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row gap-2">
-                          <button
-                            onClick={() => startApprovalFlow(p)}
-                            className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                            Aprobar y Publicar en Catálogo
-                          </button>
-                          <button
-                            onClick={() => handleRejectPostulation(p)}
-                            className="sm:w-auto py-2.5 px-4 bg-slate-800 hover:bg-red-950/60 border border-slate-700 hover:border-red-700/50 text-slate-400 hover:text-red-300 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Rechazar / Eliminar
-                          </button>
-                        </div>
-                      )}
-                      {p.estado === 'Aprobado' && (
-                        <div className="mt-4 pt-3 border-t border-emerald-800/30 flex items-center gap-2 text-[11px] text-emerald-500">
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                          <span>Equipo aprobado y publicado en el catálogo. Revisa el inventario para editarlo.</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -3626,7 +3689,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                     const titulo = `${p.marca} ${p.modelo} ${p.ano}`;
                     
                     // 1. Insert into machinery
-                    const { error: insertErr } = await supabase.from('machinery').insert({
+                    const { data: insertedData, error: insertErr } = await supabase.from('machinery').insert({
                       titulo,
                       marca: p.marca,
                       modelo: p.modelo,
@@ -3653,21 +3716,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       inspeccion_transmision: appInspTransmission,
                       inspeccion_cabina: appInspCabin,
                       inspeccion_cauchos: appInspTires,
-                    });
+                    }).select();
 
                     if (insertErr) throw insertErr;
 
-                    // 2. Update postulation state to 'Aprobado'
+                    const newMachId = insertedData && insertedData[0] ? insertedData[0].id : null;
+
+                    // 2. Update postulation state to 'Aprobado' and store machinery_id
                     const { error: updateErr } = await supabase
                       .from('postulaciones_equipos')
-                      .update({ estado: 'Aprobado' })
+                      .update({ 
+                        estado: 'Aprobado',
+                        machinery_id: newMachId
+                      })
                       .eq('id', p.id);
 
                     if (updateErr) throw updateErr;
 
                     // Update local state
                     setMachineryPostulations(prev => 
-                      prev.map(x => x.id === p.id ? { ...x, estado: 'Aprobado' } : x)
+                      prev.map(x => x.id === p.id ? { ...x, estado: 'Aprobado', machinery_id: newMachId } : x)
                     );
 
                     alert(`✅ Equipo "${titulo}" aprobado y publicado exitosamente.`);

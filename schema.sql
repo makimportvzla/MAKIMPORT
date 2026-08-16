@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS public.postulaciones_equipos (
   
   -- Admin / Control
   estado TEXT NOT NULL DEFAULT 'Pendiente de Revisión', -- 'Pendiente de Revisión' | 'Aprobado' | 'Rechazado'
+  machinery_id UUID REFERENCES public.machinery(id) ON DELETE SET NULL,
   
   creado_por UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
