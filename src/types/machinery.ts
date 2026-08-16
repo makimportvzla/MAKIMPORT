@@ -46,7 +46,7 @@ export interface MachineryItem {
   // Venezuela-specific location (when machinery is physically inside Venezuela)
   ciudadVenezuela?: string;
   // Unit of usage measurement
-  unidadUso?: 'Horas' | 'Kilómetros' | 'Millas';
+  unidadUso?: 'Horas' | 'Kilómetros' | 'Millas' | 'No aplica';
   // Private owner details (admin only)
   duenoNombre?: string;
   duenoInstagram?: string;

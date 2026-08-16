@@ -1284,11 +1284,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                               <span className="inline-flex items-center px-1 py-0.5 rounded bg-orange-600/95 text-white text-[8px] font-extrabold uppercase animate-pulse">
                                 Subasta
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-emerald-600/95 text-white text-[8px] font-extrabold uppercase">
-                                Compra
-                              </span>
-                            )}
+                            ) : null}
                             
                             {item.badgePromocion && !g3Closed && (
                               <span className="inline-flex items-center px-1 py-0.5 rounded bg-gradient-to-r from-red-600 to-orange-500 text-white text-[7.5px] font-black uppercase tracking-wider shadow-sm max-w-[65px] truncate">
@@ -1495,38 +1491,37 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
 
-                          {/* Flex overlay for top elements in 2-column card */}
-                          <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
-                            {/* Badges on left */}
-                            <div className="flex flex-col gap-1.5 items-start">
-                              {/* Status Badge */}
+                          {/* Flex overlay for top elements in 2-column card (stacked vertically) */}
+                          <div className="absolute top-2 left-2 right-2 flex flex-col gap-1.5 items-start z-10 pointer-events-none">
+                            {/* Status Badge */}
+                            {isClosed ? (
                               <div>
-                                {isClosed ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-900/95 border border-red-700/60 text-red-200 text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
-                                    <X className="w-2.5 h-2.5" />
-                                    Cerrada
-                                  </span>
-                                ) : isAuction ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
-                                    <Gavel className="w-2.5 h-2.5 animate-pulse" />
-                                    Subasta
-                                  </span>
-                                ) : null}
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-900/95 border border-red-700/60 text-red-200 text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                  <X className="w-2.5 h-2.5" />
+                                  Cerrada
+                                </span>
                               </div>
+                            ) : isAuction ? (
+                              <div>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
+                                  <Gavel className="w-2.5 h-2.5 animate-pulse" />
+                                  Subasta
+                                </span>
+                              </div>
+                            ) : null}
 
-                              {/* Manual urgency marketing badge */}
-                              {item.badgePromocion && !isClosed && (
-                                <div>
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider rounded-r-xl rounded-bl-xl shadow-lg border border-red-500/20">
-                                    <Flame className="w-3 h-3 text-white animate-bounce" style={{ animationDuration: '3s' }} />
-                                    {item.badgePromocion}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                            {/* Manual urgency marketing badge */}
+                            {item.badgePromocion && !isClosed && (
+                              <div className="pointer-events-auto">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider rounded-r-xl rounded-bl-xl shadow-lg border border-red-500/20">
+                                  <Flame className="w-3 h-3 text-white animate-bounce" style={{ animationDuration: '3s' }} />
+                                  {item.badgePromocion}
+                                </span>
+                              </div>
+                            )}
 
                             {/* Real Location Tag */}
-                            <div className="flex items-center gap-1.5 pointer-events-auto">
+                            <div className="pointer-events-auto">
                               <div className="px-2 py-0.5 rounded bg-slate-900/95 border border-slate-700/80 text-white text-[10px] font-extrabold shadow-md flex items-center gap-1">
                                 {getCleanLocationBadge(item)}
                               </div>

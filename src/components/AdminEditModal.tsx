@@ -30,7 +30,7 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
   const [category, setCategory] = useState('Excavadora de Oruga');
   const [year, setYear] = useState(2022);
   const [hours, setHours] = useState(2500);
-  const [unidadUso, setUnidadUso] = useState<'Horas' | 'Kilómetros' | 'Millas'>('Horas');
+  const [unidadUso, setUnidadUso] = useState<'Horas' | 'Kilómetros' | 'Millas' | 'No aplica'>('Horas');
   const [directPrice, setDirectPrice] = useState(65000);
   const [origin, setOrigin] = useState('USA');
   const [location, setLocation] = useState('Houston, TX - EE.UU.');
@@ -368,7 +368,7 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">Categoría *</label>
                 <select
-                  value={category}
+                  value={CATEGORIES.some(c => c.label === category) ? category : 'Otros'}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 >
@@ -376,12 +376,22 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
                     <option key={cat.value} value={cat.label}>{cat.label}</option>
                   ))}
                 </select>
+                {(!CATEGORIES.some(c => c.label === category) || category === 'Otros') && (
+                  <input
+                    type="text"
+                    required
+                    value={category === 'Otros' ? '' : category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="Escribe la categoría personalizada..."
+                    className="w-full mt-2 bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 font-sans"
+                  />
+                )}
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">Marca *</label>
                 <select
-                  value={brand}
+                  value={BRANDS.some(b => b.label === brand) ? brand : 'Otra marca'}
                   onChange={(e) => setBrand(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 >
@@ -389,6 +399,16 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
                     <option key={b.value} value={b.label}>{b.label}</option>
                   ))}
                 </select>
+                {(!BRANDS.some(b => b.label === brand) || brand === 'Otra marca') && (
+                  <input
+                    type="text"
+                    required
+                    value={brand === 'Otra marca' ? '' : brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder="Escribe la marca personalizada..."
+                    className="w-full mt-2 bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 font-sans"
+                  />
+                )}
               </div>
 
               <div>
@@ -430,20 +450,34 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
                 <label className="block font-semibold text-slate-300 mb-1">Uso / Recorrido *</label>
                 <div className="flex gap-2">
                   <input
-                    type="number"
+                    type={unidadUso === 'No aplica' ? 'text' : 'number'}
                     min={0}
-                    value={hours}
-                    onChange={(e) => setHours(Number(e.target.value))}
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 font-mono"
+                    disabled={unidadUso === 'No aplica'}
+                    value={unidadUso === 'No aplica' ? 'N/A' : hours}
+                    onChange={(e) => {
+                      if (unidadUso !== 'No aplica') {
+                        setHours(Number(e.target.value));
+                      }
+                    }}
+                    className={`flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 font-mono ${
+                      unidadUso === 'No aplica' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                   <select
                     value={unidadUso}
-                    onChange={(e) => setUnidadUso(e.target.value as any)}
+                    onChange={(e) => {
+                      const val = e.target.value as any;
+                      setUnidadUso(val);
+                      if (val === 'No aplica') {
+                        setHours(0);
+                      }
+                    }}
                     className="w-28 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-orange-500"
                   >
                     <option value="Horas">⏱️ Horas</option>
                     <option value="Kilómetros">🛣️ Km</option>
                     <option value="Millas">🇺🇸 Millas</option>
+                    <option value="No aplica">❌ No aplica</option>
                   </select>
                 </div>
               </div>

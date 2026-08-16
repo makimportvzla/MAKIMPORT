@@ -519,12 +519,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                     <Gavel className="w-3.5 h-3.5 animate-pulse" />
                     Subasta Activa
                   </span>
-                ) : (
-                  <span className="px-3 py-1 rounded-full bg-emerald-600/95 text-white text-xs font-extrabold uppercase tracking-wider shadow-lg flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Compra Inmediata
-                  </span>
-                )}
+                ) : null}
                 
                 {item.financingAvailable && (
                   <span className="px-2.5 py-1 rounded-full bg-amber-500/90 text-slate-950 text-xs font-bold flex items-center gap-1">
@@ -622,7 +617,7 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   <span className="text-slate-500 block text-[10px] uppercase">Uso / Recorrido</span>
                   <span className="font-bold text-white flex items-center gap-1.5 mt-1">
                     <Gauge className="w-4 h-4 text-orange-400" />
-                    {item.hours.toLocaleString()} {item.unidadUso || 'Horas'}
+                    {item.unidadUso === 'No aplica' ? 'No aplica' : `${item.hours.toLocaleString()} ${item.unidadUso || 'Horas'}`}
                   </span>
                 </div>
 
@@ -974,11 +969,13 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
 
                     <button
                       onClick={handleDirectPurchase}
-                      className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 transition-all"
+                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-950 flex flex-col items-center justify-center gap-0.5 transition-all text-center"
                     >
-                      <ShoppingBag className="w-5 h-5 shrink-0" />
-                      <span className="whitespace-nowrap">Solicitar Compra Inmediata</span>
-                      <span className="font-mono text-xs opacity-90 whitespace-nowrap shrink-0">— ${item.price.toLocaleString()} USD</span>
+                      <div className="flex items-center gap-1.5">
+                        <ShoppingBag className="w-4 h-4 shrink-0" />
+                        <span className="text-sm font-black tracking-wide">Solicitar Compra Inmediata</span>
+                      </div>
+                      <span className="font-mono text-[11px] opacity-90 font-bold">${item.price.toLocaleString()} USD</span>
                     </button>
 
                     <p className="text-[10px] text-slate-500 text-center leading-relaxed">
@@ -995,25 +992,26 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 ¿Dudas sobre esta maquinaria o buscas algún equipo en específico? Contáctanos directamente
               </span>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold">
-                <a
-                  href={`https://t.me/makimportvzla?text=Hola%20MAKIMPORT,%20deseo%20informaci%C3%B3n%20sobre%20el%20equipo%20${encodeURIComponent(item.name)}%20(${item.model})`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-3 rounded-xl bg-sky-600/20 hover:bg-sky-600 border border-sky-500/40 text-sky-300 hover:text-white flex items-center justify-center gap-2 transition-all"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>Atención Telegram</span>
-                </a>
-
+              <div className="space-y-2">
                 <a
                   href={`https://wa.me/584146370819?text=Hola%20MAKIMPORT%2C%20busco%20atenci%C3%B3n%20personalizada%20para%20la%20compra%2Fb%C3%BAsqueda%20de%20maquinaria.%20Me%20interesa%20el%20equipo%20${encodeURIComponent(item.name)}%20(${item.model}).`}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/40 text-emerald-300 hover:text-white flex items-center justify-center gap-2 transition-all"
+                  className="w-full p-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-2.5 transition-all text-sm font-black shadow-lg shadow-emerald-950/40 border border-emerald-500 relative overflow-hidden"
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Atención WhatsApp</span>
+                  <span className="absolute inset-0 bg-emerald-400/20 animate-pulse pointer-events-none" />
+                  <MessageCircle className="w-5 h-5 fill-white shrink-0 z-10" />
+                  <span className="z-10">Preguntar por WhatsApp (Atención Inmediata)</span>
+                </a>
+
+                <a
+                  href={`https://t.me/makimportvzla?text=Hola%20MAKIMPORT,%20deseo%20informaci%C3%B3n%20sobre%20el%20equipo%20${encodeURIComponent(item.name)}%20(${item.model})`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-2 transition-all text-xs font-bold"
+                >
+                  <Send className="w-3.5 h-3.5 shrink-0" />
+                  <span>Atención Telegram</span>
                 </a>
               </div>
             </div>

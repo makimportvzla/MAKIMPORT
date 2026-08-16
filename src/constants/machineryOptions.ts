@@ -40,6 +40,9 @@ export const CATEGORIES: OptionItem[] = [
   { value: 'compresor de aire',    label: 'Compresor de Aire' },
   { value: 'camión grúa',          label: 'Camión Grúa / Wrecker' },
   { value: 'bomba de concreto',    label: 'Bomba de Concreto' },
+  { value: 'inmueble',             label: 'Inmueble' },
+  { value: 'especial',             label: 'Especial' },
+  { value: 'repuestos',            label: 'Repuestos' },
   { value: 'otros',                label: 'Otros' },
 ];
 

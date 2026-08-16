@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
 import { ProveedoresTab } from './ProveedoresTab';
+import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
 
 interface UserProfile {
   id: string;
@@ -348,6 +349,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [ciudadVenezuela, setCiudadVenezuela] = useState('');
   const [destinationPort, setDestinationPort] = useState('Puerto Cabello, VZLA');
   const [transitTime, setTransitTime] = useState('25-35 días');
+  const [unidadUso, setUnidadUso] = useState<'Horas' | 'Kilómetros' | 'Millas' | 'No aplica'>('Horas');
   const [isAuction, setIsAuction] = useState(false);
   const [priceDirect, setPriceDirect] = useState(65000);
   const [priceStartAuction, setPriceStartAuction] = useState(50000);
@@ -763,6 +765,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
       inspectionScore: Number(inspectionScore),
       description: description || 'Maquinaria pesada certificada.',
       financingAvailable: financing,
+      unidadUso: unidadUso,
       duenoNombre: duenoNombre.trim() || undefined,
       duenoInstagram: duenoInstagram.trim() || undefined,
       duenoTelefono: duenoTelefono.trim() || undefined
@@ -796,6 +799,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         puerto_destino: origin === 'Venezuela' ? null : (destinationPort || null),
         tiempo_transito: origin === 'Venezuela' ? null : (transitTime || null),
         ciudad_venezuela: origin === 'Venezuela' ? (ciudadVenezuela.trim() || null) : null,
+        unidad_uso: unidadUso,
         dueno_nombre: duenoNombre.trim() || null,
         dueno_instagram: duenoInstagram.trim() || null,
         dueno_telefono: duenoTelefono.trim() || null
@@ -875,6 +879,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     setCiudadVenezuela('');
     setDestinationPort('Puerto Cabello, VZLA');
     setTransitTime('25-35 días');
+    setUnidadUso('Horas');
     setDuenoNombre('');
     setDuenoInstagram('');
     setDuenoTelefono('');
@@ -1450,36 +1455,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-medium text-slate-300 mb-1">Categoría *</label>
-                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
-                      <option value="Excavadora">Excavadora</option>
-                      <option value="Retroexcavadora">Retroexcavadora</option>
-                      <option value="Cargador">Cargador Frontal</option>
-                      <option value="Bulldozer">Bulldozer / Tractor</option>
-                      <option value="Compactadora">Compactadora</option>
-                      <option value="Trituradora">Trituradora</option>
-                      <option value="Volteo">Camión de Volteo</option>
-                      <option value="Grúa">Grúa Industrial</option>
-                      <option value="Otros">Otros</option>
+                    <select
+                      value={CATEGORIES.some(c => c.label === category) ? category : 'Otros'}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white"
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat.value} value={cat.label}>{cat.label}</option>
+                      ))}
                     </select>
+                    {(!CATEGORIES.some(c => c.label === category) || category === 'Otros') && (
+                      <input
+                        type="text"
+                        required
+                        value={category === 'Otros' ? '' : category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        placeholder="Categoría personalizada..."
+                        className="w-full mt-1.5 bg-slate-950 border border-orange-500/50 rounded-lg p-2 text-white focus:outline-none"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block font-medium text-slate-300 mb-1">Marca *</label>
-                    <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
-                      <option value="Caterpillar">Caterpillar</option>
-                      <option value="Komatsu">Komatsu</option>
-                      <option value="SANY">SANY</option>
-                      <option value="XCMG">XCMG</option>
-                      <option value="Volvo">Volvo</option>
-                      <option value="JCB">JCB</option>
-                      <option value="John Deere">John Deere</option>
-                      <option value="Case">Case</option>
-                      <option value="Hyundai">Hyundai</option>
-                      <option value="Zoomlion">Zoomlion</option>
-                      <option value="Otros">Otros</option>
+                    <select
+                      value={BRANDS.some(b => b.label === brand) ? brand : 'Otra marca'}
+                      onChange={(e) => setBrand(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white"
+                    >
+                      {BRANDS.map((b) => (
+                        <option key={b.value} value={b.label}>{b.label}</option>
+                      ))}
                     </select>
+                    {(!BRANDS.some(b => b.label === brand) || brand === 'Otra marca') && (
+                      <input
+                        type="text"
+                        required
+                        value={brand === 'Otra marca' ? '' : brand}
+                        onChange={(e) => setBrand(e.target.value)}
+                        placeholder="Marca personalizada..."
+                        className="w-full mt-1.5 bg-slate-950 border border-orange-500/50 rounded-lg p-2 text-white focus:outline-none"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -1494,14 +1513,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                   onImagesChanged={(urls) => setImages(urls)}
                 />
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-medium text-slate-300 mb-1">Año</label>
                     <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
                   </div>
                   <div>
-                    <label className="block font-medium text-slate-300 mb-1">Horas Operativas</label>
-                    <input type="number" value={hours} onChange={(e) => setHours(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                    <label className="block font-medium text-slate-300 mb-1">Uso / Recorrido *</label>
+                    <div className="flex gap-2">
+                      <input
+                        type={unidadUso === 'No aplica' ? 'text' : 'number'}
+                        min={0}
+                        disabled={unidadUso === 'No aplica'}
+                        value={unidadUso === 'No aplica' ? 'N/A' : hours}
+                        onChange={(e) => {
+                          if (unidadUso !== 'No aplica') {
+                            setHours(Number(e.target.value));
+                          }
+                        }}
+                        className={`flex-1 bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-orange-500 font-mono ${
+                          unidadUso === 'No aplica' ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      />
+                      <select
+                        value={unidadUso}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setUnidadUso(val);
+                          if (val === 'No aplica') {
+                            setHours(0);
+                          }
+                        }}
+                        className="w-24 bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-orange-500"
+                      >
+                        <option value="Horas">⏱️ Horas</option>
+                        <option value="Kilómetros">🛣️ Km</option>
+                        <option value="Millas">🇺🇸 Millas</option>
+                        <option value="No aplica">❌ No aplica</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
