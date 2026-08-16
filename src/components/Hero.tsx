@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Gavel, FileText, ArrowRight, ShieldCheck, Ship, CheckCircle2, ChevronRight, Globe2, Wrench, ShoppingBag, Calendar, BarChart3, Tag } from 'lucide-react';
 import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
+import { Logo } from './Logo';
 
 interface HeroProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
@@ -61,8 +62,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10 w-full">
         
-        {/* Top Tag / Pill */}
-        <div className="flex justify-center mb-6">
+        {/* Top Tag / Pill - Staggered Step 1 */}
+        <div className="flex justify-center mb-4 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-700 fill-mode-forwards">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-orange-500/30 text-xs font-semibold text-orange-400 backdrop-blur-md shadow-lg shadow-black/40">
             <Globe2 className="w-4 h-4 text-orange-500 animate-pulse animate-duration-[2000ms]" />
             <span>Ecosistema Integral de Maquinaria Pesada en Venezuela</span>
@@ -71,21 +72,32 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
           </div>
         </div>
 
-        {/* Hero Title & Subtitle */}
+        {/* Official Isotype Emblem - Staggered Step 2 */}
+        <div className="flex justify-center mb-6 animate-in fade-in zoom-in-90 duration-700 delay-150 fill-mode-forwards">
+          <div className="relative p-3 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950/80 border border-orange-500/25 shadow-2xl shadow-orange-950/40 backdrop-blur-md hover:scale-105 transition-transform duration-300 group">
+            <div className="absolute inset-0 rounded-2xl bg-orange-500/10 blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+            <Logo size="lg" showText={false} className="relative z-10 drop-shadow-[0_0_15px_rgba(234,88,12,0.35)]" />
+          </div>
+        </div>
+
+        {/* Hero Title & Subtitle - Staggered Step 3 */}
         <div className="text-center max-w-4xl mx-auto space-y-6">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15]">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-forwards">
             Compra, Vende, Alquila y Cotiza{' '}
-            <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent underline decoration-orange-500/40 decoration-wavy decoration-2">
-              Maquinaria Pesada
+            <span className="relative inline-block px-3 py-1 my-1 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/20 to-orange-500/15 border border-orange-500/30 text-orange-400 font-black tracking-normal shadow-[0_0_25px_rgba(234,88,12,0.25)] backdrop-blur-sm transition-all hover:border-orange-500/60">
+              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]">
+                Maquinaria Pesada
+              </span>
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
+          {/* Subtitle Paragraph - Staggered Step 4 */}
+          <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500 fill-mode-forwards">
             Tu solución integral: catálogo nacional verificado, alquiler de equipos para proyectos, red de servicios técnicos e importación directa desde EE.UU. y China.
           </p>
 
-          {/* CTA SECUNDARIO DESTACADO: Banner de Cotización de Obra */}
-          <div className="pt-4 max-w-3xl mx-auto">
+          {/* CTA SECUNDARIO DESTACADO: Banner de Cotización de Obra - Staggered Step 5 */}
+          <div className="pt-4 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-700 fill-mode-forwards">
             <div
               onClick={() => { window.location.href = '/cotizacion-obra'; }}
               className="group relative bg-gradient-to-r from-orange-950/40 via-slate-900 to-amber-950/40 border border-orange-500/30 hover:border-orange-500/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300 cursor-pointer shadow-xl shadow-black/30 hover:shadow-orange-950/20 hover:-translate-y-0.5"
