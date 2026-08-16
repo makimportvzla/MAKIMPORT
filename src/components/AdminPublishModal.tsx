@@ -179,8 +179,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
         year: Number(year),
         hours: Number(hours),
         origin: origin as any,
-        location: location,
-        destinationPort: destinationPort,
+        location: origin === 'Venezuela' ? 'Venezuela' : location,
+        destinationPort: origin === 'Venezuela' ? '' : destinationPort,
         status: isAuction ? 'auction' : 'direct',
         price: Number(directPrice),
         currentBid: isAuction ? Number(startPrice) : undefined,
@@ -236,9 +236,9 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
           inspeccion_transmision: Number(inspeccionTransmision),
           inspeccion_cabina: Number(inspeccionCabina),
           inspeccion_cauchos: Number(inspeccionCauchos),
-          puerto_destino: newItem.destinationPort,
-          tiempo_transito: transitTime,
-          ciudad_venezuela: ciudadVenezuela || null,
+          puerto_destino: origin === 'Venezuela' ? null : (newItem.destinationPort || null),
+          tiempo_transito: origin === 'Venezuela' ? null : (transitTime || null),
+          ciudad_venezuela: origin === 'Venezuela' ? (ciudadVenezuela.trim() || null) : null,
           unidad_uso: unidadUso,
           dueno_nombre: duenoNombre.trim() || null,
           dueno_instagram: duenoInstagram.trim() || null,
@@ -425,43 +425,6 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   </select>
                 </div>
               </div>
-
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1">Ubicación de Origen</label>
-                <input
-                  type="text"
-                  required
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
-                  placeholder="Ej. Houston, TX - EE.UU."
-                />
-              </div>
-
-              {/* Venezuela city field — only shown when origin is Venezuela */}
-              {origin === 'Venezuela' && (
-                <div className="sm:col-span-2">
-                  <label className="block font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-orange-400" />
-                    <span>🇻🇪 Ciudad / Ubicación Actual en Venezuela</span>
-                  </label>
-                  <select
-                    value={ciudadVenezuela}
-                    onChange={(e) => setCiudadVenezuela(e.target.value)}
-                    className="w-full bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
-                  >
-                    <option value="">— Seleccionar ciudad —</option>
-                    {VENEZUELA_CITIES.map((city) => (
-                      <option key={city.value} value={city.value}>{city.label}</option>
-                    ))}
-                  </select>
-                  {ciudadVenezuela && (
-                    <span className="text-[10px] text-emerald-400 font-bold mt-1 block">
-                      ✓ La máquina se encuentra físicamente en Venezuela — se mostrará en la ficha del catálogo.
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
@@ -617,43 +580,13 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
             </div>
           </div>
 
-          {/* SECCIÓN D: LOGÍSTICA */}
+          {/* SECCIÓN D: LOGÍSTICA & UBICACIÓN */}
           <div className="space-y-4">
             <h3 className="text-white font-bold text-xs uppercase tracking-wider border-b border-slate-800 pb-1.5 text-orange-400">
-              D) Logística & Envío a Venezuela
+              D) Logística & Ubicación del Equipo
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                  <Ship className="w-3.5 h-3.5 text-orange-400" />
-                  <span>Puerto de Destino (Venezuela)</span>
-                </label>
-                <select
-                  value={destinationPort}
-                  onChange={(e) => setDestinationPort(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
-                >
-                  <option value="Puerto Cabello, VZLA">Puerto Cabello, Venezuela (🇻🇪)</option>
-                  <option value="La Guaira, VZLA">La Guaira, Venezuela (🇻🇪)</option>
-                  <option value="Maracaibo, VZLA">Puerto de Maracaibo, Venezuela (🇻🇪)</option>
-                  <option value="Guanta, VZLA">Puerto de Guanta, Venezuela (🇻🇪)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1">Tiempo de Tránsito Estimado</label>
-                <select
-                  value={transitTime}
-                  onChange={(e) => setTransitTime(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
-                >
-                  <option value="15-25 días">15 - 25 días (Rápido)</option>
-                  <option value="25-35 días">25 - 35 días (Estándar)</option>
-                  <option value="35-45 días">35 - 45 días (Largo alcance)</option>
-                </select>
-              </div>
-
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">Origen Transacción</label>
                 <select
@@ -661,11 +594,24 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   onChange={(e) => {
                     const val = e.target.value;
                     setOrigin(val);
-                    if (val === 'USA') setLocation('Houston, TX - EE.UU.');
-                    else if (val === 'China') setLocation('Shanghai Port - China');
-                    else if (val === 'Venezuela') setLocation('Venezuela');
-                    else setLocation('En Tránsito');
-                    if (val !== 'Venezuela') setCiudadVenezuela('');
+                    if (val === 'USA') {
+                      setLocation('Houston, TX - EE.UU.');
+                      setDestinationPort('Puerto Cabello, VZLA');
+                      setTransitTime('25-35 días');
+                    } else if (val === 'China') {
+                      setLocation('Shanghai Port - China');
+                      setDestinationPort('Puerto Cabello, VZLA');
+                      setTransitTime('35-45 días');
+                    } else if (val === 'Venezuela') {
+                      setLocation('Venezuela');
+                      setCiudadVenezuela('');
+                      setDestinationPort('');
+                      setTransitTime('');
+                    } else {
+                      setLocation('Otro Origen');
+                      setDestinationPort('Puerto Cabello, VZLA');
+                      setTransitTime('25-35 días');
+                    }
                   }}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none"
                 >
@@ -675,6 +621,66 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                   <option value="Venezuela">Venezuela (🇻🇪)</option>
                 </select>
               </div>
+
+              {origin === 'Venezuela' ? (
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Ciudad / Pueblo Exacto en Venezuela *</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={ciudadVenezuela}
+                    onChange={(e) => setCiudadVenezuela(e.target.value)}
+                    placeholder="Ej. Maracaibo, Barquisimeto, Ciudad Ojeda..."
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Ciudad/Puerto de Origen *</label>
+                    <input
+                      type="text"
+                      required
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Ej. Houston, TX - EE.UU."
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                      <Ship className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Puerto de Llegada (Venezuela) *</span>
+                    </label>
+                    <select
+                      value={destinationPort}
+                      onChange={(e) => setDestinationPort(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="Puerto Cabello, VZLA">Puerto Cabello, Venezuela (🇻🇪)</option>
+                      <option value="La Guaira, VZLA">La Guaira, Venezuela (🇻🇪)</option>
+                      <option value="Maracaibo, VZLA">Puerto de Maracaibo (🇻🇪)</option>
+                      <option value="Guanta, VZLA">Puerto de Guanta (🇻🇪)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Tiempo de Tránsito Estimado *</label>
+                    <input
+                      type="text"
+                      required
+                      value={transitTime}
+                      onChange={(e) => setTransitTime(e.target.value)}
+                      placeholder="Ej. 25-35 días"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

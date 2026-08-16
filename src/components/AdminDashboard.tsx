@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MachineryItem } from '@/types/machinery';
 import { ImageUploader } from './ImageUploader';
-import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle, Copy, X, ChevronLeft, ChevronRight, HardHat, Tag } from 'lucide-react';
+import { Gavel, CheckCircle2, Plus, Edit, Trash2, PauseCircle, PlayCircle, Users, LayoutDashboard, ShieldCheck, Phone, Mail, Clock, Search, MapPin, DollarSign, Calendar, AlertCircle, FileText, Send, ShoppingBag, RefreshCw, ExternalLink, Wrench, Building2, Instagram, MessageCircle, Copy, X, ChevronLeft, ChevronRight, HardHat, Tag, Ship } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
@@ -343,8 +343,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [category, setCategory] = useState<string>('Excavadora');
   const [year, setYear] = useState(2022);
   const [hours, setHours] = useState(2400);
-  const [origin, setOrigin] = useState<'USA' | 'China' | 'Venezuela'>('USA');
+  const [origin, setOrigin] = useState<string>('USA');
   const [location, setLocation] = useState('Houston, TX - EE.UU.');
+  const [ciudadVenezuela, setCiudadVenezuela] = useState('');
+  const [destinationPort, setDestinationPort] = useState('Puerto Cabello, VZLA');
+  const [transitTime, setTransitTime] = useState('25-35 días');
   const [isAuction, setIsAuction] = useState(false);
   const [priceDirect, setPriceDirect] = useState(65000);
   const [priceStartAuction, setPriceStartAuction] = useState(50000);
@@ -748,8 +751,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
       year: Number(year),
       hours: Number(hours),
       origin: origin as any,
-      location: location,
-      destinationPort: 'Puerto Cabello / La Guaira, VZLA',
+      location: origin === 'Venezuela' ? 'Venezuela' : location,
+      destinationPort: origin === 'Venezuela' ? '' : destinationPort,
       status: isAuction ? 'auction' : 'direct',
       price: Number(priceDirect),
       currentBid: isAuction ? Number(priceStartAuction) : undefined,
@@ -781,7 +784,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         puja_actual: isAuction ? newItem.currentBid : 0,
         fecha_fin_subasta: endDate ? endDate.toISOString() : null,
         fotos_urls: newItem.images,
-        ubicacion_origen: newItem.location,
+        ubicacion_origen: origin === 'Venezuela' ? 'Venezuela' : location,
         
         categoria: newItem.category,
         numero_serie: newItem.serialNumber,
@@ -790,8 +793,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         inspeccion_hidraulico: 92,
         inspeccion_transmision: 94,
         inspeccion_cabina: 90,
-        puerto_destino: newItem.destinationPort || 'Puerto Cabello, VZLA',
-        tiempo_transito: '25-35 días',
+        puerto_destino: origin === 'Venezuela' ? null : (destinationPort || null),
+        tiempo_transito: origin === 'Venezuela' ? null : (transitTime || null),
+        ciudad_venezuela: origin === 'Venezuela' ? (ciudadVenezuela.trim() || null) : null,
         dueno_nombre: duenoNombre.trim() || null,
         dueno_instagram: duenoInstagram.trim() || null,
         dueno_telefono: duenoTelefono.trim() || null
@@ -866,6 +870,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
     setPriceDirect(65000);
     setPriceStartAuction(50000);
     setDescription('');
+    setOrigin('USA');
+    setLocation('Houston, TX - EE.UU.');
+    setCiudadVenezuela('');
+    setDestinationPort('Puerto Cabello, VZLA');
+    setTransitTime('25-35 días');
     setDuenoNombre('');
     setDuenoInstagram('');
     setDuenoTelefono('');
@@ -1532,6 +1541,110 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 <div>
                   <label className="block font-medium text-slate-300 mb-1">Detalles de Condición e Inspección</label>
                   <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white" placeholder="Motor, bombas hidráulicas..." />
+                </div>
+
+                {/* LOGÍSTICA & UBICACIÓN */}
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+                  <h3 className="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 text-orange-400">
+                    <Ship className="w-4 h-4 text-orange-500" />
+                    <span>Logística & Ubicación del Equipo</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Origen Transacción *</label>
+                      <select
+                        value={origin}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setOrigin(val);
+                          if (val === 'USA') {
+                            setLocation('Houston, TX - EE.UU.');
+                            setDestinationPort('Puerto Cabello, VZLA');
+                            setTransitTime('25-35 días');
+                          } else if (val === 'China') {
+                            setLocation('Shanghai Port - China');
+                            setDestinationPort('Puerto Cabello, VZLA');
+                            setTransitTime('35-45 días');
+                          } else if (val === 'Venezuela') {
+                            setLocation('Venezuela');
+                            setCiudadVenezuela('');
+                            setDestinationPort('');
+                            setTransitTime('');
+                          } else {
+                            setLocation('Otro Origen');
+                            setDestinationPort('Puerto Cabello, VZLA');
+                            setTransitTime('25-35 días');
+                          }
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-sans focus:outline-none"
+                      >
+                        <option value="USA">EE.UU. (🇺🇸)</option>
+                        <option value="China">China (🇨🇳)</option>
+                        <option value="En Tránsito">En Tránsito</option>
+                        <option value="Venezuela">Venezuela (🇻🇪)</option>
+                      </select>
+                    </div>
+
+                    {origin === 'Venezuela' ? (
+                      <div className="sm:col-span-2">
+                        <label className="block text-slate-400 mb-1 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                          <span>Ciudad / Pueblo Exacto en Venezuela *</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={ciudadVenezuela}
+                          onChange={(e) => setCiudadVenezuela(e.target.value)}
+                          placeholder="Ej. Maracaibo, Barquisimeto, Ciudad Ojeda..."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-slate-400 mb-1">Ciudad/Puerto de Origen *</label>
+                          <input
+                            type="text"
+                            required
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                            placeholder="Ej. Houston, TX - EE.UU."
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 mb-1 flex items-center gap-1">
+                            <span>Puerto de Llegada *</span>
+                          </label>
+                          <select
+                            value={destinationPort}
+                            onChange={(e) => setDestinationPort(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"
+                          >
+                            <option value="Puerto Cabello, VZLA">Puerto Cabello (🇻🇪)</option>
+                            <option value="La Guaira, VZLA">La Guaira (🇻🇪)</option>
+                            <option value="Maracaibo, VZLA">Puerto de Maracaibo (🇻🇪)</option>
+                            <option value="Guanta, VZLA">Puerto de Guanta (🇻🇪)</option>
+                          </select>
+                        </div>
+
+                        <div className="sm:col-span-3">
+                          <label className="block text-slate-400 mb-1">Tiempo de Tránsito Estimado *</label>
+                          <input
+                            type="text"
+                            required
+                            value={transitTime}
+                            onChange={(e) => setTransitTime(e.target.value)}
+                            placeholder="Ej. 25-35 días"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/*ðŸ”’ Datos Privados del Proveedor / Dueño (Solo Admin) */}

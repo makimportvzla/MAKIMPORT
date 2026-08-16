@@ -24,8 +24,8 @@ const STATIC_ANUNCIOS: AnuncioDinamico[] = [
   {
     id: 'fallback-1',
     tipo: 'requerimiento_obra',
-    titulo: '📢 Se necesita con urgencia: Retroexcavadora CAT 420F',
-    descripcion: 'Makimport busca operadores y propietarios de retroexcavadoras disponibles en alquiler para proyecto activo en el estado Zulia.',
+    titulo: '📢 Requerimiento Urgente: Excavadora de Oruga 20-22 Toneladas',
+    descripcion: 'Buscamos excavadoras Caterpillar 320 o Komatsu PC200 en alquiler para inicio de obra inmediato en el estado Zulia.',
     etiqueta_badge: '¡Urgente!',
     link_accion: '#alquiler',
     activo: true,
@@ -34,24 +34,53 @@ const STATIC_ANUNCIOS: AnuncioDinamico[] = [
   {
     id: 'fallback-2',
     tipo: 'match_servicio',
-    titulo: '👷 Se busca Ingeniero Civil y Operador de Maquinaria',
-    descripcion: 'Proyecto de construcción en expansión. Postúlate como proveedor de servicios y trabaja con nosotros en importantes obras.',
+    titulo: '👷 Reclutamiento: Ingenieros de Proyectos y Operadores de Jumbo',
+    descripcion: 'Abrimos convocatoria para ingenieros mecánicos/civiles y operadores de maquinaria pesada. Únete a nuestro equipo de construcción.',
     etiqueta_badge: 'Reclutando',
-    link_accion: '#postular',
+    link_accion: '/servicios',
     activo: true,
     orden: 1,
   },
   {
     id: 'fallback-3',
     tipo: 'promocion_tiempo',
-    titulo: '🏗️ ¿Tienes un proyecto de construcción? ¡Cotízalo con nosotros!',
-    descripcion: 'Makimport ejecuta proyectos de obra civil de principio a fin. Equipos propios, mano de obra certificada y tiempos garantizados.',
+    titulo: '🏗️ Nuevo Servicio: Movimiento de Tierra y Demolición Llave en Mano',
+    descripcion: 'Ofrecemos soluciones integrales de preparación de terrenos, excavación profunda y demolición con equipos de última generación.',
     etiqueta_badge: 'Nuevo servicio',
-    link_accion: '#cotizar',
+    link_accion: '/cotizacion-obra',
     activo: true,
     orden: 2,
   },
+  {
+    id: 'fallback-4',
+    tipo: 'requerimiento_obra',
+    titulo: '📢 Se busca: Flota de Camiones Volteo 15m³',
+    descripcion: 'Se necesitan 5 camiones de volteo operativos para transporte de agregados en Barquisimeto. Contrato de 6 meses garantizados.',
+    etiqueta_badge: '¡Urgente!',
+    link_accion: '#alquiler',
+    activo: true,
+    orden: 3,
+  },
+  {
+    id: 'fallback-5',
+    tipo: 'promocion_tiempo',
+    titulo: '🛠️ Servicio Técnico Especializado y Repuestos In-Situ',
+    descripcion: 'Brindamos soporte mecánico correctivo y preventivo directo en tu obra para minimizar tiempos de parada de tus equipos.',
+    etiqueta_badge: 'Soporte',
+    link_accion: '/servicios',
+    activo: true,
+    orden: 4,
+  },
 ];
+
+const getCleanLocationBadge = (item: MachineryItem) => {
+  if (item.origin === 'Venezuela' || item.ciudadVenezuela) {
+    return `🇻🇪 ${item.ciudadVenezuela || 'Venezuela'}`;
+  }
+  const port = item.destinationPort || 'Puerto Cabello, VZLA';
+  const cleanPort = port.replace(', VZLA', '').replace(', Venezuela', '').trim();
+  return `🚢 ${cleanPort}`;
+};
 
 interface CatalogMarketplaceProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
@@ -822,7 +851,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 </div>
 
                 {/* Text block — wraps freely, no truncation */}
-                <div className="flex-1 min-w-0">
+                <div key={anuncioIndex} className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     {anuncio.etiqueta_badge && (
                       <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full text-white uppercase tracking-wider ${badgeBg}`}>
@@ -1482,12 +1511,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                                     <Gavel className="w-2.5 h-2.5 animate-pulse" />
                                     Subasta
                                   </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600/95 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-lg">
-                                    <CheckCircle2 className="w-2.5 h-2.5" />
-                                    Compra
-                                  </span>
-                                )}
+                                ) : null}
                               </div>
 
                               {/* Manual urgency marketing badge */}
@@ -1501,10 +1525,10 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                               )}
                             </div>
 
-                            {/* Origin tag only — star moved to bottom corner with share */}
+                            {/* Real Location Tag */}
                             <div className="flex items-center gap-1.5 pointer-events-auto">
-                              <div className="px-2 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-white text-[10px] font-bold">
-                                {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
+                              <div className="px-2 py-0.5 rounded bg-slate-900/95 border border-slate-700/80 text-white text-[10px] font-extrabold shadow-md flex items-center gap-1">
+                                {getCleanLocationBadge(item)}
                               </div>
                             </div>
                           </div>
@@ -1585,8 +1609,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
                             {/* Badges on left */}
                             <div className="flex flex-col gap-1.5 items-start">
-                              <div className="px-2.5 py-0.5 rounded bg-slate-955 border border-slate-700 text-white text-[9px] font-extrabold uppercase tracking-wide">
-                                {item.origin === 'USA' ? '🇺🇸 EE.UU.' : item.origin === 'China' ? '🇨🇳 China' : '🇻🇪 VZLA'}
+                              <div className="px-2 py-0.5 rounded bg-slate-900/95 border border-slate-700/80 text-white text-[9px] font-extrabold shadow-md flex items-center gap-1">
+                                {getCleanLocationBadge(item)}
                               </div>
 
                               {isListClosed ? (
@@ -1597,11 +1621,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-600/95 text-white text-[8px] font-extrabold uppercase animate-pulse">
                                   Subasta
                                 </span>
-                              ) : (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-600/95 text-white text-[8px] font-extrabold uppercase">
-                                  Compra
-                                </span>
-                              )}
+                              ) : null}
 
                               {item.badgePromocion && !isListClosed && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[9px] font-black uppercase tracking-wider rounded-r-xl rounded-bl-xl shadow-lg border border-red-500/10">

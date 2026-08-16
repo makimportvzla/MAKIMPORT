@@ -544,9 +544,13 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                 </div>
               )}
 
-              {/* Origin Tag */}
-              <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-slate-900/90 backdrop-blur-md border border-slate-700 text-white text-xs font-bold">
-                {item.origin === 'USA' ? '🇺🇸 EE.UU. (Houston/Miami)' : item.origin === 'China' ? '🇨🇳 China (Shanghai/Ningbo)' : '🇻🇪 Puerto Cabello'}
+              {/* Location Badge */}
+              <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-slate-900/90 backdrop-blur-md border border-slate-700 text-white text-xs font-bold shadow-lg">
+                {item.origin === 'Venezuela' || item.ciudadVenezuela ? (
+                  `🇻🇪 ${item.ciudadVenezuela || 'Venezuela'}`
+                ) : (
+                  `🚢 ${item.destinationPort?.replace(', VZLA', '') || 'Puerto Cabello'}`
+                )}
               </div>
 
               {/* Image Navigation Arrows */}
@@ -630,40 +634,43 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
                   </span>
                 </div>
 
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase">Ubicación Origen</span>
-                  <span className="font-semibold text-slate-200 flex items-center gap-1 mt-1 truncate">
-                    <MapPin className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                    {item.location}
-                  </span>
-                </div>
-
-                {/* Venezuela city badge — only shown when machine is physically in Venezuela */}
-                {item.ciudadVenezuela && (
-                  <div className="bg-slate-950 p-3 rounded-xl border border-emerald-800/50 col-span-2 sm:col-span-1">
-                    <span className="text-emerald-500 block text-[10px] uppercase font-bold">🇻🇪 Ciudad en Venezuela</span>
-                    <span className="font-bold text-emerald-300 flex items-center gap-1 mt-1">
+                {item.origin === 'Venezuela' || item.ciudadVenezuela ? (
+                  /* Local machinery layout */
+                  <div className="bg-slate-950 p-3 rounded-xl border border-emerald-800/50 col-span-2 sm:col-span-3">
+                    <span className="text-emerald-500 block text-[10px] uppercase font-bold">🇻🇪 Ubicación en Venezuela (Inventario Local)</span>
+                    <span className="font-bold text-emerald-300 flex items-center gap-1 mt-1 text-sm">
                       <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      {item.ciudadVenezuela}, Venezuela
+                      {item.ciudadVenezuela || 'Venezuela'}
                     </span>
                   </div>
+                ) : (
+                  /* Import machinery layout */
+                  <>
+                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px] uppercase">Ubicación Origen</span>
+                      <span className="font-semibold text-slate-200 flex items-center gap-1 mt-1 truncate">
+                        <MapPin className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                        {item.location}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px] uppercase">Puerto de Llegada</span>
+                      <span className="font-semibold text-slate-200 flex items-center gap-1 mt-1 truncate">
+                        <Ship className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                        {item.destinationPort || 'Puerto Cabello, VZLA'}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px] uppercase">Tránsito Estimado</span>
+                      <span className="font-semibold text-slate-200 flex items-center gap-1 mt-1 truncate">
+                        <Ship className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
+                        {item.transitTime || '25-35 días'}
+                      </span>
+                    </div>
+                  </>
                 )}
-
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase">Puerto de Destino</span>
-                  <span className="font-semibold text-slate-200 flex items-center gap-1 mt-1 truncate">
-                    <Ship className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                    {item.destinationPort || 'Puerto Cabello, VZLA'}
-                  </span>
-                </div>
-
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase">Tránsito Estimado</span>
-                  <span className="font-semibold text-slate-200 flex items-center gap-1 mt-1 truncate">
-                    <Ship className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
-                    {item.transitTime || '25-35 días'}
-                  </span>
-                </div>
               </div>
 
               {/* Technical Inspection Scores Breakdown */}
