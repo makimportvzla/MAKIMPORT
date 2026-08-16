@@ -1438,14 +1438,6 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                         : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
                     }`}
                   >
-                    {item.badgePromocion && !isClosed && (
-                      <div className="absolute top-2 left-0 z-20 pointer-events-none">
-                        <span className="inline-flex items-center gap-1.5 pl-3 pr-4 py-1.5 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider rounded-r-full shadow-lg shadow-black/70 border-y border-r border-red-400/30">
-                          <Flame className="w-3 h-3 text-white" />
-                          {item.badgePromocion}
-                        </span>
-                      </div>
-                    )}
 
                     <div>
                         {/* Image Container with square aspect ratio */}
