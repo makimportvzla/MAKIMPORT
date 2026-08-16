@@ -1233,8 +1233,8 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                             ¡Última!
                           </span>
                         )}
-                        {item.badgePromocion && !g3Closed && !item.esUltimaUnidad && (
-                          <span className="absolute bottom-1 left-1 text-[7px] font-extrabold bg-amber-600/90 text-white px-1 py-0.5 rounded uppercase tracking-wider truncate max-w-[70%]">
+                        {item.badgePromocion && !g3Closed && (
+                          <span className="absolute bottom-1 left-1 text-[7.5px] font-black bg-gradient-to-r from-red-600 to-orange-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider shadow-md truncate max-w-[85%]">
                             {item.badgePromocion}
                           </span>
                         )}
@@ -1417,10 +1417,11 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           </span>
                         </div>
                       )}
-                    {item.badgePromocion && !isClosed && !item.esUltimaUnidad && (
+                    {item.badgePromocion && !isClosed && (
                       <div className="absolute top-2 left-0 z-20 pointer-events-none">
-                        <span className="inline-flex items-center gap-1 pl-2 pr-3 py-1 bg-amber-500 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider rounded-r-full shadow-lg shadow-amber-950/50">
-                          <Tag className="w-2.5 h-2.5" /> {item.badgePromocion}
+                        <span className="inline-flex items-center gap-1.5 pl-3 pr-4 py-1.5 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider rounded-r-full shadow-lg shadow-black/70 border-y border-r border-red-400/30">
+                          <Flame className="w-3 h-3 text-white" />
+                          {item.badgePromocion}
                         </span>
                       </div>
                     )}

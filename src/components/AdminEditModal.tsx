@@ -42,6 +42,9 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
   const [duenoInstagram, setDuenoInstagram] = useState('');
   const [duenoTelefono, setDuenoTelefono] = useState('');
 
+  // Marketing Badge (Etiqueta de Urgencia)
+  const [badgePromocion, setBadgePromocion] = useState('');
+
   // Section 2: Carga de Medios & PDF
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [pdfReportUrl, setPdfReportUrl] = useState('');
@@ -124,6 +127,7 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
       setDuenoNombre(machineryItem.duenoNombre || '');
       setDuenoInstagram(machineryItem.duenoInstagram || '');
       setDuenoTelefono(machineryItem.duenoTelefono || '');
+      setBadgePromocion(machineryItem.badgePromocion || '');
       setErrorMsg('');
       setToastMessage(null);
     }
@@ -221,7 +225,8 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
         unidadUso: unidadUso,
         duenoNombre: duenoNombre.trim() || undefined,
         duenoInstagram: duenoInstagram.trim() || undefined,
-        duenoTelefono: duenoTelefono.trim() || undefined
+        duenoTelefono: duenoTelefono.trim() || undefined,
+        badgePromocion: badgePromocion.trim() || undefined
       };
 
       const { data: dbData, error: dbError } = await supabase
@@ -256,7 +261,8 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
           unidad_uso: unidadUso,
           dueno_nombre: duenoNombre.trim() || null,
           dueno_instagram: duenoInstagram.trim() || null,
-          dueno_telefono: duenoTelefono.trim() || null
+          dueno_telefono: duenoTelefono.trim() || null,
+          badge_promocion: badgePromocion.trim() || null
         })
         .eq('id', machineryItem.id)
         .select();
@@ -750,6 +756,18 @@ export const AdminEditModal: React.FC<AdminEditModalProps> = ({
                 </>
               )}
             </div>
+          </div>
+
+          {/* Urgency / Marketing Badge */}
+          <div>
+            <label className="block font-semibold text-slate-300 mb-1">Etiqueta de Urgencia / Marketing (Badge)</label>
+            <input
+              type="text"
+              value={badgePromocion}
+              onChange={(e) => setBadgePromocion(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+              placeholder="Ej. Oportunidad Única, Precio de Remate, Disponible en Puerto, Venta Urgente... o dejar vacío"
+            />
           </div>
 
           {/* Description */}

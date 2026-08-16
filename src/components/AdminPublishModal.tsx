@@ -40,6 +40,9 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
   const [duenoInstagram, setDuenoInstagram] = useState('');
   const [duenoTelefono, setDuenoTelefono] = useState('');
 
+  // Marketing Badge (Etiqueta de Urgencia)
+  const [badgePromocion, setBadgePromocion] = useState('');
+
   // Section 2: Carga de Medios & PDF
   const [photoUrls, setPhotoUrls] = useState<string[]>([
     'https://images.unsplash.com/photo-1579412690850-bd41cd0af397?auto=format&fit=crop&q=80&w=800'
@@ -105,6 +108,7 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
     setDuenoNombre('');
     setDuenoInstagram('');
     setDuenoTelefono('');
+    setBadgePromocion('');
   };
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,7 +199,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
         unidadUso: unidadUso,
         duenoNombre: duenoNombre.trim() || undefined,
         duenoInstagram: duenoInstagram.trim() || undefined,
-        duenoTelefono: duenoTelefono.trim() || undefined
+        duenoTelefono: duenoTelefono.trim() || undefined,
+        badgePromocion: badgePromocion.trim() || undefined
       };
 
       const { data: dbData, error: dbError } = await supabase
@@ -232,7 +237,8 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
           unidad_uso: unidadUso,
           dueno_nombre: duenoNombre.trim() || null,
           dueno_instagram: duenoInstagram.trim() || null,
-          dueno_telefono: duenoTelefono.trim() || null
+          dueno_telefono: duenoTelefono.trim() || null,
+          badge_promocion: badgePromocion.trim() || null
         })
         .select();
 
@@ -735,6 +741,18 @@ export const AdminPublishModal: React.FC<AdminPublishModalProps> = ({
                 </>
               )}
             </div>
+          </div>
+
+          {/* Urgency / Marketing Badge */}
+          <div>
+            <label className="block font-semibold text-slate-300 mb-1">Etiqueta de Urgencia / Marketing (Badge)</label>
+            <input
+              type="text"
+              value={badgePromocion}
+              onChange={(e) => setBadgePromocion(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+              placeholder="Ej. Oportunidad Única, Precio de Remate, Disponible en Puerto, Venta Urgente... o dejar vacío"
+            />
           </div>
 
           {/* Description */}

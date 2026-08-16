@@ -256,6 +256,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
   const [appInspTransmission, setAppInspTransmission] = useState(85);
   const [appInspCabin, setAppInspCabin] = useState(85);
   const [appInspTires, setAppInspTires] = useState(85);
+  const [appBadgePromocion, setAppBadgePromocion] = useState('');
   const [approvingLoading, setApprovingLoading] = useState(false);
   const [expandedPostulationId, setExpandedPostulationId] = useState<string | null>(null);
 
@@ -3106,6 +3107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             setAppInspTransmission(85);
             setAppInspCabin(85);
             setAppInspTires(85);
+            setAppBadgePromocion('');
           };
 
           const handleRejectPostulation = async (p: any) => {
@@ -3656,18 +3658,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 </div>
               </div>
 
-              {/* Precio Final */}
+              {/* Precio Final & Marketing Badge */}
               <div className="space-y-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
-                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">3. Precio Final de Venta</p>
-                <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Precio (USD) *</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={appPrice}
-                    onChange={(e) => setAppPrice(Number(e.target.value))}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono text-sm focus:outline-none focus:border-orange-500"
-                  />
+                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">3. Precio Final & Etiqueta de Marketing</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Precio (USD) *</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={appPrice}
+                      onChange={(e) => setAppPrice(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono text-sm focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Etiqueta Urgencia / Marketing</label>
+                    <input
+                      type="text"
+                      value={appBadgePromocion}
+                      onChange={(e) => setAppBadgePromocion(e.target.value)}
+                      placeholder="Ej. Oportunidad, Venta Rápida..."
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -3716,6 +3730,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                       inspeccion_transmision: appInspTransmission,
                       inspeccion_cabina: appInspCabin,
                       inspeccion_cauchos: appInspTires,
+                      badge_promocion: appBadgePromocion.trim() || null,
                     }).select();
 
                     if (insertErr) throw insertErr;
