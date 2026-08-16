@@ -74,6 +74,7 @@ export default function Home() {
         onOpenAdminPublish={handleOpenAdminPublish}
         initialFilters={activeFilters}
         onOpenCustomRequest={() => setCustomRequestOpen(true)}
+        onOpenPostularEquipo={() => setPostularEquipoOpen(true)}
       />
 
       {/* Freight & Customs Calculator for Venezuela */}

@@ -60,6 +60,7 @@ interface CatalogMarketplaceProps {
   initialFilters?: { brand?: string; type?: string; origin?: string; transaction?: string };
   onOpenCustomRequest?: () => void;
   onScrollToSection?: (sectionId: string) => void;
+  onOpenPostularEquipo?: () => void;
 }
 
 // Full Dataset for Machinery Marketplace
@@ -274,6 +275,7 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   initialFilters,
   onOpenCustomRequest,
   onScrollToSection,
+  onOpenPostularEquipo,
 }) => {
   const [items, setItems] = useState<MachineryItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<MachineryItem | null>(null);
@@ -731,6 +733,16 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
         {/* ── DYNAMIC ANNOUNCEMENTS TICKER ─────────────────────────── */}
         {anuncios.length > 0 && (() => {
           const anuncio = anuncios[anuncioIndex];
+          const borderColor =
+            anuncio.tipo === 'urgencia_stock' ? 'border-red-500/40' :
+            anuncio.tipo === 'promocion_tiempo' ? 'border-amber-500/40' :
+            anuncio.tipo === 'requerimiento_obra' ? 'border-orange-500/40' :
+            'border-emerald-500/40';
+          const iconBg =
+            anuncio.tipo === 'urgencia_stock' ? 'bg-red-950/60 border-red-700/40' :
+            anuncio.tipo === 'promocion_tiempo' ? 'bg-amber-950/60 border-amber-700/40' :
+            anuncio.tipo === 'requerimiento_obra' ? 'bg-orange-950/60 border-orange-700/40' :
+            'bg-emerald-950/60 border-emerald-700/40';
           const iconColor =
             anuncio.tipo === 'urgencia_stock' ? 'text-red-400' :
             anuncio.tipo === 'promocion_tiempo' ? 'text-amber-400' :
@@ -741,20 +753,35 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
             anuncio.tipo === 'promocion_tiempo' ? 'bg-amber-600' :
             anuncio.tipo === 'requerimiento_obra' ? 'bg-orange-600' :
             'bg-emerald-600';
-          return (
-            <div className="mb-6 relative overflow-hidden rounded-2xl border border-orange-500/20 bg-gradient-to-r from-orange-950/40 via-slate-900/90 to-slate-900/90 shadow-lg shadow-orange-950/20">
-              {/* Subtle decorative glow */}
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-600/5 to-transparent pointer-events-none" />
 
-              <div className="flex items-center gap-4 p-4 sm:p-5">
-                {/* Icon */}
-                <div className={`shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center ${iconColor}`}>
-                  <Megaphone className="w-5 h-5" />
+          const handleTickerAction = () => {
+            if (!anuncio.link_accion) return;
+            const link = anuncio.link_accion;
+            if (link.startsWith('#')) {
+              const sectionId = link.slice(1);
+              if (onScrollToSection) {
+                onScrollToSection(sectionId);
+              } else {
+                const el = document.getElementById(sectionId);
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }
+            } else {
+              window.open(link, '_blank', 'noopener');
+            }
+          };
+
+          return (
+            <div className={`mb-6 rounded-2xl border ${borderColor} bg-gradient-to-r from-slate-900 to-slate-900/95 shadow-lg`}>
+              {/* Top row: icon + text + nav arrows */}
+              <div className="flex items-start sm:items-center gap-3 p-4 sm:p-5">
+                {/* Megaphone icon */}
+                <div className={`shrink-0 w-9 h-9 rounded-xl border flex items-center justify-center ${iconBg} ${iconColor} mt-0.5 sm:mt-0`}>
+                  <Megaphone className="w-4 h-4" />
                 </div>
 
-                {/* Text Content */}
+                {/* Text block — wraps freely, no truncation */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
                     {anuncio.etiqueta_badge && (
                       <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full text-white uppercase tracking-wider ${badgeBg}`}>
                         {anuncio.etiqueta_badge}
@@ -764,28 +791,12 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                       {anuncioIndex + 1} / {anuncios.length}
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm font-extrabold text-white truncate">{anuncio.titulo}</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1 hidden sm:block">{anuncio.descripcion}</p>
+                  <p className="text-xs sm:text-sm font-extrabold text-white leading-snug">{anuncio.titulo}</p>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{anuncio.descripcion}</p>
                 </div>
 
-                {/* CTA Button */}
-                {anuncio.link_accion && (
-                  <a
-                    href={anuncio.link_accion}
-                    onClick={(e) => {
-                      if (anuncio.link_accion?.startsWith('#') && onScrollToSection) {
-                        e.preventDefault();
-                        onScrollToSection(anuncio.link_accion.slice(1));
-                      }
-                    }}
-                    className="shrink-0 hidden sm:flex items-center gap-1.5 px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-[11px] rounded-xl transition-colors"
-                  >
-                    Ver más <ArrowUpRight className="w-3.5 h-3.5" />
-                  </a>
-                )}
-
-                {/* Navigation Arrows */}
-                <div className="shrink-0 flex items-center gap-1">
+                {/* Navigation arrows — desktop only */}
+                <div className="shrink-0 hidden sm:flex items-center gap-1">
                   <button
                     onClick={() => setAnuncioIndex((prev) => (prev - 1 + anuncios.length) % anuncios.length)}
                     className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
@@ -801,12 +812,44 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div className="h-0.5 bg-slate-800">
-                <div
-                  className="h-full bg-orange-500/60 transition-all duration-300"
-                  style={{ width: `${((anuncioIndex + 1) / anuncios.length) * 100}%` }}
-                />
+              {/* Bottom row: CTA button + mobile arrows */}
+              {anuncio.link_accion && (
+                <div className="px-4 pb-4 flex items-center justify-between gap-3">
+                  <button
+                    onClick={handleTickerAction}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl transition-colors shadow-md shadow-orange-950/40"
+                  >
+                    Ver más <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Mobile arrows */}
+                  <div className="flex sm:hidden items-center gap-1">
+                    <button
+                      onClick={() => setAnuncioIndex((prev) => (prev - 1 + anuncios.length) % anuncios.length)}
+                      className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setAnuncioIndex((prev) => (prev + 1) % anuncios.length)}
+                      className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Progress dots */}
+              <div className="flex items-center gap-1 px-4 pb-3">
+                {anuncios.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setAnuncioIndex(i)}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      i === anuncioIndex ? 'w-6 bg-orange-500' : 'w-1.5 bg-slate-700 hover:bg-slate-600'
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           );
@@ -1265,29 +1308,76 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                 filteredAndSortedItems.forEach((item, index) => {
                   // Inject promo card before every 6th item (positions 6, 12, 18…)
                   if (index > 0 && index % 6 === 0) {
-                    const promo = PROMO_CARDS[(index / 6 - 1) % PROMO_CARDS.length];
+                    const promoTypes = [
+                      {
+                        key: 'promo-postular',
+                        border: 'border-orange-500/40',
+                        glow: 'shadow-orange-950/30',
+                        topBar: 'bg-orange-600',
+                        icon: <Package className="w-8 h-8 text-white" />,
+                        eyebrow: '💰 ¡Gana dinero con tu equipo!',
+                        title: 'Publica tu maquinaria con nosotros',
+                        desc: '¿Tienes un equipo parado? Lo promovemos, encontramos comprador y gestionamos toda la venta por ti.',
+                        cta: 'Postular mi Equipo →',
+                        ctaClass: 'bg-orange-600 hover:bg-orange-500 shadow-orange-950/50',
+                        action: () => onOpenPostularEquipo ? onOpenPostularEquipo() : undefined,
+                      },
+                      {
+                        key: 'promo-importar',
+                        border: 'border-sky-500/40',
+                        glow: 'shadow-sky-950/30',
+                        topBar: 'bg-sky-600',
+                        icon: <Ship className="w-8 h-8 text-white" />,
+                        eyebrow: '🌎 Importación directa EE.UU. / China',
+                        title: '¿No encuentras el equipo que necesitas?',
+                        desc: 'Lo importamos por ti con inspección técnica certificada, flete y entrega en Venezuela.',
+                        cta: 'Solicitar Cotización →',
+                        ctaClass: 'bg-sky-600 hover:bg-sky-500 shadow-sky-950/50',
+                        action: () => onOpenCustomRequest ? onOpenCustomRequest() : setCustomRequestOpen(true),
+                      },
+                      {
+                        key: 'promo-obra',
+                        border: 'border-emerald-500/40',
+                        glow: 'shadow-emerald-950/30',
+                        topBar: 'bg-emerald-600',
+                        icon: <Building2 className="w-8 h-8 text-white" />,
+                        eyebrow: '🏗️ Llave en mano',
+                        title: '¿Tienes un proyecto de construcción?',
+                        desc: 'Makimport ejecuta tu obra de principio a fin: equipos propios, mano de obra certificada y tiempos garantizados.',
+                        cta: 'Cotizar mi Obra →',
+                        ctaClass: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/50',
+                        action: () => {
+                          const el = document.getElementById('import-calculator');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        },
+                      },
+                    ];
+                    const promo = promoTypes[(index / 6 - 1) % promoTypes.length];
                     elements.push(
                       <div
                         key={promo.key + '-' + index}
-                        onClick={promo.action}
-                        className={`col-span-2 cursor-pointer group bg-gradient-to-r ${promo.gradient} border ${promo.border} rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-5 transition-all hover:shadow-xl hover:-translate-y-0.5`}
+                        className={`col-span-2 rounded-2xl border ${promo.border} bg-slate-900/80 shadow-xl ${promo.glow} overflow-hidden`}
                       >
-                        <div className="shrink-0 w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          {promo.icon}
+                        {/* Coloured top bar */}
+                        <div className={`${promo.topBar} px-5 py-3 flex items-center gap-3`}>
+                          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                            {promo.icon}
+                          </div>
+                          <p className="text-xs font-extrabold text-white uppercase tracking-widest">{promo.eyebrow}</p>
                         </div>
-                        <div className="flex-1 min-w-0 text-center sm:text-left">
-                          <span className={`inline-block text-[9px] font-extrabold px-2 py-0.5 rounded-full text-white uppercase tracking-wider mb-1.5 ${promo.badgeBg}`}>
-                            {promo.badge}
-                          </span>
-                          <p className="text-sm font-extrabold text-white group-hover:text-orange-300 transition-colors">{promo.title}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{promo.desc}</p>
+                        {/* Body */}
+                        <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base sm:text-lg font-extrabold text-white leading-tight">{promo.title}</p>
+                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{promo.desc}</p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); promo.action(); }}
+                            className={`shrink-0 w-full sm:w-auto px-6 py-3 ${promo.ctaClass} text-white font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all hover:-translate-y-0.5`}
+                          >
+                            {promo.cta}
+                          </button>
                         </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); promo.action(); }}
-                          className={`shrink-0 px-4 py-2.5 ${promo.ctaBg} text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md transition-all`}
-                        >
-                          {promo.cta} <ArrowUpRight className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     );
                   }
@@ -1311,15 +1401,38 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
 
                   elements.push(
                     <div
-                      key={item.id}
-                      onClick={() => setSelectedItem(item)}
-                      className={`group bg-slate-900/90 border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between cursor-pointer ${
-                        isClosed
-                          ? 'border-red-900/40 hover:border-red-700/40 hover:shadow-red-950/20 opacity-80'
-                          : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
-                      }`}
-                    >
-                      <div>
+                    key={item.id}
+                    onClick={() => setSelectedItem(item)}
+                    className={`relative group bg-slate-900/90 border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between cursor-pointer ${
+                      isClosed
+                        ? 'border-red-900/40 hover:border-red-700/40 hover:shadow-red-950/20 opacity-80'
+                        : 'border-slate-800/90 hover:border-orange-500/50 hover:shadow-orange-950/30'
+                    }`}
+                  >
+                    {/* ── URGENCY BADGES (outside img, z-20 so never clipped) ── */}
+                    {item.esUltimaUnidad && !isClosed && (
+                        <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-1 pointer-events-none">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-600 border border-red-400/40 text-white text-[9px] font-extrabold uppercase tracking-widest rounded-b-xl shadow-lg shadow-red-950/60 animate-pulse">
+                            <AlertTriangle className="w-2.5 h-2.5" /> ¡Última unidad!
+                          </span>
+                        </div>
+                      )}
+                    {item.badgePromocion && !isClosed && !item.esUltimaUnidad && (
+                      <div className="absolute top-2 left-0 z-20 pointer-events-none">
+                        <span className="inline-flex items-center gap-1 pl-2 pr-3 py-1 bg-amber-500 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider rounded-r-full shadow-lg shadow-amber-950/50">
+                          <Tag className="w-2.5 h-2.5" /> {item.badgePromocion}
+                        </span>
+                      </div>
+                    )}
+                    {isHighDemand && isAuction && !isClosed && (
+                      <div className="absolute bottom-[70px] right-2 z-20 pointer-events-none">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-600/95 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg">
+                          <Flame className="w-2.5 h-2.5" /> Alta demanda
+                        </span>
+                      </div>
+                    )}
+
+                    <div>
                         {/* Image Container with square aspect ratio */}
                         <div className="relative aspect-square w-full overflow-hidden bg-slate-950">
                           <img
@@ -1366,32 +1479,6 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
                           >
                             <Star className={`w-3.5 h-3.5 ${isFavorite(item.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
                           </button>
-
-                          {/* ── URGENCY BADGES ── */}
-                          {/* Última unidad ribbon */}
-                          {item.esUltimaUnidad && !isClosed && (
-                            <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-600/95 border border-red-400/30 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg animate-pulse">
-                                <AlertTriangle className="w-2.5 h-2.5" /> ¡Última unidad!
-                              </span>
-                            </div>
-                          )}
-                          {/* Promo badge from DB */}
-                          {item.badgePromocion && !isClosed && !item.esUltimaUnidad && (
-                            <div className="absolute bottom-2 left-2">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-600/95 border border-amber-400/20 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg">
-                                <Tag className="w-2.5 h-2.5" /> {item.badgePromocion}
-                              </span>
-                            </div>
-                          )}
-                          {/* High demand badge */}
-                          {isHighDemand && isAuction && !isClosed && (
-                            <div className="absolute bottom-2 right-2">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-700/90 border border-orange-400/20 text-white text-[9px] font-extrabold uppercase tracking-wider rounded-full shadow-lg">
-                                <Flame className="w-2.5 h-2.5" /> Alta demanda
-                              </span>
-                            </div>
-                          )}
                         </div>
 
                         {/* Content */}
