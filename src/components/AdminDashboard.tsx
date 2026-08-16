@@ -3069,10 +3069,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
         {/* ── TAB 10: REVISIÓN DE EQUIPOS PARA VENTA ── */}
         {activeTab === 'machineryPostulations' && (() => {
           const pendingCount = machineryPostulations.filter(p => p.estado === 'Pendiente de Revisión').length;
+
+          const copyToClipboard = (text: string, label: string) => {
+            navigator.clipboard.writeText(text).catch(() => {});
+          };
+
+          const handleApproveAndPublish = async (p: any) => {
+            if (!window.confirm(`¿Publicar en el catálogo la maquinaria "${p.marca} ${p.modelo} (${p.ano})"? Se creará como equipo activo.`)) return;
+            try {
+              // 1. Insert into machinery
+              const titulo = `${p.marca} ${p.modelo} ${p.ano}`;
+              const { error: insertErr } = await supabase.from('machinery').insert({
+                titulo,
+                marca: p.marca,
+                modelo: p.modelo,
+                ano: p.ano,
+                horas_uso: p.uso_valor || 0,
+                condicion_detalles: p.descripcion_notas || `${p.condicion}. Propietario: ${p.nombre_cliente} ${p.apellido_cliente}. Tel: ${p.telefono_cliente}. Ubicación: ${p.ciudad_venezuela}.`,
+                precio_compra_inmediata: p.precio_estimado || 0,
+                es_subasta: false,
+                precio_inicial_subasta: 0,
+                puja_actual: 0,
+                fecha_fin_subasta: null,
+                fotos_urls: p.fotos_urls || [],
+                ubicacion_origen: p.ciudad_venezuela || 'Venezuela',
+                categoria: 'Maquinaria Pesada',
+                unidad_uso: p.uso_unidad || 'Horas',
+                dueno_nombre: `${p.nombre_cliente} ${p.apellido_cliente}`,
+                dueno_telefono: p.telefono_cliente,
+                ciudad_venezuela: p.ciudad_venezuela,
+                inspeccion_general: 80,
+                inspeccion_motor: 80,
+                inspeccion_hidraulico: 80,
+                inspeccion_transmision: 80,
+                inspeccion_cabina: 80,
+              });
+              if (insertErr) throw insertErr;
+              // 2. Update postulation state to 'Aprobado'
+              await supabase.from('postulaciones_equipos').update({ estado: 'Aprobado' }).eq('id', p.id);
+              setMachineryPostulations(prev => prev.map(x => x.id === p.id ? { ...x, estado: 'Aprobado' } : x));
+              alert(`✅ Equipo "${titulo}" publicado en el catálogo exitosamente.`);
+            } catch (err: any) {
+              alert(`Error al publicar: ${err.message}`);
+            }
+          };
+
+          const handleRejectPostulation = async (p: any) => {
+            if (!window.confirm(`¿Eliminar/rechazar la postulación de "${p.nombre_cliente} ${p.apellido_cliente}" — ${p.marca} ${p.modelo}?`)) return;
+            try {
+              const { error } = await supabase.from('postulaciones_equipos').delete().eq('id', p.id);
+              if (error) throw error;
+              setMachineryPostulations(prev => prev.filter(x => x.id !== p.id));
+            } catch (err: any) {
+              alert(`Error al eliminar: ${err.message}`);
+            }
+          };
+
           return (
             <div className="space-y-6">
               {/* Header */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <div className="bg-slate-900 border border-amber-800/30 rounded-2xl p-5">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center">
@@ -3080,7 +3136,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                     </div>
                     <div>
                       <h2 className="text-sm font-extrabold text-white">Revisión de Equipos para Publicar en Catálogo</h2>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Vista de solo lectura · {machineryPostulations.length} total · <span className="text-amber-400 font-bold">{pendingCount} pendientes</span></p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {machineryPostulations.length} total ·{' '}
+                        <span className="text-amber-400 font-bold">{pendingCount} pendientes de revisión</span>
+                      </p>
                     </div>
                   </div>
                   <button onClick={fetchMachineryPostulations} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition-colors">
@@ -3090,42 +3149,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
               </div>
 
               {loadingPostulations ? (
-                <div className="text-center py-16 text-slate-500 text-xs">Cargando postulaciones...</div>
+                <div className="text-center py-16 text-slate-500 text-xs flex flex-col items-center gap-2">
+                  <RefreshCw className="w-5 h-5 animate-spin opacity-40" />
+                  Cargando postulaciones...
+                </div>
               ) : machineryPostulations.length === 0 ? (
                 <div className="text-center py-16 text-slate-500 text-xs">
                   <Tag className="w-10 h-10 mx-auto mb-3 opacity-20" />
                   <p>Aún no hay postulaciones de equipos para venta.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {machineryPostulations.map((p) => (
-                    <div key={p.id} className="bg-slate-900 border border-slate-800 hover:border-amber-500/30 rounded-2xl p-5 transition-all">
-                      <div className="flex items-start justify-between gap-4 flex-wrap">
-                        {/* Left: Info */}
-                        <div className="flex-1 min-w-0">
-                          {/* Status Badge */}
-                          <div className="flex items-center gap-2 mb-3 flex-wrap">
-                            <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                              p.estado === 'Pendiente de Revisión'
-                                ? 'bg-amber-950/60 border border-amber-600/50 text-amber-300'
-                                : p.estado === 'Aprobado'
-                                ? 'bg-emerald-950/60 border border-emerald-600/50 text-emerald-300'
-                                : 'bg-red-950/60 border border-red-600/50 text-red-300'
-                            }`}>
-                              {p.estado}
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                              Recibida el {new Date(p.created_at).toLocaleDateString('es-VE')}
-                            </span>
-                          </div>
+                    <div key={p.id} className={`bg-slate-900 rounded-2xl p-5 transition-all border ${
+                      p.estado === 'Pendiente de Revisión'
+                        ? 'border-amber-600/30 hover:border-amber-500/50'
+                        : p.estado === 'Aprobado'
+                        ? 'border-emerald-600/30'
+                        : 'border-red-700/30 opacity-60'
+                    }`}>
 
-                          {/* Equipment Title */}
-                          <h3 className="text-sm font-extrabold text-white mb-1">
+                      {/* ─ Top Row: Status + Date ─ */}
+                      <div className="flex items-center gap-2 mb-4 flex-wrap">
+                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                          p.estado === 'Pendiente de Revisión'
+                            ? 'bg-amber-950/60 border border-amber-600/50 text-amber-300'
+                            : p.estado === 'Aprobado'
+                            ? 'bg-emerald-950/60 border border-emerald-600/50 text-emerald-300'
+                            : 'bg-red-950/60 border border-red-600/50 text-red-300'
+                        }`}>
+                          {p.estado}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          Recibida el {new Date(p.created_at).toLocaleDateString('es-VE')}
+                        </span>
+                        <span className="text-[10px] text-slate-600 font-mono">{p.id.substring(0, 8)}...</span>
+                      </div>
+
+                      <div className="flex items-start gap-4 flex-wrap">
+                        {/* ─ Left: Info ─ */}
+                        <div className="flex-1 min-w-0 space-y-3">
+
+                          {/* Equipment title */}
+                          <h3 className="text-base font-extrabold text-white">
                             {p.marca} {p.modelo} — Año {p.ano}
                           </h3>
 
-                          {/* Specs Grid */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-3 text-xs">
+                          {/* Specs grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                             <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
                               <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Condición</p>
                               <p className="text-slate-200 font-semibold">{p.condicion}</p>
@@ -3138,69 +3209,155 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                               <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Ciudad / Estado</p>
                               <p className="text-slate-200 font-semibold">{p.ciudad_venezuela}</p>
                             </div>
-                            <div className="bg-slate-950 border border-emerald-800/40 rounded-lg p-2.5">
-                              <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Precio Estimado</p>
-                              <p className="text-emerald-300 font-extrabold font-mono">${Number(p.precio_estimado || 0).toLocaleString()} USD</p>
+                            {/* Precio con copia */}
+                            <div className="bg-slate-950 border border-emerald-800/40 rounded-lg p-2.5 flex items-start justify-between gap-1">
+                              <div>
+                                <p className="text-slate-500 text-[10px] font-bold uppercase mb-0.5">Precio Estimado</p>
+                                <p className="text-emerald-300 font-extrabold font-mono">${Number(p.precio_estimado || 0).toLocaleString()} USD</p>
+                              </div>
+                              <button
+                                onClick={() => copyToClipboard(String(p.precio_estimado), 'precio')}
+                                className="mt-0.5 p-1 rounded text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+                                title="Copiar precio"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
 
-                          {/* Client Data */}
-                          <div className="mt-3 bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="text-slate-300 font-bold">{p.nombre_cliente} {p.apellido_cliente}</span>
+                          {/* Notas adicionales */}
+                          {p.descripcion_notas && (
+                            <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3">
+                              <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Notas del propietario</p>
+                              <p className="text-xs text-slate-300 leading-relaxed">{p.descripcion_notas}</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="text-slate-400">Cédula/RIF: <span className="text-slate-200 font-mono">{p.cedula_rif_cliente}</span></span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              <a
-                                href={`https://wa.me/${p.telefono_cliente.replace(/[^0-9]/g, '')}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-emerald-400 hover:text-emerald-300 font-mono font-bold transition-colors"
-                              >
-                                {p.telefono_cliente}
-                              </a>
+                          )}
+
+                          {/* Client data with copy buttons */}
+                          <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 space-y-2 text-xs">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Datos del propietario</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {/* Nombre */}
+                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span className="text-slate-300 font-bold truncate">{p.nombre_cliente} {p.apellido_cliente}</span>
+                                </div>
+                                <button onClick={() => copyToClipboard(`${p.nombre_cliente} ${p.apellido_cliente}`, 'nombre')}
+                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar nombre">
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                              {/* Cédula */}
+                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span className="text-slate-200 font-mono truncate">{p.cedula_rif_cliente}</span>
+                                </div>
+                                <button onClick={() => copyToClipboard(p.cedula_rif_cliente, 'cédula')}
+                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar cédula/RIF">
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                              {/* Modelo */}
+                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span className="text-slate-200 font-mono truncate">{p.marca} {p.modelo}</span>
+                                </div>
+                                <button onClick={() => copyToClipboard(`${p.marca} ${p.modelo}`, 'modelo')}
+                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar modelo">
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                              {/* Teléfono / WA */}
+                              <div className="flex items-center justify-between gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+                                <a
+                                  href={`https://wa.me/${p.telefono_cliente.replace(/[^0-9]/g, '')}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-2 min-w-0 flex-1"
+                                >
+                                  <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  <span className="text-emerald-400 hover:text-emerald-300 font-mono font-bold truncate transition-colors">{p.telefono_cliente}</span>
+                                </a>
+                                <button onClick={() => copyToClipboard(p.telefono_cliente, 'teléfono')}
+                                  className="p-1 text-slate-500 hover:text-white hover:bg-slate-700 rounded transition-colors shrink-0" title="Copiar teléfono">
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Right: Photo Gallery */}
+                        {/* ─ Right: Photo Gallery with download ─ */}
                         {Array.isArray(p.fotos_urls) && p.fotos_urls.length > 0 && (
-                          <div className="shrink-0">
-                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1.5">Fotos ({p.fotos_urls.length})</p>
+                          <div className="shrink-0 w-full sm:w-auto">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1.5">
+                              Fotos ({p.fotos_urls.length})
+                            </p>
                             <div className="grid grid-cols-3 gap-1.5">
                               {p.fotos_urls.slice(0, 6).map((url: string, idx: number) => (
-                                <div
-                                  key={idx}
-                                  className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer group"
-                                  onClick={() => setLightbox({ photos: p.fotos_urls, idx })}
-                                >
-                                  <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                                    <ExternalLink className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div key={idx} className="relative group">
+                                  <div
+                                    className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer"
+                                    onClick={() => setLightbox({ photos: p.fotos_urls, idx })}
+                                  >
+                                    <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                      <ExternalLink className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                    {idx === 0 && (
+                                      <span className="absolute bottom-0.5 left-0.5 bg-orange-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">Principal</span>
+                                    )}
                                   </div>
-                                  {idx === 0 && (
-                                    <span className="absolute bottom-0.5 left-0.5 bg-orange-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">Principal</span>
-                                  )}
+                                  {/* Download button */}
+                                  <a
+                                    href={url}
+                                    download={`equipo-foto-${idx + 1}.jpg`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-slate-800 hover:bg-slate-600 border border-slate-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Descargar foto"
+                                  >
+                                    <ExternalLink className="w-2.5 h-2.5 text-slate-300" />
+                                  </a>
                                 </div>
                               ))}
                             </div>
                             {p.fotos_urls.length > 6 && (
-                              <p className="text-[10px] text-slate-500 mt-1">+{p.fotos_urls.length - 6} más</p>
+                              <p className="text-[10px] text-slate-500 mt-1">+{p.fotos_urls.length - 6} más — clic en foto para ver todas</p>
                             )}
                           </div>
                         )}
                       </div>
 
-                      {/* Action note */}
-                      <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center gap-2 text-[11px] text-slate-500">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        <span>Si apruebas este equipo, cópialo manualmente usando &quot;Agregar Nueva Maquinaria&quot; en la pestaña de Inventario.</span>
-                      </div>
+                      {/* ─ Action Buttons ─ */}
+                      {p.estado === 'Pendiente de Revisión' && (
+                        <div className="mt-4 pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row gap-2">
+                          <button
+                            onClick={() => handleApproveAndPublish(p)}
+                            className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            Aprobar y Publicar en Catálogo
+                          </button>
+                          <button
+                            onClick={() => handleRejectPostulation(p)}
+                            className="sm:w-auto py-2.5 px-4 bg-slate-800 hover:bg-red-950/60 border border-slate-700 hover:border-red-700/50 text-slate-400 hover:text-red-300 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Rechazar / Eliminar
+                          </button>
+                        </div>
+                      )}
+                      {p.estado === 'Aprobado' && (
+                        <div className="mt-4 pt-3 border-t border-emerald-800/30 flex items-center gap-2 text-[11px] text-emerald-500">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>Equipo aprobado y publicado en el catálogo. Revisa el inventario para editarlo.</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -3208,6 +3365,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
             </div>
           );
         })()}
+
 
         {/* ── Delete Confirmation Modal ── */}
         {deleteConfirm?.open && (

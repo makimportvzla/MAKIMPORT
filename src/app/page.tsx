@@ -57,6 +57,7 @@ export default function Home() {
         onOpenAuth={handleOpenAuth}
         onFilterChange={handleFilterChange}
         onOpenCustomRequest={() => setCustomRequestOpen(true)}
+        onOpenPostularEquipo={() => setPostularEquipoOpen(true)}
       />
 
       {/* Trust & Benefits Grid */}

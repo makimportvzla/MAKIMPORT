@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Gavel, FileText, ArrowRight, ShieldCheck, Ship, CheckCircle2, ChevronRight, Globe2, Wrench, ShoppingBag, Calendar, BarChart3 } from 'lucide-react';
+import { Search, Gavel, FileText, ArrowRight, ShieldCheck, Ship, CheckCircle2, ChevronRight, Globe2, Wrench, ShoppingBag, Calendar, BarChart3, Tag } from 'lucide-react';
 import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
 
 interface HeroProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
   onFilterChange?: (filters: { brand: string; type: string; origin: string; transaction: string }) => void;
   onOpenCustomRequest?: () => void;
+  onOpenPostularEquipo?: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCustomRequest }) => {
+export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCustomRequest, onOpenPostularEquipo }) => {
   const [brand, setBrand] = useState('all');
   const [type, setType] = useState('all');
   const [origin, setOrigin] = useState('all');
@@ -168,6 +169,20 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
               <div>
                 <h3 className="text-xs font-black text-white group-hover:text-orange-400 transition-colors uppercase tracking-wider">Subastas e Importación</h3>
                 <p className="text-[10px] text-slate-500 mt-1 leading-normal">Adjudica y trae directo desde EE.UU. o China con total aduana.</p>
+              </div>
+            </div>
+
+            {/* Accion 5: Vender mi Equipo */}
+            <div
+              onClick={() => onOpenPostularEquipo?.()}
+              className="group p-4 bg-amber-950/20 border border-amber-700/40 hover:border-amber-500/60 rounded-2xl text-center space-y-3 cursor-pointer transition-all hover:bg-amber-950/35 hover:-translate-y-0.5 shadow-lg shadow-black/20 sm:col-span-2 lg:col-span-1"
+            >
+              <div className="mx-auto w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:bg-amber-600/30 group-hover:border-amber-500/50 transition-colors">
+                <Tag className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-amber-300 group-hover:text-amber-200 transition-colors uppercase tracking-wider">Publica tu Equipo</h3>
+                <p className="text-[10px] text-slate-500 mt-1 leading-normal">Vende tu maquinaria en nuestro catálogo nacional.</p>
               </div>
             </div>
           </div>
