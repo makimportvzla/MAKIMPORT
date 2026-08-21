@@ -116,8 +116,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       }`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          <Link href="/" className="group flex items-center shrink-0 h-12" aria-label="MAKIMPORT - Inicio">
-            <Logo size="md" />
+          <Link href="/" className="group flex items-center gap-2 shrink-0 h-12" aria-label="MAKIMPORT - Inicio">
+            <Logo size="md" showText={false} />
+            <span className="text-lg font-extrabold tracking-widest uppercase text-white leading-none" style={{ letterSpacing: '0.12em' }}>
+              MAKIMPORT
+            </span>
           </Link>
 
           {/* Desktop Navigation Links */}

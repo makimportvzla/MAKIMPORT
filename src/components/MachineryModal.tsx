@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Mail } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { addToOfflineQueue } from '@/lib/offlineQueue';
 import { MachineryItem } from '@/types/machinery';
 
 export type { MachineryItem };
@@ -34,29 +35,39 @@ export const MachineryModal: React.FC<MachineryModalProps> = ({
     e.preventDefault();
     setSubmittingBid(true);
 
+    const payload = {
+      machinery_id: item.id,
+      user_id: '00000000-0000-0000-0000-000000000000', // Anonymous or authenticated user ID
+      monto_puja: Number(bidAmount)
+    };
+
     try {
-      // Try inserting into Supabase bids table
-      try {
-        await supabase.from('bids').insert({
-          machinery_id: item.id,
-          user_id: '00000000-0000-0000-0000-000000000000', // Anonymous or authenticated user ID
-          monto_puja: Number(bidAmount)
-        });
-      } catch (err) {
-        console.warn('Fallback local para bid:', err);
+      if (!navigator.onLine) {
+        throw new Error('OFFLINE_DETECTOR');
       }
 
-      if (onBidSuccess) {
-        onBidSuccess(Number(bidAmount));
+      const { error } = await supabase.from('bids').insert(payload);
+      if (error) {
+        if (error.message === 'Failed to fetch') {
+          throw new Error('OFFLINE_DETECTOR');
+        }
+        throw error;
       }
-
-      setBidSuccessMessage(true);
-      setTimeout(() => {
-        setBidSuccessMessage(false);
-      }, 4000);
-    } finally {
-      setSubmittingBid(false);
+    } catch (err: any) {
+      console.warn('Fallback local para bid:', err);
+      addToOfflineQueue('bid', 'bids', payload);
     }
+
+    if (onBidSuccess) {
+      onBidSuccess(Number(bidAmount));
+    }
+
+    setBidSuccessMessage(true);
+    setTimeout(() => {
+      setBidSuccessMessage(false);
+    }, 4000);
+
+    setSubmittingBid(false);
   };
 
   return (

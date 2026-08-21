@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Clock, MapPin, Gauge, Calendar, ShieldCheck, Gavel, DollarSign, Phone, CheckCircle2, Ship, FileText, Send, Instagram, Download, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, CreditCard, MessageCircle, ZoomIn, Minimize2, Share2, Copy, Flame } from 'lucide-react';
 import { MachineryItem, BidRecord } from '@/types/machinery';
 import { supabase } from '@/lib/supabase';
+import { addToOfflineQueue } from '@/lib/offlineQueue';
 import { PurchaseRequestModal } from './PurchaseRequestModal';
 import { useAuth } from '@/context/AuthContext';
 import { ContactDataModal } from './ContactDataModal';
@@ -347,6 +348,10 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
   const executeBidSubmission = async () => {
     setSubmittingBid(true);
     try {
+      if (!navigator.onLine) {
+        throw new Error('OFFLINE_DETECTOR');
+      }
+
       const { data, error } = await supabase.from('bids').insert({
         machinery_id: item.id,
         user_id: user!.id,
@@ -354,6 +359,9 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
       }).select();
 
       if (error) {
+        if (error.message === 'Failed to fetch') {
+          throw new Error('OFFLINE_DETECTOR');
+        }
         throw error;
       }
 
@@ -364,8 +372,21 @@ export const MachineryDetailModal: React.FC<MachineryDetailModalProps> = ({
         onBidSuccess(item.id, Number(bidAmount));
       }
     } catch (err: any) {
-      console.error('[Bidding Exception]:', err);
-      showToast(err.message || 'Error al procesar tu puja. Intenta de nuevo.', 'error');
+      if (err.message === 'OFFLINE_DETECTOR' || !navigator.onLine) {
+        addToOfflineQueue('bid', 'bids', {
+          machinery_id: item.id,
+          user_id: user!.id,
+          amount: Number(bidAmount)
+        });
+        showToast('Sin conexión. Tu puja se guardó localmente y se enviará automáticamente al recuperar conexión.', 'warning');
+        setBidAmount(Number(bidAmount) + (item.minBidIncrement || 500));
+        if (onBidSuccess) {
+          onBidSuccess(item.id, Number(bidAmount));
+        }
+      } else {
+        console.error('[Bidding Exception]:', err);
+        showToast(err.message || 'Error al procesar tu puja. Intenta de nuevo.', 'error');
+      }
     } finally {
       setSubmittingBid(false);
     }

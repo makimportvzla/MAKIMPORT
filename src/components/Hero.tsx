@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Gavel, FileText, ArrowRight, ShieldCheck, Ship, CheckCircle2, ChevronRight, Globe2, Wrench, ShoppingBag, Calendar, BarChart3, Tag } from 'lucide-react';
+import { Search, Gavel, ArrowRight, Wrench, ShoppingBag, Calendar, BarChart3, Tag } from 'lucide-react';
 import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
-import { Logo } from './Logo';
+import { HeroCarousel } from './HeroCarousel';
 
 interface HeroProps {
   onOpenAuth: (mode?: 'login' | 'register') => void;
@@ -62,72 +62,39 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10 w-full">
         
-        {/* Top Tag / Pill - Staggered Step 1 */}
-        <div className="flex justify-center mb-4 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-700 fill-mode-forwards">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-orange-500/30 text-xs font-semibold text-orange-400 backdrop-blur-md shadow-lg shadow-black/40">
-            <Globe2 className="w-4 h-4 text-orange-500 animate-pulse animate-duration-[2000ms]" />
-            <span>Ecosistema Integral de Maquinaria Pesada en Venezuela</span>
-            <span className="hidden sm:inline text-slate-500">|</span>
-            <span className="hidden sm:inline text-slate-300 font-normal">Aduanas en Puerto Cabello & La Guaira</span>
-          </div>
+        {/* Interactive Hero Banner Carousel */}
+        <div className="mb-8 animate-in fade-in duration-700">
+          <HeroCarousel />
         </div>
 
-        {/* Official Isotype Emblem - Staggered Step 2 */}
-        <div className="flex justify-center mb-6 animate-in fade-in zoom-in-90 duration-700 delay-150 fill-mode-forwards">
-          <div className="relative p-3 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950/80 border border-orange-500/25 shadow-2xl shadow-orange-950/40 backdrop-blur-md hover:scale-105 transition-transform duration-300 group">
-            <div className="absolute inset-0 rounded-2xl bg-orange-500/10 blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-            <Logo size="lg" showText={false} className="relative z-10 drop-shadow-[0_0_15px_rgba(234,88,12,0.35)]" />
-          </div>
-        </div>
-
-        {/* Hero Title & Subtitle - Staggered Step 3 */}
-        <div className="text-center max-w-4xl mx-auto space-y-6">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-forwards">
-            Compra, Vende, Alquila y Cotiza{' '}
-            <span className="relative inline-block px-3 py-1 my-1 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/20 to-orange-500/15 border border-orange-500/30 text-orange-400 font-black tracking-normal shadow-[0_0_25px_rgba(234,88,12,0.25)] backdrop-blur-sm transition-all hover:border-orange-500/60">
-              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]">
-                Maquinaria Pesada
-              </span>
-            </span>
-          </h1>
-
-          {/* Subtitle Paragraph - Staggered Step 4 */}
-          <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500 fill-mode-forwards">
-            Tu solución integral: catálogo nacional verificado, alquiler de equipos para proyectos, red de servicios técnicos e importación directa desde EE.UU. y China.
-          </p>
-
-          {/* CTA SECUNDARIO DESTACADO: Banner de Cotización de Obra - Staggered Step 5 */}
-          <div className="pt-4 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-700 fill-mode-forwards">
-            <div
-              onClick={() => { window.location.href = '/cotizacion-obra'; }}
-              className="group relative bg-gradient-to-r from-orange-950/40 via-slate-900 to-amber-950/40 border border-orange-500/30 hover:border-orange-500/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300 cursor-pointer shadow-xl shadow-black/30 hover:shadow-orange-950/20 hover:-translate-y-0.5"
-            >
-              {/* Decorative side glows */}
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-500"></div>
-
-              <div className="flex items-center gap-4 text-left">
-                <div className="w-12 h-12 rounded-xl bg-orange-600/20 border border-orange-500/35 flex items-center justify-center text-orange-400 shrink-0">
-                  <BarChart3 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-extrabold text-white flex items-center gap-1.5">
-                    Cotizar Obra o Proyecto
-                    <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[9px] font-black rounded-full uppercase tracking-wider">Nuevo</span>
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-1">¿Necesitas presupuesto de obra con maquinarias y operadores? Solicita tu propuesta formal 24h.</p>
-                </div>
+        {/* CTA SECUNDARIO DESTACADO: Banner de Cotización de Obra */}
+        <div className="pt-2 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+          <div
+            onClick={() => { window.location.href = '/cotizacion-obra'; }}
+            className="group relative bg-gradient-to-r from-orange-950/40 via-slate-900 to-amber-950/40 border border-orange-500/30 hover:border-orange-500/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300 cursor-pointer shadow-xl shadow-black/30 hover:shadow-orange-950/20 hover:-translate-y-0.5"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-500"></div>
+            <div className="flex items-center gap-4 text-left">
+              <div className="w-12 h-12 rounded-xl bg-orange-600/20 border border-orange-500/35 flex items-center justify-center text-orange-400 shrink-0">
+                <BarChart3 className="w-6 h-6" />
               </div>
-              <button
-                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/50 transition-colors z-10"
-              >
-                <span>Cotizar Proyecto</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </button>
+              <div>
+                <h4 className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                  Cotizar Obra o Proyecto
+                  <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[9px] font-black rounded-full uppercase tracking-wider">Nuevo</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">¿Necesitas presupuesto de obra con maquinarias y operadores? Solicita tu propuesta formal 24h.</p>
+              </div>
             </div>
+            <button className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/50 transition-colors z-10">
+              <span>Cotizar Proyecto</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
+        </div>
 
-          {/* MATRIZ DE ACCIONES RÁPIDAS (Grid 4 columnas) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 max-w-5xl mx-auto">
+        {/* MATRIZ DE ACCIONES RÁPIDAS (Grid 5 columnas) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-6 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
             {/* Accion 1: Catálogo */}
             <div
               onClick={handleCatalogClick}
@@ -187,7 +154,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
             {/* Accion 5: Vender mi Equipo */}
             <div
               onClick={() => onOpenPostularEquipo?.()}
-              className="group p-4 bg-amber-950/20 border border-amber-700/40 hover:border-amber-500/60 rounded-2xl text-center space-y-3 cursor-pointer transition-all hover:bg-amber-950/35 hover:-translate-y-0.5 shadow-lg shadow-black/20 sm:col-span-2 lg:col-span-1"
+              className="group p-4 bg-amber-950/20 border border-amber-700/40 hover:border-amber-500/60 rounded-2xl text-center space-y-3 cursor-pointer transition-all hover:bg-amber-950/35 hover:-translate-y-0.5 shadow-lg shadow-black/20"
             >
               <div className="mx-auto w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:bg-amber-600/30 group-hover:border-amber-500/50 transition-colors">
                 <Tag className="w-5 h-5" />
@@ -198,7 +165,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAuth, onFilterChange, onOpenCu
               </div>
             </div>
           </div>
-        </div>
+
 
         {/* Quick Search Filter Card */}
         <div className="mt-12 max-w-5xl mx-auto">

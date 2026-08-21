@@ -6,6 +6,7 @@ import {
   Wrench, User, MapPin, DollarSign, Calendar, Tag, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { addToOfflineQueue } from '@/lib/offlineQueue';
 import { BRANDS, CATEGORIES } from '@/constants/machineryOptions';
 import { ImageUploader } from './ImageUploader';
 import { useAuth } from '@/context/AuthContext';
@@ -47,6 +48,7 @@ export const PostularEquipoModal: React.FC<PostularEquipoModalProps> = ({ isOpen
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [offlineSaved, setOfflineSaved] = useState(false);
 
   if (!isOpen) return null;
 
@@ -68,6 +70,7 @@ export const PostularEquipoModal: React.FC<PostularEquipoModalProps> = ({ isOpen
     setPhotoUrls([]);
     setErrorMsg('');
     setSuccess(false);
+    setOfflineSaved(false);
   };
 
   const handleClose = () => {
@@ -96,7 +99,7 @@ export const PostularEquipoModal: React.FC<PostularEquipoModalProps> = ({ isOpen
     setErrorMsg('');
 
     try {
-      const { error: dbErr } = await supabase.from('postulaciones_equipos').insert({
+      const payload = {
         nombre_cliente: nombre.trim(),
         apellido_cliente: apellido.trim(),
         cedula_rif_cliente: cedulaRif.trim(),
@@ -113,13 +116,48 @@ export const PostularEquipoModal: React.FC<PostularEquipoModalProps> = ({ isOpen
         fotos_urls: photoUrls,
         estado: 'Pendiente de Revisión',
         creado_por: user?.id || null,
-      });
+      };
 
-      if (dbErr) throw dbErr;
+      if (!navigator.onLine) {
+        throw new Error('OFFLINE_DETECTOR');
+      }
+
+      const { error: dbErr } = await supabase.from('postulaciones_equipos').insert(payload);
+
+      if (dbErr) {
+        if (dbErr.message === 'Failed to fetch') {
+          throw new Error('OFFLINE_DETECTOR');
+        }
+        throw dbErr;
+      }
       setSuccess(true);
     } catch (err: any) {
-      console.error('[PostularEquipo] DB error:', err);
-      setErrorMsg(err.message || 'Error al guardar la postulación. Intenta nuevamente.');
+      if (err.message === 'OFFLINE_DETECTOR' || !navigator.onLine) {
+        const payload = {
+          nombre_cliente: nombre.trim(),
+          apellido_cliente: apellido.trim(),
+          cedula_rif_cliente: cedulaRif.trim(),
+          telefono_cliente: telefono.trim(),
+          marca: marca,
+          modelo: modelo.trim(),
+          ano: Number(ano),
+          condicion: condicion,
+          uso_valor: Number(usoValor) || 0,
+          uso_unidad: usoUnidad,
+          descripcion_notas: descripcion.trim() || null,
+          ciudad_venezuela: ciudad.trim(),
+          precio_estimado: Number(precioEstimado) || 0,
+          fotos_urls: photoUrls,
+          estado: 'Pendiente de Revisión',
+          creado_por: user?.id || null,
+        };
+        addToOfflineQueue('postulacion', 'postulaciones_equipos', payload);
+        setOfflineSaved(true);
+        setSuccess(true);
+      } else {
+        console.error('[PostularEquipo] DB error:', err);
+        setErrorMsg(err.message || 'Error al guardar la postulación. Intenta nuevamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -162,11 +200,21 @@ export const PostularEquipoModal: React.FC<PostularEquipoModalProps> = ({ isOpen
                 <CheckCircle2 className="w-8 h-8 text-emerald-400" />
               </div>
               <div className="space-y-2">
-                <h4 className="text-xl font-extrabold text-white">¡Postulación Registrada!</h4>
+                <h4 className="text-xl font-extrabold text-white">
+                  {offlineSaved ? '¡Guardado Localmente!' : '¡Postulación Registrada!'}
+                </h4>
                 <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
-                  La información de tu equipo fue recibida con éxito.
-                  Está <span className="text-amber-400 font-bold">Pendiente de Revisión</span> y te contactaremos
-                  por WhatsApp a la brevedad.
+                  {offlineSaved ? (
+                    <span className="text-amber-400 font-bold">
+                      Sin conexión. Tu postulación se guardó localmente en este dispositivo y se enviará automáticamente al recuperar internet.
+                    </span>
+                  ) : (
+                    <>
+                      La información de tu equipo fue recibida con éxito.
+                      Está <span className="text-amber-400 font-bold">Pendiente de Revisión</span> y te contactaremos
+                      por WhatsApp a la brevedad.
+                    </>
+                  )}
                 </p>
               </div>
               <button

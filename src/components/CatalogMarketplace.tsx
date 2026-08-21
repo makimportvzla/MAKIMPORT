@@ -479,6 +479,21 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   // Realtime Supabase Subscription & Initial Fetch
   useEffect(() => {
     const fetchMachinery = async () => {
+      // 1. Try to load cached data first for instant UI response or offline support
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('makimport_catalog_machinery');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setItems(parsed);
+            }
+          } catch (e) {
+            console.error('Error parsing cached machinery:', e);
+          }
+        }
+      }
+
       try {
         let bidsData: any = null;
         try {
@@ -504,20 +519,32 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
           .order('created_at', { ascending: false });
 
         if (error) {
-          console.warn('Error al cargar maquinaria de Supabase:', error);
-          setItems([]);
-          return;
+          throw error;
         }
 
         if (data) {
           const dbItems = data.map((row) => mapDbRowToMachineryItem(row, bidsCountMap));
           setItems(dbItems);
+          // Persist to localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('makimport_catalog_machinery', JSON.stringify(dbItems));
+          }
         } else {
           setItems([]);
         }
       } catch (err) {
-        console.warn('Error al cargar maquinaria de Supabase:', err);
-        setItems([]);
+        console.warn('Error al cargar maquinaria de Supabase (usando local si existe):', err);
+        // Fallback already loaded from cache, if fetch completely fails we make sure cache is kept
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('makimport_catalog_machinery');
+          if (cached) {
+            try {
+              setItems(JSON.parse(cached));
+            } catch (e) {}
+          } else {
+            setItems([]);
+          }
+        }
       }
     };
 
@@ -626,6 +653,19 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
   // Fetch dynamic announcements from Supabase
   useEffect(() => {
     const fetchAnuncios = async () => {
+      // Load cached announcements first
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('makimport_catalog_anuncios');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setAnuncios(parsed);
+            }
+          } catch (e) {}
+        }
+      }
+
       try {
         const { data, error } = await supabase
           .from('anuncios_catalogo_dinamico')
@@ -634,10 +674,13 @@ export const CatalogMarketplace: React.FC<CatalogMarketplaceProps> = ({
           .order('orden', { ascending: true });
         if (!error && data && data.length > 0) {
           setAnuncios(data as AnuncioDinamico[]);
+          // Persist to localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('makimport_catalog_anuncios', JSON.stringify(data));
+          }
         }
-        // if error or empty, keep static fallback
       } catch (err) {
-        console.warn('Error fetching anuncios:', err);
+        console.warn('Error fetching anuncios (usando local si existe):', err);
       } finally {
         setAnunciosLoaded(true);
       }

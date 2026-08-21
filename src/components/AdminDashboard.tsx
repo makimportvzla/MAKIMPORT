@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { AdminEditModal } from './AdminEditModal';
 import { AdminDocumentModal } from './AdminDocumentModal';
 import { ProveedoresTab } from './ProveedoresTab';
+import { AdminBannersTab } from './AdminBannersTab';
 import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
 
 interface UserProfile {
@@ -197,11 +198,11 @@ interface OwnerMachinery {
 }
 
 interface AdminDashboardProps {
-  initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications' | 'machineryPostulations';
+  initialTab?: 'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications' | 'machineryPostulations' | 'hero_banners';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'inventory' }) => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications' | 'machineryPostulations'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'auctions' | 'users' | 'purchases' | 'custom' | 'proveedores' | 'alquileres' | 'projectQuotes' | 'serviceApplications' | 'machineryPostulations' | 'hero_banners'>(initialTab);
   const [machines, setMachines] = useState<MachineryItem[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
@@ -1067,6 +1068,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
                 <span className="ml-1 px-1.5 py-0.5 bg-amber-700 rounded-full text-[10px]">{machineryPostulations.filter(p => p.estado === 'Pendiente de Revisión').length}</span>
               )}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('hero_banners')}
+            className={`py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'hero_banners'
+                ? 'bg-violet-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4 shrink-0" />
+            <span className="truncate">Banners Home</span>
           </button>
         </div>
 
@@ -3950,6 +3963,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'in
           </div>
         </div>
       )}
+
+        {/* ── TAB 11: HERO BANNER CAROUSEL MANAGEMENT ── */}
+        {activeTab === 'hero_banners' && (
+          <div className="space-y-6">
+            <AdminBannersTab />
+          </div>
+        )}
 
     </div>
   );

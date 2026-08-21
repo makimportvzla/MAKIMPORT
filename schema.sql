@@ -275,3 +275,57 @@ CREATE POLICY "Admin puede actualizar postulaciones de equipos" ON public.postul
 -- HABILITAR REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE public.postulaciones_equipos;
 
+
+-- ═══════════════════════════════════════════════════════
+-- TABLA: carousel_banners (Hero Banner Carousel – Home)
+-- ═══════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.carousel_banners (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  image_url  TEXT        NOT NULL,
+  title      TEXT        NOT NULL,
+  subtitle   TEXT,
+  link_url   TEXT,
+  is_active  BOOLEAN     NOT NULL DEFAULT TRUE,
+  "order"    INT         NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- HABILITAR RLS
+ALTER TABLE public.carousel_banners ENABLE ROW LEVEL SECURITY;
+
+-- POLÍTICAS
+-- Cualquiera puede leer banners (activos o si es admin)
+CREATE POLICY "Banners activos son visibles para todos" ON public.carousel_banners
+  FOR SELECT USING (is_active = true OR
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- Solo admin puede insertar
+CREATE POLICY "Solo admin puede insertar banners" ON public.carousel_banners
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- Solo admin puede actualizar
+CREATE POLICY "Solo admin puede actualizar banners" ON public.carousel_banners
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- Solo admin puede eliminar
+CREATE POLICY "Solo admin puede eliminar banners" ON public.carousel_banners
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );

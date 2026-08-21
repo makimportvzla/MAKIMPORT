@@ -6,6 +6,7 @@ import {
   MapPin, DollarSign, Calendar, Tag, Wrench, User, Phone, Mail,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { addToOfflineQueue } from '@/lib/offlineQueue';
 import { BRANDS } from '@/constants/machineryOptions';
 
 interface CustomRequestModalProps {
@@ -29,39 +30,48 @@ export const CustomRequestModal: React.FC<CustomRequestModalProps> = ({ isOpen, 
   const [loading, setLoading]       = useState(false);
   const [success, setSuccess]       = useState(false);
   const [errorMsg, setErrorMsg]     = useState('');
+  const [offlineSaved, setOfflineSaved] = useState(false);
 
   if (!isOpen) return null;
 
   const reset = () => {
     setMarca(''); setModelo(''); setAnoMinimo(2018); setPuerto('Puerto Cabello');
     setPresupuesto(''); setNombre(''); setTelefono(''); setEmail('');
-    setErrorMsg(''); setSuccess(false);
+    setErrorMsg(''); setSuccess(false); setOfflineSaved(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
     setLoading(true);
     setErrorMsg('');
 
+    const payload = {
+      marca:              marca.trim(),
+      modelo:             modelo.trim(),
+      ano_minimo:         anoMinimo,
+      puerto_destino:     puerto,
+      presupuesto_maximo: Number(presupuesto) || 0,
+      nombre:             nombre.trim(),
+      telefono:           telefono.trim(),
+      email:              email.trim(),
+      estado:             'pendiente',
+    };
+
     try {
+      if (!navigator.onLine) {
+        throw new Error('OFFLINE_DETECTOR');
+      }
+
       // 1. Save to Supabase
-      const { error: dbErr } = await supabase.from('custom_machinery_requests').insert({
-        marca:              marca.trim(),
-        modelo:             modelo.trim(),
-        ano_minimo:         anoMinimo,
-        puerto_destino:     puerto,
-        presupuesto_maximo: Number(presupuesto) || 0,
-        nombre:             nombre.trim(),
-        telefono:           telefono.trim(),
-        email:              email.trim(),
-        estado:             'pendiente',
-      });
+      const { error: dbErr } = await supabase.from('custom_machinery_requests').insert(payload);
 
       if (dbErr) {
-        console.warn('[CustomRequest] DB warning:', dbErr.message);
+        if (dbErr.message === 'Failed to fetch') {
+          throw new Error('OFFLINE_DETECTOR');
+        }
+        throw dbErr;
       }
 
       // 2. Send email notification
@@ -82,7 +92,13 @@ export const CustomRequestModal: React.FC<CustomRequestModalProps> = ({ isOpen, 
 
       setSuccess(true);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error inesperado. Intente nuevamente.');
+      if (err.message === 'OFFLINE_DETECTOR' || !navigator.onLine) {
+        addToOfflineQueue('custom_request', 'custom_machinery_requests', payload);
+        setOfflineSaved(true);
+        setSuccess(true);
+      } else {
+        setErrorMsg(err.message || 'Error inesperado. Intente nuevamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -127,9 +143,17 @@ export const CustomRequestModal: React.FC<CustomRequestModalProps> = ({ isOpen, 
                 <CheckCircle2 className="w-8 h-8 text-emerald-400" />
               </div>
               <div>
-                <h4 className="text-lg font-extrabold text-white mb-1">¡Solicitud Enviada!</h4>
+                <h4 className="text-lg font-extrabold text-white mb-1">
+                  {offlineSaved ? '¡Guardado Localmente!' : '¡Solicitud Enviada!'}
+                </h4>
                 <p className="text-sm text-slate-400 leading-relaxed">
-                  Recibimos tu encargo. Nuestro equipo preparará un presupuesto personalizado y te contactará pronto.
+                  {offlineSaved ? (
+                    <span className="text-amber-400 font-bold">
+                      Sin conexión. Tu solicitud de encargo se guardó localmente y se enviará automáticamente al recuperar internet.
+                    </span>
+                  ) : (
+                    'Recibimos tu encargo. Nuestro equipo preparará un presupuesto personalizado y te contactará pronto.'
+                  )}
                 </p>
               </div>
 

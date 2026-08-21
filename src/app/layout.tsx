@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { PWAOfflineHandler } from "@/components/PWAOfflineHandler";
 
 export const metadata: Metadata = {
   title: "MAKIMPORT | Importación y Subastas de Maquinaria Pesada para Venezuela",
@@ -38,9 +39,11 @@ export default function RootLayout({
     <html lang="es">
       <body className="bg-slate-950 text-slate-100 antialiased selection:bg-orange-600 selection:text-white">
         <AuthProvider>
+          <PWAOfflineHandler />
           {children}
         </AuthProvider>
       </body>
     </html>
   );
 }
+

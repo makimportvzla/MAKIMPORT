@@ -8,6 +8,7 @@ import { AdminPublishModal } from '@/components/AdminPublishModal';
 import { FloatingContactButtons } from '@/components/FloatingContactButtons';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { supabase } from '@/lib/supabase';
+import { addToOfflineQueue } from '@/lib/offlineQueue';
 import { useAuth } from '@/context/AuthContext';
 import { CATEGORIES, BRANDS } from '@/constants/machineryOptions';
 import {
@@ -95,6 +96,7 @@ export default function PostularEquipoPage() {
   const [loading, setLoading]         = useState(false);
   const [errorMsg, setErrorMsg]       = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [offlineSaved, setOfflineSaved] = useState(false);
   const [dragOver, setDragOver]       = useState(false);
 
   const handleOpenAuth = (mode: 'login' | 'register' = 'login') => {
@@ -161,6 +163,10 @@ export default function PostularEquipoPage() {
     setUploadProgress(0);
 
     try {
+      if (!navigator.onLine) {
+        throw new Error('OFFLINE_DETECTOR');
+      }
+
       // 1. Upload photos to Supabase Storage
       const photoUrls: string[] = [];
       for (let i = 0; i < photoFiles.length; i++) {
@@ -195,16 +201,52 @@ export default function PostularEquipoPage() {
         incluye_operador:     incluyeOperador === 'si',
         modalidad_disponible: modalidadDisponible,
         disponible_desde:     disponibleDesde || null,
-        notas:                notas.trim() || null,
+        notes:                notas.trim() || null,
         estado:               'disponible',
         photos:               photoUrls.length > 0 ? photoUrls : null,
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.message === 'Failed to fetch') {
+          throw new Error('OFFLINE_DETECTOR');
+        }
+        throw new Error(error.message);
+      }
       setUploadProgress(100);
       setShowSuccess(true);
       resetForm();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error al registrar el equipo. Intente nuevamente.');
+      if (err.message === 'OFFLINE_DETECTOR' || !navigator.onLine) {
+        // Enqueue text fields only (cannot upload photo files offline)
+        const payload = {
+          nombre_propietario:   nombrePropietario.trim(),
+          telefono:             telefono.trim(),
+          email:                email.trim() || null,
+          instagram:            instagram.trim() || null,
+          estado_base:          estadoBase,
+          ciudad_base:          ciudadBase.trim(),
+          categoria_equipo:     categoriaEquipo,
+          marca:                marca.trim(),
+          modelo:               modelo.trim() || null,
+          ano:                  ano ? Number(ano) : null,
+          horas_uso:            horasUso ? Number(horasUso) : null,
+          capacidad:            capacidad.trim() || null,
+          tarifa_hora:          tarifaHora ? Number(tarifaHora) : null,
+          tarifa_dia:           tarifaDia  ? Number(tarifaDia)  : null,
+          incluye_operador:     incluyeOperador === 'si',
+          modalidad_disponible: modalidadDisponible,
+          disponible_desde:     disponibleDesde || null,
+          notes:                notas.trim() || null,
+          estado:               'disponible',
+          photos:               null,
+        };
+        addToOfflineQueue('owner_machinery', 'owner_machinery', payload);
+        setOfflineSaved(true);
+        setUploadProgress(100);
+        setShowSuccess(true);
+        resetForm();
+      } else {
+        setErrorMsg(err.message || 'Error al registrar el equipo. Intente nuevamente.');
+      }
     } finally {
       setLoading(false);
       setUploadProgress(0);
@@ -634,14 +676,22 @@ export default function PostularEquipoPage() {
             <div className="w-16 h-16 bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle className="w-10 h-10" />
             </div>
-            <h3 className="text-xl font-extrabold text-white">¡Equipo Registrado con Éxito!</h3>
+            <h3 className="text-xl font-extrabold text-white">
+              {offlineSaved ? '¡Guardado Localmente!' : '¡Equipo Registrado con Éxito!'}
+            </h3>
             <p className="text-sm text-slate-400">
-              Tu equipo ha sido agregado a la base de datos de MAKIMPORT. El equipo revisará la información y te contactará a la brevedad cuando haya un cliente compatible con tu equipo.
+              {offlineSaved ? (
+                <span className="text-amber-400 font-bold">
+                  Sin conexión. Tu equipo se registró localmente en este dispositivo y se enviará automáticamente al recuperar internet. (Las imágenes no se pudieron cargar por falta de conexión).
+                </span>
+              ) : (
+                'Tu equipo ha sido agregado a la base de datos de MAKIMPORT. El equipo revisará la información y te contactará a la brevedad cuando haya un cliente compatible con tu equipo.'
+              )}
             </p>
             <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs text-slate-500 font-mono">
               Mantén tu WhatsApp activo — nuestros asesores te avisarán cuando haya una solicitud de alquiler que coincida con tu maquinaria.
             </div>
-            <button onClick={() => setShowSuccess(false)}
+            <button onClick={() => { setShowSuccess(false); setOfflineSaved(false); }}
               className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm rounded-xl transition-all shadow-md active:scale-95">
               Entendido
             </button>

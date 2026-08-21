@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer';
 import { FloatingContactButtons } from '@/components/FloatingContactButtons';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { supabase } from '@/lib/supabase';
+import { addToOfflineQueue } from '@/lib/offlineQueue';
 import { useAuth } from '@/context/AuthContext';
 import {
   HardHat,
@@ -72,6 +73,7 @@ export default function CotizacionObraPage() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [offlineSaved, setOfflineSaved] = useState(false);
 
   // Step 1 — Solicitante
   const [clientName, setClientName] = useState('');
@@ -182,6 +184,10 @@ export default function CotizacionObraPage() {
     setError('');
     setSubmitting(true);
     try {
+      if (!navigator.onLine) {
+        throw new Error('OFFLINE_DETECTOR');
+      }
+
       const attachUrls = await uploadAttachments();
       const durationAndStart = [durationStart, startDate ? `Inicio: ${startDate}` : ''].filter(Boolean).join(' — ');
       const payload = {
@@ -203,10 +209,36 @@ export default function CotizacionObraPage() {
         .insert(payload)
         .select('id')
         .single();
-      if (dbErr) throw dbErr;
+      if (dbErr) {
+        if (dbErr.message === 'Failed to fetch') {
+          throw new Error('OFFLINE_DETECTOR');
+        }
+        throw dbErr;
+      }
       setSuccessId(data?.id?.substring(0, 8).toUpperCase() || 'OK');
     } catch (e: any) {
-      setError(e.message || 'Error al enviar. Intenta de nuevo.');
+      if (e.message === 'OFFLINE_DETECTOR' || !navigator.onLine) {
+        const durationAndStart = [durationStart, startDate ? `Inicio: ${startDate}` : ''].filter(Boolean).join(' — ');
+        const payload = {
+          client_name_or_company: clientName.trim(),
+          id_document: idDocument.trim(),
+          phone_contact: phone.trim(),
+          project_location: projectLocation.trim(),
+          project_type: projectType,
+          scope,
+          requires_site_visit: siteVisit,
+          duration_and_start_date: durationAndStart,
+          estimated_budget: budget || null,
+          project_description: description.trim(),
+          attachments_urls: null, // offline
+          user_id: user?.id || null,
+        };
+        addToOfflineQueue('cotizacion', 'project_quotes', payload);
+        setOfflineSaved(true);
+        setSuccessId('OFFLINE_SYNC');
+      } else {
+        setError(e.message || 'Error al enviar. Intenta de nuevo.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -218,29 +250,47 @@ export default function CotizacionObraPage() {
       <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
         <Navbar onOpenAuth={() => {}} onOpenAdminPublish={() => {}} />
         <div className="flex-1 flex items-center justify-center px-4 pt-24 pb-16">
-          <div className="max-w-lg w-full bg-slate-900 border border-emerald-500/30 rounded-3xl p-8 text-center space-y-5 shadow-2xl">
+          <div className={`max-w-lg w-full bg-slate-900 border ${offlineSaved ? 'border-amber-500/30' : 'border-emerald-500/30'} rounded-3xl p-8 text-center space-y-5 shadow-2xl`}>
             <div className="mx-auto w-16 h-16 rounded-full bg-emerald-950 border border-emerald-500/40 flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
-            <h1 className="text-2xl font-black text-white">¡Solicitud Recibida!</h1>
+            <h1 className="text-2xl font-black text-white">
+              {offlineSaved ? '¡Cotización Guardada!' : '¡Solicitud Recibida!'}
+            </h1>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Tu solicitud de cotización para el proyecto <strong className="text-white">"{projectType}"</strong> fue registrada correctamente. Nuestro equipo comercial la revisará y te contactará vía WhatsApp en un plazo de 24 horas hábiles.
+              {offlineSaved ? (
+                <span className="text-amber-400 font-bold">
+                  Sin conexión. Tu solicitud de cotización se guardó localmente en este dispositivo y se enviará automáticamente cuando recuperes la conexión a internet.
+                </span>
+              ) : (
+                <>
+                  Tu solicitud de cotización para el proyecto <strong className="text-white">"{projectType}"</strong> fue registrada correctamente. Nuestro equipo comercial la revisará y te contactará vía WhatsApp en un plazo de 24 horas hábiles.
+                </>
+              )}
             </p>
-            <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">N° de Referencia</p>
-              <p className="text-2xl font-black font-mono text-orange-400 mt-1"># {successId}</p>
-            </div>
-            <div className="text-xs text-slate-500 space-y-1">
-              <p>Guarda este número para hacer seguimiento de tu cotización.</p>
-              <a
-                href={`https://wa.me/584146370819?text=${encodeURIComponent(`Hola MAKIMPORT, solicité una cotización de obra con N° de referencia #${successId}. Quisiera hacer seguimiento.`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-emerald-400 font-bold hover:underline mt-1"
-              >
-                Consultar por WhatsApp →
-              </a>
-            </div>
+            {offlineSaved ? (
+              <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 text-xs text-slate-500">
+                La sincronización se realizará en segundo plano de manera automática al detectar red.
+              </div>
+            ) : (
+              <>
+                <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">N° de Referencia</p>
+                  <p className="text-2xl font-black font-mono text-orange-400 mt-1"># {successId}</p>
+                </div>
+                <div className="text-xs text-slate-500 space-y-1">
+                  <p>Guarda este número para hacer seguimiento de tu cotización.</p>
+                  <a
+                    href={`https://wa.me/584146370819?text=${encodeURIComponent(`Hola MAKIMPORT, solicité una cotización de obra con N° de referencia #${successId}. Quisiera hacer seguimiento.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-emerald-400 font-bold hover:underline mt-1"
+                  >
+                    Consultar por WhatsApp →
+                  </a>
+                </div>
+              </>
+            )}
             <Link
               href="/"
               className="inline-block mt-2 px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-extrabold rounded-xl text-sm transition-colors"

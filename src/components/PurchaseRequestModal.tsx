@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, ShoppingBag, User, MapPin, Mail, Phone, CheckCircle2, AlertCircle, Loader2, Send, MessageCircle } from 'lucide-react';
 import { MachineryItem } from '@/types/machinery';
 import { supabase } from '@/lib/supabase';
+import { addToOfflineQueue } from '@/lib/offlineQueue';
 
 interface PurchaseRequestModalProps {
   item: MachineryItem;
@@ -20,6 +21,7 @@ export const PurchaseRequestModal: React.FC<PurchaseRequestModalProps> = ({ item
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [offlineSaved, setOfflineSaved] = useState(false);
 
   if (!isOpen) return null;
 
@@ -31,6 +33,7 @@ export const PurchaseRequestModal: React.FC<PurchaseRequestModalProps> = ({ item
     setTelefono('');
     setErrorMsg('');
     setSuccess(false);
+    setOfflineSaved(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,23 +43,31 @@ export const PurchaseRequestModal: React.FC<PurchaseRequestModalProps> = ({ item
     setLoading(true);
     setErrorMsg('');
 
+    const payload = {
+      machinery_id: item.id,
+      machinery_title: item.name,
+      machinery_price: item.price,
+      nombre: nombre.trim(),
+      apellido: apellido.trim(),
+      ciudad: ciudad.trim(),
+      email: email.trim(),
+      telefono: telefono.trim(),
+      estado: 'pendiente',
+    };
+
     try {
+      if (!navigator.onLine) {
+        throw new Error('OFFLINE_DETECTOR');
+      }
+
       // 1. Save to Supabase purchase_requests table
-      const { error: dbError } = await supabase.from('purchase_requests').insert({
-        machinery_id: item.id,
-        machinery_title: item.name,
-        machinery_price: item.price,
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        ciudad: ciudad.trim(),
-        email: email.trim(),
-        telefono: telefono.trim(),
-        estado: 'pendiente',
-      });
+      const { error: dbError } = await supabase.from('purchase_requests').insert(payload);
 
       if (dbError) {
+        if (dbError.message === 'Failed to fetch') {
+          throw new Error('OFFLINE_DETECTOR');
+        }
         console.warn('[PurchaseRequest] DB Error (non-critical):', dbError.message);
-        // Non-fatal: proceed to send email anyway
       }
 
       // 2. Send notification email via API route
@@ -82,7 +93,13 @@ export const PurchaseRequestModal: React.FC<PurchaseRequestModalProps> = ({ item
       // 3. Show success confirmation options
       setSuccess(true);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error inesperado. Por favor intente nuevamente.');
+      if (err.message === 'OFFLINE_DETECTOR' || !navigator.onLine) {
+        addToOfflineQueue('purchase_request', 'purchase_requests', payload);
+        setOfflineSaved(true);
+        setSuccess(true);
+      } else {
+        setErrorMsg(err.message || 'Error inesperado. Por favor intente nuevamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -123,10 +140,20 @@ export const PurchaseRequestModal: React.FC<PurchaseRequestModalProps> = ({ item
               <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
             <div>
-              <h4 className="text-lg font-extrabold text-white mb-1">¡Solicitud Registrada con Éxito!</h4>
+              <h4 className="text-lg font-extrabold text-white mb-1">
+                {offlineSaved ? '¡Guardado Localmente!' : '¡Solicitud Registrada con Éxito!'}
+              </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Hemos enviado la notificación a <strong className="text-white">makimportvzla@gmail.com</strong>. <br />
-                ¿Cómo deseas recibir atención comercial inmediata?
+                {offlineSaved ? (
+                  <span className="text-amber-400 font-bold">
+                    Sin conexión. Tu solicitud de compra se guardó localmente en este dispositivo y se enviará automáticamente cuando recuperes la conexión a internet.
+                  </span>
+                ) : (
+                  <>
+                    Hemos enviado la notificación a <strong className="text-white">makimportvzla@gmail.com</strong>. <br />
+                    ¿Cómo deseas recibir atención comercial inmediata?
+                  </>
+                )}
               </p>
             </div>
 
